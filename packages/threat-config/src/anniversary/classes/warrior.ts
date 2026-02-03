@@ -164,4 +164,14 @@ export const warriorConfig: ClassThreatConfig = {
     // Challenging Shout: AoE taunt, fixate for 6s
     [Spells.ChallengingShout]: tauntTarget(0, 6000),
   },
+
+  fixateBuffs: new Set([
+    Spells.Taunt,
+    Spells.ChallengingShout,
+    Spells.MockingBlow,
+    694, // Mocking Blow (other IDs)
+    7400,
+    7402,
+    20559,
+  ]),
 }

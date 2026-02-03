@@ -146,3 +146,61 @@ export function noThreat(durationMs?: number): FormulaFn {
       : undefined,
   })
 }
+
+/**
+ * Flat threat on debuff application (e.g., Demoralizing Shout)
+ * Note: For abilities that miss, this should be paired with castCanMiss
+ */
+export function threatOnDebuff(value: number): FormulaFn {
+  return () => ({
+    formula: `${value}`,
+    baseThreat: value,
+    modifiers: [],
+    splitAmongEnemies: false,
+  })
+}
+
+/**
+ * Flat threat on buff application (e.g., Battle Shout)
+ * Usually split among enemies
+ */
+export function threatOnBuff(
+  value: number,
+  options?: FormulaOptions
+): FormulaFn {
+  return () => ({
+    formula: `${value}`,
+    baseThreat: value,
+    modifiers: [],
+    splitAmongEnemies: options?.split ?? true,
+  })
+}
+
+/**
+ * Heal with modified threat coefficient
+ * Example: Paladin heals (amt * 0.25), normal heals (amt * 0.5)
+ * Always splits among enemies
+ */
+export function modHeal(multiplier: number): FormulaFn {
+  return (ctx) => ({
+    formula: multiplier === 0.5 ? 'amt * 0.5' : `amt * ${multiplier}`,
+    baseThreat: ctx.amount * multiplier,
+    modifiers: [],
+    splitAmongEnemies: true,
+  })
+}
+
+/**
+ * Threat on cast that can miss - threat is applied on cast,
+ * then removed if the ability misses (damage event with hitType > 6)
+ * Example: Sunder Armor
+ */
+export function castCanMiss(value: number): FormulaFn {
+  return () => ({
+    formula: `${value} (cast)`,
+    baseThreat: value,
+    modifiers: [],
+    splitAmongEnemies: false,
+  })
+}
+

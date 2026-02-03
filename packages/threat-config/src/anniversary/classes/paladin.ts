@@ -4,7 +4,7 @@
  * Spell IDs and threat values are based on Classic/Anniversary Edition mechanics.
  */
 
-import type { ClassThreatConfig, ThreatContext } from '../../types'
+import type { ClassThreatConfig, ThreatContext, SpellSchool } from '../../types'
 import { flat, modAmountFlat, modAmount } from '../../shared/formulas'
 
 // ============================================================================
@@ -49,6 +49,23 @@ export const paladinConfig: ClassThreatConfig = {
       name: 'Righteous Fury',
       spellId: Spells.RighteousFury,
       value: 1.6, // Base value, improved by talent
+      schools: new Set(['holy']),
+    }),
+
+    // Blessing of Salvation - 0.7x threat
+    [Spells.BlessingOfSalvation]: () => ({
+      source: 'buff',
+      name: 'Blessing of Salvation',
+      spellId: Spells.BlessingOfSalvation,
+      value: 0.7,
+    }),
+
+    // Greater Blessing of Salvation - 0.7x threat
+    [Spells.GreaterBlessingOfSalvation]: () => ({
+      source: 'buff',
+      name: 'Greater Blessing of Salvation',
+      spellId: Spells.GreaterBlessingOfSalvation,
+      value: 0.7,
     }),
 
     // Blessing of Sanctuary provides passive threat boost via damage reduction
@@ -89,4 +106,15 @@ export const paladinConfig: ClassThreatConfig = {
     [Spells.GreaterBlessingOfKings]: flat(60, { split: true }),
     [Spells.GreaterBlessingOfSalvation]: flat(60, { split: true }),
   },
+
+  invulnerabilityBuffs: new Set([
+    498,
+    5573, // Divine Protection
+    642,
+    1020, // Divine Shield
+    1022,
+    5599,
+    10278, // Blessing of Protection
+    19752, // Divine Intervention
+  ]),
 }

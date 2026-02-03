@@ -26,6 +26,15 @@ export type WowClass =
   | 'demonhunter'
   | 'evoker'
 
+export type SpellSchool =
+  | 'physical'
+  | 'holy'
+  | 'fire'
+  | 'nature'
+  | 'frost'
+  | 'shadow'
+  | 'arcane'
+
 export type ModifierSource =
   | 'class' // Class-inherent modifier (e.g., Bear Form)
   | 'talent' // Talent choice
@@ -74,13 +83,22 @@ export interface ThreatModifier {
   source: ModifierSource
   name: string
   spellId?: number
-  value: number // Multiplier value, e.g., 1.3
+  /** Multiplier value, e.g., 1.3 */
+  value: number
+  /** If specified, modifier only applies to these spell schools. Omit for all schools. */
+  schools?: Set<SpellSchool>
 }
 
 export type ThreatSpecial =
   | { type: 'taunt'; fixateDuration: number }
   | { type: 'threatDrop' }
   | { type: 'noThreatWindow'; duration: number }
+  | { type: 'fixate' }
+  | { type: 'fixateEnd' }
+  | { type: 'aggroLoss' }
+  | { type: 'aggroLossEnd' }
+  | { type: 'invulnerable' }
+  | { type: 'invulnerableEnd' }
 
 export interface ThreatFormulaResult {
   /** Human-readable formula, e.g., "(2 * amt) + 115" */
@@ -108,15 +126,35 @@ export interface BaseThreatConfig {
   energize: ThreatFormula
 }
 
+export interface GearItem {
+  id: number
+  setID?: number
+  temporaryEnchant?: number
+}
+
 export interface ClassThreatConfig {
   /** Stance sets - engine auto-removes others when one is applied */
   stanceSets?: number[][]
+
+  /** Base threat factor for the class (default: 1.0) */
+  baseThreatFactor?: number
+
 
   /** Aura-based modifiers: spellId -> modifier function */
   auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier>
 
   /** Ability-specific formulas */
   abilities: Record<number, ThreatFormula>
+
+  /** Called when combatantInfo is received to detect gear-based modifiers */
+  gearImplications?: (gear: GearItem[]) => number[]
+
+  /** Buffs that indicate fixate (taunt) state */
+  fixateBuffs?: Set<number>
+  /** Buffs that indicate aggro loss state */
+  aggroLossBuffs?: Set<number>
+  /** Buffs that indicate invulnerability */
+  invulnerabilityBuffs?: Set<number>
 }
 
 export interface GlobalModifierConfig {
@@ -137,6 +175,12 @@ export interface ThreatConfig {
   untauntableEnemies: Set<number>
   /** Global modifiers (world buffs, etc.) */
   globalModifiers?: GlobalModifierConfig
+  /** Buffs that indicate fixate (taunt) state */
+  fixateBuffs?: Set<number>
+  /** Buffs that indicate aggro loss state */
+  aggroLossBuffs?: Set<number>
+  /** Buffs that indicate invulnerability */
+  invulnerabilityBuffs?: Set<number>
 }
 
 // ============================================================================

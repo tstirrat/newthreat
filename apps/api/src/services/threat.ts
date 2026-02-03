@@ -54,9 +54,23 @@ export function calculateThreat(
   // Collect all modifiers (class auras, etc.)
   const allModifiers = [...formulaResult.modifiers]
 
-  // Add class-specific aura modifiers
+  // Add class-specific modifiers
   const classConfig = getClassConfig(options.sourceActor.class, config)
   if (classConfig) {
+    // 1. Base class modifier (e.g. Rogue 0.71x)
+    if (classConfig.baseThreatFactor && classConfig.baseThreatFactor !== 1) {
+      const className = options.sourceActor.class
+        ? options.sourceActor.class.charAt(0).toUpperCase() + options.sourceActor.class.slice(1)
+        : 'Class'
+      
+      allModifiers.push({
+        source: 'class',
+        name: className,
+        value: classConfig.baseThreatFactor,
+      })
+    }
+
+    // 2. Class aura modifiers (talents, stances, specific buffs)
     const auraModifiers = getActiveModifiers(ctx, classConfig.auraModifiers)
     allModifiers.push(...auraModifiers)
   }

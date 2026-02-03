@@ -134,6 +134,54 @@ describe('calculateThreat', () => {
       // 1000 * 1.3 * 1.15 = 1495
       expect(result.calculation.threatToEnemy).toBeCloseTo(1495, 0)
     })
+
+    it('applies base threat factor (Rogue)', () => {
+      const event = createDamageEvent({ amount: 1000 })
+
+      const result = calculateThreat(
+        event,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies: [defaultEnemy],
+          sourceActor: { id: 1, name: 'RoguePlayer', class: 'rogue' },
+          targetActor: { id: 25, name: 'Boss', class: null },
+          encounterId: null,
+        },
+        config
+      )
+
+      // Modifiers should contain the base modifier named "Rogue"
+      expect(result.calculation.modifiers).toContainEqual(
+        expect.objectContaining({ name: 'Rogue', value: 0.71 })
+      )
+      // 1000 * 0.71 = 710
+      expect(result.calculation.threatToEnemy).toBe(710)
+    })
+
+    it('does not apply base threat factor for standard classes (Warrior)', () => {
+      const event = createDamageEvent({ amount: 1000 })
+
+      const result = calculateThreat(
+        event,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies: [defaultEnemy],
+          sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
+          targetActor: { id: 25, name: 'Boss', class: null },
+          encounterId: null,
+        },
+        config
+      )
+
+      // Should verify that NO modifier with source 'class' or name 'Warrior' exists
+      const baseModifiers = result.calculation.modifiers.filter(m => m.source === 'class')
+      expect(baseModifiers).toHaveLength(0)
+      
+      // Should be 1000 flat
+      expect(result.calculation.threatToEnemy).toBe(1000)
+    })
   })
 
   describe('healing events', () => {
