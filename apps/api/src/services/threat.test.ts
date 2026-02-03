@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import type { WCLEvent, DamageEvent, HealEvent } from '@wcl-threat/wcl-types'
+import type { WCLEvent, DamageEvent, HealEvent, EnergizeEvent } from '@wcl-threat/wcl-types'
 import {
   type ThreatConfig,
   type Enemy,
@@ -169,6 +169,159 @@ describe('calculateThreat', () => {
       expect(result.values[1]?.amount).toBe(875)
     })
   })
+
+  describe('energize events', () => {
+    function createEnergizeEvent(overrides: Partial<EnergizeEvent> = {}): EnergizeEvent {
+      return {
+        timestamp: 1000,
+        type: 'energize',
+        sourceID: 1,
+        sourceIsFriendly: true,
+        targetID: 1,
+        targetIsFriendly: true,
+        ability: {
+          guid: 12975,
+          name: 'Rage Gain',
+          type: 1,
+          abilityIcon: 'rage.jpg',
+        },
+        resourceChange: 20,
+        resourceChangeType: 'rage',
+        waste: 0,
+        ...overrides,
+      }
+    }
+
+    it('calculates threat from resource generation', () => {
+      const event = createEnergizeEvent({ resourceChange: 30 })
+
+      const result = calculateThreat(
+        event,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies: [defaultEnemy],
+          sourceActor: defaultActor,
+          targetActor: defaultActor,
+          encounterId: null,
+        },
+        config
+      )
+
+      // Energize events generate threat: resource * 0.5
+      expect(result.calculation.baseValue).toBe(30)
+      expect(result.calculation.baseThreat).toBe(15) // 30 * 0.5
+      expect(result.values).toHaveLength(1)
+    })
+
+    it('splits threat among all enemies', () => {
+      const event = createEnergizeEvent({ resourceChange: 40 })
+
+      const enemies = [
+        { id: 25, name: 'Boss', instance: 0 },
+        { id: 26, name: 'Add', instance: 0 },
+      ]
+
+      const result = calculateThreat(
+        event,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies,
+          sourceActor: defaultActor,
+          targetActor: defaultActor,
+          encounterId: null,
+        },
+        config
+      )
+
+      // 40 resource * 0.5 = 20 base threat, split 2 ways = 10 each
+      expect(result.calculation.baseThreat).toBe(20)
+      expect(result.values).toHaveLength(2)
+      expect(result.values[0]?.amount).toBe(10)
+      expect(result.values[0]?.isSplit).toBe(true)
+      expect(result.values[1]?.amount).toBe(10)
+      expect(result.values[1]?.isSplit).toBe(true)
+    })
+  })
+
+  describe('unknown event types', () => {
+    it('returns zero threat for unsupported event types', () => {
+      // Cast events don't generate threat directly (no amount)
+      const event = {
+        timestamp: 1000,
+        type: 'cast' as const,
+        sourceID: 1,
+        sourceIsFriendly: true,
+        targetID: 25,
+        targetIsFriendly: false,
+        ability: {
+          guid: 100,
+          name: 'Some Spell',
+          type: 1,
+          abilityIcon: 'spell.jpg',
+        },
+      }
+
+      const result = calculateThreat(
+        event as WCLEvent,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies: [defaultEnemy],
+          sourceActor: defaultActor,
+          targetActor: { id: 25, name: 'Boss', class: null },
+          encounterId: null,
+        },
+        config
+      )
+
+      expect(result.calculation.baseThreat).toBe(0)
+      expect(result.calculation.formula).toBe('0')
+    })
+  })
+
+  describe('edge cases', () => {
+    it('handles empty enemy list', () => {
+      const event = createDamageEvent({ amount: 1000 })
+
+      const result = calculateThreat(
+        event,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies: [],
+          sourceActor: defaultActor,
+          targetActor: { id: 25, name: 'Boss', class: null },
+          encounterId: null,
+        },
+        config
+      )
+
+      // With no enemies, threat values should be empty or have no enemy to apply to
+      expect(result.values).toHaveLength(0)
+    })
+
+    it('handles actors without class', () => {
+      const event = createDamageEvent({ amount: 1000 })
+
+      const result = calculateThreat(
+        event,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies: [defaultEnemy],
+          sourceActor: { id: 99, name: 'Pet', class: null },
+          targetActor: { id: 25, name: 'Boss', class: null },
+          encounterId: null,
+        },
+        config
+      )
+
+      // Should still calculate base threat without class modifiers
+      expect(result.calculation.baseThreat).toBe(1000)
+    })
+  })
 })
 
 describe('AuraTracker', () => {
@@ -221,4 +374,68 @@ describe('AuraTracker', () => {
     const auras = tracker.getAuras(999)
     expect(auras.size).toBe(0)
   })
+
+  it('tracks applied debuffs', () => {
+    const tracker = new AuraTracker()
+
+    tracker.processEvent({
+      timestamp: 0,
+      type: 'applydebuff',
+      sourceID: 1,
+      sourceIsFriendly: true,
+      targetID: 25,
+      targetIsFriendly: false,
+      ability: { guid: 12345, name: 'Sunder Armor', type: 1, abilityIcon: '' },
+    } as WCLEvent)
+
+    const auras = tracker.getAuras(25)
+    expect(auras.has(12345)).toBe(true)
+  })
+
+  it('removes debuffs on removedebuff event', () => {
+    const tracker = new AuraTracker()
+
+    tracker.processEvent({
+      timestamp: 0,
+      type: 'applydebuff',
+      sourceID: 1,
+      sourceIsFriendly: true,
+      targetID: 25,
+      targetIsFriendly: false,
+      ability: { guid: 12345, name: 'Sunder Armor', type: 1, abilityIcon: '' },
+    } as WCLEvent)
+
+    tracker.processEvent({
+      timestamp: 100,
+      type: 'removedebuff',
+      sourceID: 1,
+      sourceIsFriendly: true,
+      targetID: 25,
+      targetIsFriendly: false,
+      ability: { guid: 12345, name: 'Sunder Armor', type: 1, abilityIcon: '' },
+    } as WCLEvent)
+
+    const auras = tracker.getAuras(25)
+    expect(auras.has(12345)).toBe(false)
+  })
+
+  it('ignores non-aura events', () => {
+    const tracker = new AuraTracker()
+
+    tracker.processEvent({
+      timestamp: 0,
+      type: 'damage',
+      sourceID: 1,
+      sourceIsFriendly: true,
+      targetID: 25,
+      targetIsFriendly: false,
+      ability: { guid: 100, name: 'Attack', type: 1, abilityIcon: '' },
+      amount: 500,
+    } as WCLEvent)
+
+    // Should not track damage events as auras
+    expect(tracker.getAuras(1).size).toBe(0)
+    expect(tracker.getAuras(25).size).toBe(0)
+  })
 })
+
