@@ -82,7 +82,7 @@ export function calculateThreat(
   const numEnemies = formulaResult.splitAmongEnemies ? options.enemies.length : 1
   const threatPerEnemy = numEnemies > 0 ? modifiedThreat / numEnemies : 0
 
-  // Build threat values
+  // Build threat values (returns empty array for friendly targets)
   const values = buildThreatValues(
     options.enemies,
     threatPerEnemy,
@@ -90,13 +90,16 @@ export function calculateThreat(
     event
   )
 
+  // If targeting a friendly unit, threat to enemies is 0
+  const threatToEnemy = values.length === 0 ? 0 : threatPerEnemy
+
   return {
     values,
     calculation: {
       formula: formulaResult.formula,
       baseValue: amount,
       baseThreat: formulaResult.baseThreat,
-      threatToEnemy: threatPerEnemy,
+      threatToEnemy,
       modifiers: allModifiers,
     },
   }
@@ -172,6 +175,12 @@ function buildThreatValues(
   isSplit: boolean,
   event: WCLEvent
 ): ThreatResult['values'] {
+  // Damage to friendly targets generates no threat to enemies
+  // (healing and energizing friendly targets still generate threat)
+  if (event.type === 'damage' && 'targetIsFriendly' in event && event.targetIsFriendly) {
+    return []
+  }
+
   // If targeting a specific enemy (damage event), only that enemy gets threat
   if (!isSplit && 'targetID' in event && !event.targetIsFriendly) {
     const targetEnemy = enemies.find((e) => e.id === event.targetID)
