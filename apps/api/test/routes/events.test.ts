@@ -1,0 +1,154 @@
+/**
+ * Integration Tests for Events API
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import app from '../../src/index'
+import { mockFetch, restoreFetch } from '../helpers/mock-fetch'
+import { createMockBindings } from '../setup'
+import mockReportData from '../fixtures/wcl-responses/anniversary-report.json'
+
+// Sample events fixture
+const mockEvents = [
+  {
+    timestamp: 1000,
+    type: 'damage',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 25,
+    targetIsFriendly: false,
+    ability: { guid: 23922, name: 'Shield Slam', type: 1, abilityIcon: 'ability_warrior_shieldslam.png' },
+    amount: 2500,
+    absorbed: 0,
+    blocked: 0,
+    mitigated: 0,
+    overkill: 0,
+    hitType: 'hit',
+    tick: false,
+    multistrike: false,
+  },
+  {
+    timestamp: 2000,
+    type: 'heal',
+    sourceID: 2,
+    sourceIsFriendly: true,
+    targetID: 1,
+    targetIsFriendly: true,
+    ability: { guid: 25314, name: 'Greater Heal', type: 2, abilityIcon: 'spell_holy_greaterheal.png' },
+    amount: 4000,
+    absorbed: 0,
+    overheal: 500,
+    tick: false,
+  },
+  {
+    timestamp: 3000,
+    type: 'applybuff',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 1,
+    targetIsFriendly: true,
+    ability: { guid: 71, name: 'Defensive Stance', type: 1, abilityIcon: 'ability_warrior_defensivestance.png' },
+  },
+]
+
+// Extract the actual report object from the fixture
+const reportData = mockReportData.data.reportData.report
+
+describe('Events API', () => {
+  beforeEach(() => {
+    mockFetch({
+      report: reportData,
+      events: mockEvents,
+    })
+  })
+
+  afterEach(() => {
+    restoreFetch()
+  })
+
+  describe('GET /v1/reports/:code/fights/:id/events', () => {
+    it('returns events with threat calculations', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/1/events',
+        {},
+        createMockBindings()
+      )
+
+      expect(res.status).toBe(200)
+
+      const data = await res.json()
+      expect(data.reportCode).toBe('ABC123xyz')
+      expect(data.fightId).toBe(1)
+      expect(data.fightName).toBe('Patchwerk')
+      expect(data.gameVersion).toBe(1)
+      expect(data.events).toBeDefined()
+      expect(data.summary).toBeDefined()
+    })
+
+    it('includes threat data for damage events', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/1/events',
+        {},
+        createMockBindings()
+      )
+
+      const data = await res.json()
+      const damageEvent = data.events.find((e: { type: string }) => e.type === 'damage')
+
+      expect(damageEvent).toBeDefined()
+      expect(damageEvent.threat).toBeDefined()
+      expect(damageEvent.threat.calculation).toBeDefined()
+      expect(damageEvent.threat.values).toBeDefined()
+    })
+
+    it('includes threat data for heal events', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/1/events',
+        {},
+        createMockBindings()
+      )
+
+      const data = await res.json()
+      const healEvent = data.events.find((e: { type: string }) => e.type === 'heal')
+
+      expect(healEvent).toBeDefined()
+      expect(healEvent.threat).toBeDefined()
+    })
+
+    it('returns event counts in summary', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/1/events',
+        {},
+        createMockBindings()
+      )
+
+      const data = await res.json()
+      expect(data.summary.eventCounts).toBeDefined()
+      expect(data.summary.duration).toBe(180000)
+    })
+
+    it('sets cache headers on response', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/1/events',
+        {},
+        createMockBindings()
+      )
+
+      expect(res.headers.get('Cache-Control')).toContain('immutable')
+      expect(res.headers.get('X-Game-Version')).toBe('1')
+    })
+
+    it('returns 404 for non-existent fight', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/999/events',
+        {},
+        createMockBindings()
+      )
+
+      expect(res.status).toBe(404)
+
+      const data = await res.json()
+      expect(data.error.code).toBe('FIGHT_NOT_FOUND')
+    })
+  })
+})
