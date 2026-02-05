@@ -55,8 +55,13 @@ eventsRoutes.get('/', async (c) => {
   const cached = await augmentedCache.get<AugmentedEventsResponse>(cacheKey)
 
   if (cached) {
+    const cacheControl =
+      c.env.ENVIRONMENT === 'development'
+        ? 'no-store, no-cache, must-revalidate'
+        : 'public, max-age=31536000, immutable'
+
     return c.json(cached, 200, {
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': cacheControl,
       'X-Cache-Status': 'HIT',
       'X-Game-Version': String(gameVersion),
       'X-Config-Version': configVersion,
@@ -110,8 +115,13 @@ eventsRoutes.get('/', async (c) => {
   // Cache the result
   await augmentedCache.set(cacheKey, response)
 
+  const cacheControl =
+    c.env.ENVIRONMENT === 'development'
+      ? 'no-store, no-cache, must-revalidate'
+      : 'public, max-age=31536000, immutable'
+
   return c.json(response, 200, {
-    'Cache-Control': 'public, max-age=31536000, immutable',
+    'Cache-Control': cacheControl,
     'X-Cache-Status': 'MISS',
     'X-Game-Version': String(gameVersion),
     'X-Config-Version': configVersion,

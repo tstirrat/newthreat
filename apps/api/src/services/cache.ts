@@ -2,7 +2,8 @@
  * Cache Service
  *
  * Abstraction over Cloudflare KV for caching.
- * Uses in-memory cache for development/test environments.
+ * Uses no-op cache for development (to allow immediate code changes).
+ * Uses in-memory cache for test environments.
  */
 
 import type { Bindings } from '../types/bindings'
@@ -66,20 +67,47 @@ export function createMemoryCache(): CacheService {
   }
 }
 
-// Singleton memory cache for development
+/**
+ * No-op cache for development - always returns null
+ * This ensures code changes are immediately reflected without server restarts
+ */
+export function createNoOpCache(): CacheService {
+  return {
+    async get<T>(key: string): Promise<T | null> {
+      return null
+    },
+
+    async set<T>(key: string, value: T, ttl?: number): Promise<void> {
+      // No-op
+    },
+
+    async delete(key: string): Promise<void> {
+      // No-op
+    },
+  }
+}
+
+// Singleton memory cache for tests
 let memoryCache: CacheService | null = null
 
 /**
  * Factory to create appropriate cache based on environment
  */
 export function createCache(env: Bindings, namespace: 'wcl' | 'augmented'): CacheService {
-  if (env.ENVIRONMENT === 'development' || env.ENVIRONMENT === 'test') {
+  // Use no-op cache in development for immediate code change testing
+  if (env.ENVIRONMENT === 'development') {
+    return createNoOpCache()
+  }
+
+  // Use memory cache for tests (faster, isolated)
+  if (env.ENVIRONMENT === 'test') {
     if (!memoryCache) {
       memoryCache = createMemoryCache()
     }
     return memoryCache
   }
 
+  // Use KV cache in production/staging
   const kv = namespace === 'wcl' ? env.WCL_CACHE : env.AUGMENTED_CACHE
   return createKVCache(kv)
 }

@@ -42,6 +42,11 @@ reportRoutes.get('/:code', async (c) => {
   const enemies = masterData.actors.filter((a) => a.type === 'NPC' || a.type === 'Boss')
   const pets = masterData.actors.filter((a) => a.type === 'Pet')
 
+  const cacheControl =
+    c.env.ENVIRONMENT === 'development'
+      ? 'no-store, no-cache, must-revalidate'
+      : 'public, max-age=31536000, immutable'
+
   return c.json(
     {
       code: report.code,
@@ -60,7 +65,7 @@ reportRoutes.get('/:code', async (c) => {
     },
     200,
     {
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': cacheControl,
     }
   )
 })

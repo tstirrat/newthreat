@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createMemoryCache, CacheKeys } from './cache'
+import { createMemoryCache, createNoOpCache, CacheKeys } from './cache'
 
 describe('createMemoryCache', () => {
   beforeEach(() => {
@@ -74,6 +74,44 @@ describe('createMemoryCache', () => {
 
     // Should not throw
     await expect(cache.delete('non-existent')).resolves.not.toThrow()
+  })
+})
+
+describe('createNoOpCache', () => {
+  it('always returns null for get operations', async () => {
+    const cache = createNoOpCache()
+
+    // Set a value
+    await cache.set('test-key', { foo: 'bar' })
+
+    // Should still return null (no-op)
+    const result = await cache.get('test-key')
+    expect(result).toBeNull()
+  })
+
+  it('returns null for any key', async () => {
+    const cache = createNoOpCache()
+
+    expect(await cache.get('any-key')).toBeNull()
+    expect(await cache.get('another-key')).toBeNull()
+  })
+
+  it('set operation does nothing', async () => {
+    const cache = createNoOpCache()
+
+    // Should not throw
+    await expect(cache.set('key', 'value')).resolves.toBeUndefined()
+    await expect(cache.set('key', 'value', 60)).resolves.toBeUndefined()
+
+    // Should still return null
+    expect(await cache.get('key')).toBeNull()
+  })
+
+  it('delete operation does nothing', async () => {
+    const cache = createNoOpCache()
+
+    // Should not throw
+    await expect(cache.delete('any-key')).resolves.toBeUndefined()
   })
 })
 
