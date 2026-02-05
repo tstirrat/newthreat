@@ -104,7 +104,8 @@ function getEventAmount(event: WCLEvent): number {
       return Math.max(0, event.amount - overheal)
     }
     case 'energize':
-      return event.resourceChange
+      // Only actual resource gained generates threat (exclude waste)
+      return Math.max(0, event.resourceChange - event.waste)
     default:
       return 0
   }

@@ -291,6 +291,27 @@ describe('calculateThreat', () => {
       expect(result.values[1]?.amount).toBe(100)
       expect(result.values[1]?.isSplit).toBe(true)
     })
+
+    it('subtracts waste from resource change', () => {
+      const event = createEnergizeEvent({ resourceChange: 30, waste: 5 })
+
+      const result = calculateThreat(
+        event,
+        {
+          sourceAuras: new Set(),
+          targetAuras: new Set(),
+          enemies: [defaultEnemy],
+          sourceActor: defaultActor,
+          targetActor: defaultActor,
+          encounterId: null,
+        },
+        config
+      )
+
+      // Only 25 rage actually gained (30 - 5 waste), threat = 25 * 5 = 125
+      expect(result.calculation.baseValue).toBe(25)
+      expect(result.calculation.baseThreat).toBe(125)
+    })
   })
 
   describe('unknown event types', () => {
