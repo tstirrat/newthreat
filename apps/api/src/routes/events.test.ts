@@ -150,5 +150,25 @@ describe('Events API', () => {
       const data = await res.json()
       expect(data.error.code).toBe('FIGHT_NOT_FOUND')
     })
+
+    it('only splits heal threat among enemies in the current fight', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/1/events',
+        {},
+        createMockBindings()
+      )
+
+      const data = await res.json()
+      const healEvent = data.events.find((e: { type: string }) => e.type === 'heal')
+
+      expect(healEvent).toBeDefined()
+      expect(healEvent.threat.calculation.isSplit).toBe(true)
+      expect(healEvent.threat.values).toBeDefined()
+
+      // Fight 1 (Patchwerk) should only have threat split to Patchwerk (id 25),
+      // NOT Grobbulus (id 26) which is in fight 2
+      expect(healEvent.threat.values).toHaveLength(1)
+      expect(healEvent.threat.values[0].id).toBe(25)
+    })
   })
 })

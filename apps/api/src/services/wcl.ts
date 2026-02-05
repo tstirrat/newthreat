@@ -133,6 +133,28 @@ export class WCLClient {
               difficulty
               bossPercentage
               fightPercentage
+              enemyNPCs {
+                id
+                gameID
+                instanceCount
+                groupCount
+                petOwner
+              }
+              enemyPets {
+                id
+                gameID
+                instanceCount
+                groupCount
+                petOwner
+              }
+              friendlyPlayers
+              friendlyPets {
+                id
+                gameID
+                instanceCount
+                groupCount
+                petOwner
+              }
             }
             masterData {
               gameVersion

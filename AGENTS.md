@@ -128,6 +128,44 @@ Error codes live in the `ErrorCodes` const object. The global `errorHandler` mid
 catches `AppError` instances and returns structured JSON responses. Do not use try/catch
 in route handlers -- let errors propagate to the global handler.
 
+### Functional Patterns
+
+Prefer functional array operations over imperative for-of loops. Functional patterns are
+easier to read, verify, and compose:
+
+```typescript
+// ✅ Good: functional, composable, explicit intent
+const actorsInFight = actors
+  .filter((a) => fightActorIds.includes(a.id))
+  .map((a) => ({ ...a, class: a.type === 'Player' ? a.subType : null }))
+
+// ✅ Good: functional transformation with map + filter
+const validEnemies = allEnemies
+  .map((npc) => ({ ...npc, name: actorMap.get(npc.id)?.name ?? 'Unknown' }))
+  .filter((e) => e.id !== ENVIRONMENT_TARGET_ID)
+
+// ❌ Avoid: imperative loop is harder to verify
+const actorsInFight = []
+for (const actor of actors) {
+  if (fightActorIds.includes(actor.id)) {
+    actorsInFight.push({ ...actor, class: actor.type === 'Player' ? actor.subType : null })
+  }
+}
+```
+
+Use helper functions for complex filter/map conditions:
+```typescript
+const isHostileNPC = (npc: FightNPC) => npc.id !== ENVIRONMENT_TARGET_ID
+const enrichWithName = (npc: FightNPC, actorMap: Map<number, Actor>) => ({
+  ...npc,
+  name: actorMap.get(npc.id)?.name ?? 'Unknown',
+})
+
+const validEnemies = allEnemies
+  .filter(isHostileNPC)
+  .map((npc) => enrichWithName(npc, actorMap))
+```
+
 ### JSDoc & Comments
 
 - Every source file starts with a JSDoc block describing the module

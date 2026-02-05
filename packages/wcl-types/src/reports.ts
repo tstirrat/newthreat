@@ -7,6 +7,14 @@ export interface Zone {
   name: string
 }
 
+export interface FightNPC {
+  id: number // Report actor ID (matches event sourceID/targetID)
+  gameID: number // Global creature ID
+  instanceCount: number
+  groupCount: number
+  petOwner: number | null
+}
+
 export interface FightSummary {
   id: number
   name: string // e.g., "Ragnaros"
@@ -16,6 +24,10 @@ export interface FightSummary {
   difficulty: number | null
   bossPercentage: number | null
   fightPercentage: number | null
+  enemyNPCs: FightNPC[]
+  enemyPets: FightNPC[]
+  friendlyPlayers: number[]
+  friendlyPets: FightNPC[]
 }
 
 export interface Phase {
@@ -65,7 +77,20 @@ export interface WCLReportResponse {
         startTime: number
         endTime: number
         zone: Zone
-        fights: FightSummary[]
+        fights: Array<{
+          id: number
+          name: string
+          startTime: number
+          endTime: number
+          kill: boolean
+          difficulty: number | null
+          bossPercentage: number | null
+          fightPercentage: number | null
+          enemyNPCs: FightNPC[]
+          enemyPets: FightNPC[]
+          friendlyPlayers: number[]
+          friendlyPets: FightNPC[]
+        }>
         masterData: {
           gameVersion: number
           actors: Array<{

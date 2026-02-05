@@ -22,7 +22,27 @@
             "kill": true,
             "difficulty": null,
             "bossPercentage": 0,
-            "fightPercentage": 100
+            "fightPercentage": 100,
+            "enemyNPCs": [
+              {
+                "id": 25,
+                "gameID": 16028,
+                "instanceCount": 1,
+                "groupCount": 1,
+                "petOwner": null
+              }
+            ],
+            "enemyPets": [],
+            "friendlyPlayers": [1, 2, 3, 4],
+            "friendlyPets": [
+              {
+                "id": 5,
+                "gameID": 17447,
+                "instanceCount": 1,
+                "groupCount": 1,
+                "petOwner": 4
+              }
+            ]
           },
           {
             "id": 2,
@@ -32,7 +52,27 @@
             "kill": true,
             "difficulty": null,
             "bossPercentage": 0,
-            "fightPercentage": 100
+            "fightPercentage": 100,
+            "enemyNPCs": [
+              {
+                "id": 26,
+                "gameID": 15931,
+                "instanceCount": 1,
+                "groupCount": 1,
+                "petOwner": null
+              }
+            ],
+            "enemyPets": [],
+            "friendlyPlayers": [1, 2, 3, 4],
+            "friendlyPets": [
+              {
+                "id": 5,
+                "gameID": 17447,
+                "instanceCount": 1,
+                "groupCount": 1,
+                "petOwner": 4
+              }
+            ]
           },
           {
             "id": 3,
@@ -42,7 +82,27 @@
             "kill": false,
             "difficulty": null,
             "bossPercentage": 35,
-            "fightPercentage": 65
+            "fightPercentage": 65,
+            "enemyNPCs": [
+              {
+                "id": 25,
+                "gameID": 16028,
+                "instanceCount": 1,
+                "groupCount": 1,
+                "petOwner": null
+              }
+            ],
+            "enemyPets": [],
+            "friendlyPlayers": [1, 2, 3, 4],
+            "friendlyPets": [
+              {
+                "id": 5,
+                "gameID": 17447,
+                "instanceCount": 1,
+                "groupCount": 1,
+                "petOwner": 4
+              }
+            ]
           }
         ],
         "masterData": {

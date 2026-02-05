@@ -71,24 +71,51 @@ eventsRoutes.get('/', async (c) => {
   // Fetch raw events from WCL
   const rawEvents = (await wcl.getEvents(code, fightId)) as WCLEvent[]
 
-  // Build actor maps
-  const actorMap = new Map<number, Actor>()
-  for (const actor of report.masterData.actors) {
-    actorMap.set(actor.id, {
-      id: actor.id,
-      name: actor.name,
-      class: actor.type === 'Player' ? (actor.subType.toLowerCase() as WowClass) : null,
-    })
+  // Build a lookup from all report actors (for name/class resolution)
+  const allActors = new Map(
+    report.masterData.actors.map((a) => [a.id, a])
+  )
+
+  // Helper to create an actor entry
+  const createActorEntry = (id: number, actor: (typeof report.masterData.actors)[0] | undefined, isPlayer: boolean): [number, Actor] => {
+    return [id, {
+      id,
+      name: actor?.name ?? 'Unknown',
+      class: isPlayer && actor?.type === 'Player' ? (actor.subType.toLowerCase() as WowClass) : null,
+    }]
   }
 
-  // Build enemy list
-  const enemies: Enemy[] = report.masterData.actors
-    .filter((a) => a.type === 'NPC' || a.type === 'Boss')
-    .map((a) => ({
-      id: a.id,
-      name: a.name,
-      instance: 0,
-    }))
+  // Build fight-scoped actor map from friendly participants and enemies
+  const friendlyPlayerEntries = (fight.friendlyPlayers ?? [])
+    .map((playerId) => [playerId, allActors.get(playerId)] as const)
+    .filter(([, actor]) => actor !== undefined)
+    .map(([id, actor]) => createActorEntry(id, actor, true))
+
+  const friendlyPetEntries = (fight.friendlyPets ?? [])
+    .map((pet) => [pet.id, allActors.get(pet.id)] as const)
+    .filter(([, actor]) => actor !== undefined)
+    .map(([id, actor]) => createActorEntry(id, actor, false))
+
+  const enemyActorEntries = [...(fight.enemyNPCs ?? []), ...(fight.enemyPets ?? [])]
+    .map((npc) => [npc.id, allActors.get(npc.id)] as const)
+    .filter(([, actor]) => actor !== undefined)
+    .map(([id, actor]) => createActorEntry(id, actor, false))
+
+  const actorMap = new Map([
+    ...friendlyPlayerEntries,
+    ...friendlyPetEntries,
+    ...enemyActorEntries,
+  ])
+
+  // Build fight-scoped enemy list
+  const enemies: Enemy[] = [
+    ...(fight.enemyNPCs ?? []),
+    ...(fight.enemyPets ?? []),
+  ].map((npc) => ({
+    id: npc.id,
+    name: allActors.get(npc.id)?.name ?? 'Unknown',
+    instance: 0,
+  }))
 
   // Process events and calculate threat using the threat engine
   const { augmentedEvents, eventCounts } = processEvents({

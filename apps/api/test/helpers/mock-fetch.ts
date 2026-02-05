@@ -29,6 +29,28 @@ export interface MockWCLResponses {
       difficulty: unknown
       bossPercentage: number
       fightPercentage: number
+      enemyNPCs?: Array<{
+        id: number
+        gameID: number
+        instanceCount: number
+        groupCount: number
+        petOwner: number | null
+      }>
+      enemyPets?: Array<{
+        id: number
+        gameID: number
+        instanceCount: number
+        groupCount: number
+        petOwner: number | null
+      }>
+      friendlyPlayers?: number[]
+      friendlyPets?: Array<{
+        id: number
+        gameID: number
+        instanceCount: number
+        groupCount: number
+        petOwner: number | null
+      }>
     }>
     masterData: {
       gameVersion: number

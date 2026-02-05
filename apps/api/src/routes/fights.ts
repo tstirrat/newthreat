@@ -43,25 +43,32 @@ fightsRoutes.get('/:id', async (c) => {
 
   // Get actors relevant to this fight
   const masterData = report.masterData
-  const actors = masterData.actors.map((a) => ({
-    id: a.id,
-    name: a.name,
-    type: a.type as 'Player' | 'Pet' | 'Guardian' | 'Companion',
-    class: a.type === 'Player' ? a.subType : null,
-    spec: null, // Would need combatantinfo events
-    role: null, // Would need combatantinfo events
-    petOwner: a.petOwner,
-  }))
+  
+  // Build a lookup map for faster actor resolution
+  const actorLookup = new Map(masterData.actors.map((a) => [a.id, a]))
+  
+  // Build actors from fight participants
+  const actors = (fight.friendlyPlayers ?? [])
+    .map((playerId) => ({ id: playerId, actor: actorLookup.get(playerId) }))
+    .map(({ id, actor }) => ({
+      id,
+      name: actor?.name ?? 'Unknown',
+      type: (actor?.type ?? 'Player') as 'Player' | 'Pet' | 'Guardian' | 'Companion',
+      class: actor?.type === 'Player' ? actor.subType : null,
+      spec: null, // Would need combatantinfo events
+      role: null, // Would need combatantinfo events
+      petOwner: actor?.petOwner ?? null,
+    }))
 
-  // Get enemies (NPCs in this fight)
-  const enemies = masterData.actors
-    .filter((a) => a.type === 'NPC' || a.type === 'Boss')
-    .map((a) => ({
-      id: a.id,
-      guid: 0, // Would need additional WCL query for GUID
-      name: a.name,
-      instanceCount: 1,
-      type: a.type === 'Boss' ? 'Boss' : ('Add' as 'Boss' | 'Add' | 'Trash'),
+  // Build enemies from fight-level enemyNPCs + enemyPets
+  const enemies = [...(fight.enemyNPCs ?? []), ...(fight.enemyPets ?? [])]
+    .map((npc) => ({ npc, actor: actorLookup.get(npc.id) }))
+    .map(({ npc, actor }) => ({
+      id: npc.id,
+      guid: npc.gameID,
+      name: actor?.name ?? 'Unknown',
+      instanceCount: npc.instanceCount,
+      type: (actor?.type === 'Boss' ? 'Boss' : 'Add') as 'Boss' | 'Add' | 'Trash',
     }))
 
   const cacheControl =
