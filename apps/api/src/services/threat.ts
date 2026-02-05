@@ -51,41 +51,12 @@ export function calculateThreat(
   // Get the threat formula result
   const formulaResult = getFormulaResult(ctx, config)
 
-  // Collect all modifiers (class auras, etc.)
-  const allModifiers = [...formulaResult.modifiers]
-
-  // Add class-specific base threat factor
-  const classConfig = getClassConfig(options.sourceActor.class, config)
-  if (classConfig?.baseThreatFactor && classConfig.baseThreatFactor !== 1) {
-    const className = options.sourceActor.class
-      ? options.sourceActor.class.charAt(0).toUpperCase() + options.sourceActor.class.slice(1)
-      : 'Class'
-    
-    allModifiers.push({
-      source: 'class',
-      name: className,
-      value: classConfig.baseThreatFactor,
-    })
-  }
-
-  // Merge all aura modifiers (global + all classes) into a single structure.
-  // This allows cross-class buffs (e.g., Blessing of Salvation) to apply to any actor.
-  // The game validates which buffs can be applied, so we merge everything and let
-  // the sourceAuras set determine which modifiers actually apply.
-  const mergedAuraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
-    ...config.auraModifiers,
-  }
-
-  // Add aura modifiers from all class configs
-  for (const classConfig of Object.values(config.classes)) {
-    if (classConfig?.auraModifiers) {
-      Object.assign(mergedAuraModifiers, classConfig.auraModifiers)
-    }
-  }
-
-  // Apply the merged aura modifiers based on active auras
-  const auraModifiers = getActiveModifiers(ctx, mergedAuraModifiers)
-  allModifiers.push(...auraModifiers)
+  // Collect all modifiers
+  const allModifiers: ThreatModifier[] = [
+    ...formulaResult.modifiers,
+    ...getClassModifiers(options.sourceActor.class, config),
+    ...getAuraModifiers(ctx, config),
+  ]
 
   // Calculate total multiplier
   const totalMultiplier = getTotalMultiplier(allModifiers)
@@ -177,6 +148,55 @@ function getClassConfig(
 ): ClassThreatConfig | null {
   if (!wowClass) return null
   return config.classes[wowClass] ?? null
+}
+
+/**
+ * Get class-specific base threat factor modifier
+ */
+function getClassModifiers(
+  wowClass: WowClass | null,
+  config: ThreatConfig
+): ThreatModifier[] {
+  const classConfig = getClassConfig(wowClass, config)
+  if (!classConfig?.baseThreatFactor || classConfig.baseThreatFactor === 1) {
+    return []
+  }
+
+  const className = wowClass
+    ? wowClass.charAt(0).toUpperCase() + wowClass.slice(1)
+    : 'Class'
+
+  return [{
+    source: 'class',
+    name: className,
+    value: classConfig.baseThreatFactor,
+  }]
+}
+
+/**
+ * Get all active aura modifiers (global + all classes)
+ * This allows cross-class buffs (e.g., Blessing of Salvation) to apply to any actor.
+ * The game validates which buffs can be applied, so we merge everything and let
+ * the sourceAuras set determine which modifiers actually apply.
+ */
+function getAuraModifiers(
+  ctx: ThreatContext,
+  config: ThreatConfig
+): ThreatModifier[] {
+  // Merge all aura modifiers into a single structure
+  const mergedAuraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
+    ...config.auraModifiers,
+  }
+
+  // Add aura modifiers from all class configs
+  for (const classConfig of Object.values(config.classes)) {
+    if (classConfig?.auraModifiers) {
+      Object.assign(mergedAuraModifiers, classConfig.auraModifiers)
+    }
+  }
+
+  // Apply the merged aura modifiers based on active auras
+  return getActiveModifiers(ctx, mergedAuraModifiers)
 }
 
 /**
