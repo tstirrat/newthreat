@@ -96,6 +96,7 @@ let memoryCache: CacheService | null = null
 export function createCache(env: Bindings, namespace: 'wcl' | 'augmented'): CacheService {
   // Use no-op cache for augmented data in development for immediate code change testing
   if (env.ENVIRONMENT === 'development' && namespace === 'augmented') {
+    console.warn('[Cache] Using No-Op cache for augmented data')
     return createNoOpCache()
   }
 
@@ -104,7 +105,11 @@ export function createCache(env: Bindings, namespace: 'wcl' | 'augmented'): Cach
   // 2. Development (WCL data only - to avoid re-fetching static data)
   if (env.ENVIRONMENT === 'test' || env.ENVIRONMENT === 'development') {
     if (!memoryCache) {
+      console.warn('[Cache] Initializing Memory cache')
       memoryCache = createMemoryCache()
+    }
+    if (env.ENVIRONMENT === 'development') {
+      console.warn(`[Cache] Using Memory cache for ${namespace} data`)
     }
     return memoryCache
   }
