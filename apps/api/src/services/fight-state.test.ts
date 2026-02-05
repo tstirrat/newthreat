@@ -10,6 +10,7 @@ import type { WCLEvent, GearItem } from '@wcl-threat/wcl-types'
 import type { ThreatConfig, Actor, ThreatContext } from '@wcl-threat/threat-config'
 
 import { FightState } from './fight-state'
+import { createMockThreatConfig } from '../../test/helpers/config'
 
 // ============================================================================
 // Test Helpers & Mock Config
@@ -31,68 +32,57 @@ const TEST_SPELLS = {
 } as const
 
 /** Minimal test config with exclusive auras for testing */
-function createTestConfig(): ThreatConfig {
-  return {
-    version: 'test-1.0.0',
-    gameVersion: 1,
-    baseThreat: {
-      damage: (ctx: ThreatContext) => ({
-        formula: 'amt',
-        baseThreat: ctx.amount,
-        modifiers: [],
-        splitAmongEnemies: false,
-      }),
-      heal: (ctx: ThreatContext) => ({
-        formula: 'amt * 0.5',
-        baseThreat: ctx.amount * 0.5,
-        modifiers: [],
-        splitAmongEnemies: false,
-      }),
-      energize: (ctx: ThreatContext) => ({
-        formula: 'amt * 0.5',
-        baseThreat: ctx.amount * 0.5,
-        modifiers: [],
-        splitAmongEnemies: false,
-      }),
+const testConfig = createMockThreatConfig({
+  baseThreat: {
+    damage: (ctx: ThreatContext) => ({
+      formula: 'amt',
+      value: ctx.amount,
+      splitAmongEnemies: false,
+    }),
+    heal: (ctx: ThreatContext) => ({
+      formula: 'amt * 0.5',
+      value: ctx.amount * 0.5,
+      splitAmongEnemies: false,
+    }),
+    energize: (ctx: ThreatContext) => ({
+      formula: 'amt * 0.5',
+      value: ctx.amount * 0.5,
+      splitAmongEnemies: false,
+    }),
+  },
+  classes: {
+    warrior: {
+      baseThreatFactor: 1.0,
+      exclusiveAuras: [
+        new Set([TEST_SPELLS.DEFENSIVE_STANCE, TEST_SPELLS.BATTLE_STANCE, TEST_SPELLS.BERSERKER_STANCE]),
+      ],
+      auraModifiers: {},
+      abilities: {},
     },
-    classes: {
-      warrior: {
-        exclusiveAuras: [
-          new Set([TEST_SPELLS.DEFENSIVE_STANCE, TEST_SPELLS.BATTLE_STANCE, TEST_SPELLS.BERSERKER_STANCE]),
-        ],
-        auraModifiers: {},
-        abilities: {},
-      },
-      paladin: {
-        exclusiveAuras: [
-          new Set([
-            TEST_SPELLS.BLESSING_OF_KINGS,
-            TEST_SPELLS.BLESSING_OF_SALVATION,
-            TEST_SPELLS.BLESSING_OF_MIGHT,
-            TEST_SPELLS.BLESSING_OF_WISDOM,
-          ]),
-        ],
-        auraModifiers: {},
-        abilities: {},
-      },
-      rogue: {
-        auraModifiers: {},
-        abilities: {},
-      },
-      druid: {
-        exclusiveAuras: [
-          new Set([TEST_SPELLS.BEAR_FORM, TEST_SPELLS.CAT_FORM, TEST_SPELLS.DIRE_BEAR_FORM]),
-        ],
-        auraModifiers: {},
-        abilities: {},
-      },
+    paladin: {
+      baseThreatFactor: 1.0,
+      exclusiveAuras: [
+        new Set([
+          TEST_SPELLS.BLESSING_OF_KINGS,
+          TEST_SPELLS.BLESSING_OF_SALVATION,
+          TEST_SPELLS.BLESSING_OF_MIGHT,
+          TEST_SPELLS.BLESSING_OF_WISDOM,
+        ]),
+      ],
+      auraModifiers: {},
+      abilities: {},
     },
-    untauntableEnemies: new Set(),
-    fixateBuffs: new Set(),
-    aggroLossBuffs: new Set(),
-    invulnerabilityBuffs: new Set(),
-  }
-}
+    // rogue from default is included
+    druid: {
+      baseThreatFactor: 1.0,
+      exclusiveAuras: [
+        new Set([TEST_SPELLS.BEAR_FORM, TEST_SPELLS.CAT_FORM, TEST_SPELLS.DIRE_BEAR_FORM]),
+      ],
+      auraModifiers: {},
+      abilities: {},
+    },
+  },
+})
 
 function createActorMap(
   actors: Array<{ id: number; name: string; class: string | null }>,
@@ -109,22 +99,21 @@ const defaultActorMap = createActorMap([
   { id: 2, name: 'Rogue', class: 'rogue' },
 ])
 
-const testConfig = createTestConfig()
-
 /** Build a config with a custom gearImplications for warrior */
 function createConfigWithGearImplications(
   gearImplications: (gear: GearItem[]) => number[],
 ): ThreatConfig {
-  return {
-    ...testConfig,
+  return createMockThreatConfig({
     classes: {
-      ...testConfig.classes,
       warrior: {
-        ...testConfig.classes.warrior!,
+        baseThreatFactor: 1.0,
+        auraModifiers: {},
+        abilities: {},
         gearImplications,
       },
+      // rogue from default is preserved
     },
-  }
+  })
 }
 
 // ============================================================================

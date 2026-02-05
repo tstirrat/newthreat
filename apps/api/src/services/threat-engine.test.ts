@@ -9,7 +9,6 @@
 import { describe, it, expect } from 'vitest'
 import type {
   WCLEvent,
-  CombatantInfoAura,
   GearItem,
   DamageEvent,
   HealEvent,
@@ -24,13 +23,21 @@ import type {
   ThreatModifier,
 } from '@wcl-threat/threat-config'
 import { processEvents } from './threat-engine'
+import { createMockThreatConfig } from '../../test/helpers/config'
+import {
+  createDamageEvent,
+  createHealEvent,
+  createApplyBuffEvent,
+  createRemoveBuffEvent,
+  createCombatantInfoAura,
+} from '../../test/helpers/events'
 
 // Test fixtures
 const warriorActor: Actor = { id: 1, name: 'WarriorTank', class: 'warrior' }
 const priestActor: Actor = { id: 2, name: 'PriestHealer', class: 'priest' }
 const unknownActor: Actor = { id: 99, name: 'Unknown', class: null }
 
-const bossEnemy: Enemy = { id: 25, name: 'Boss', instance: 0 }
+const bossEnemy: Enemy = { id: 99, name: 'Boss', instance: 0 }
 const addEnemy: Enemy = { id: 26, name: 'Add', instance: 0 }
 
 const enemies: Enemy[] = [bossEnemy, addEnemy]
@@ -52,132 +59,107 @@ const SPELLS = {
 } as const
 
 /**
- * Create a minimal mock threat config for testing
+ * Create mock config with custom base threat formulas and warrior/priest configs
  */
-function createMockConfig(): ThreatConfig {
-  return {
-    version: 'test-1.0.0',
-    gameVersion: 1,
+const mockConfig = createMockThreatConfig({
+  baseThreat: {
+    damage: (ctx: ThreatContext) => ({
+      formula: '2 * damage',
+      value: ctx.amount * 2,
+      splitAmongEnemies: false,
+    }),
+    heal: (ctx: ThreatContext) => ({
+      formula: '0.5 * heal',
+      value: ctx.amount * 0.5,
+      splitAmongEnemies: false,
+    }),
+    energize: (ctx: ThreatContext) => ({
+      formula: '0.5 * resourceChange',
+      value: ctx.amount * 0.5,
+      splitAmongEnemies: false,
+    }),
+  },
 
-    baseThreat: {
-      damage: (ctx: ThreatContext) => ({
-        formula: '2 * damage',
-        value: ctx.amount * 2,
-        splitAmongEnemies: false,
-      }),
-      heal: (ctx: ThreatContext) => ({
-        formula: '0.5 * heal',
-        value: ctx.amount * 0.5,
-        splitAmongEnemies: false,
-      }),
-      energize: (ctx: ThreatContext) => ({
-        formula: '0.5 * resourceChange',
-        value: ctx.amount * 0.5,
-        splitAmongEnemies: false,
-      }),
-    },
+  classes: {
+    warrior: {
+      exclusiveAuras: [new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.BATTLE_STANCE, SPELLS.BERSERKER_STANCE])],
+      baseThreatFactor: 1.3,
 
-    classes: {
-      warrior: {
-        exclusiveAuras: [new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.BATTLE_STANCE, SPELLS.BERSERKER_STANCE])],
-        baseThreatFactor: 1.3,
+      auraModifiers: {
+        // Defensive Stance: 1.3x threat
+        [SPELLS.DEFENSIVE_STANCE]: () => ({
+          source: 'stance',
+          name: 'Defensive Stance',
+          value: 1.3,
+        }),
 
-        auraModifiers: {
-          // Defensive Stance: 1.3x threat
-          [SPELLS.DEFENSIVE_STANCE]: () => ({
-            source: 'stance',
-            name: 'Defensive Stance',
-            value: 1.3,
-          }),
+        // Mock threat up aura
+        [SPELLS.MOCK_AURA_THREAT_UP]: () => ({
+          source: 'buff',
+          name: 'Test Threat Up',
+          value: 1.5,
+        }),
 
-          // Mock threat up aura
-          [SPELLS.MOCK_AURA_THREAT_UP]: () => ({
-            source: 'buff',
-            name: 'Test Threat Up',
-            value: 1.5,
-          }),
+        // Mock threat down aura
+        [SPELLS.MOCK_AURA_THREAT_DOWN]: () => ({
+          source: 'debuff',
+          name: 'Test Threat Down',
+          value: 0.5,
+        }),
 
-          // Mock threat down aura
-          [SPELLS.MOCK_AURA_THREAT_DOWN]: () => ({
-            source: 'debuff',
-            name: 'Test Threat Down',
-            value: 0.5,
-          }),
-
-          // Set bonus aura from gear implications
-          [SPELLS.SET_BONUS_AURA]: () => ({
-            source: 'gear',
-            name: 'Set Bonus: 8pc Tier 1',
-            value: 0.8,
-          }),
-        },
-
-        abilities: {
-          // Mock ability with custom formula
-          [SPELLS.MOCK_ABILITY_1]: (ctx: ThreatContext) => ({
-            formula: '1 * amt + 100',
-            value: ctx.amount + 100,
-            splitAmongEnemies: false,
-          }),
-
-          // Mock ability that splits threat
-          [SPELLS.MOCK_ABILITY_2]: (ctx: ThreatContext) => ({
-            formula: '0.5 * amt',
-            value: ctx.amount * 0.5,
-            splitAmongEnemies: true,
-          }),
-        },
-
-        gearImplications: (gear: GearItem[]) => {
-          // Simulate detecting set bonus from gear
-          const hasSetItem = gear.some((item) => item.setID === 1)
-          if (hasSetItem) {
-            return [SPELLS.SET_BONUS_AURA]
-          }
-          return []
-        },
-
-        fixateBuffs: new Set(),
-        aggroLossBuffs: new Set(),
-        invulnerabilityBuffs: new Set(),
+        // Set bonus aura from gear implications
+        [SPELLS.SET_BONUS_AURA]: () => ({
+          source: 'gear',
+          name: 'Set Bonus: 8pc Tier 1',
+          value: 0.8,
+        }),
       },
 
-      priest: {
-        auraModifiers: {
-          // Mock aura for priest
-          [SPELLS.MOCK_AURA_THREAT_UP]: () => ({
-            source: 'buff',
-            name: 'Test Threat Up',
-            value: 1.5,
-          }),
-        },
-        abilities: {},
+      abilities: {
+        // Mock ability with custom formula
+        [SPELLS.MOCK_ABILITY_1]: (ctx: ThreatContext) => ({
+          formula: '1 * amt + 100',
+          value: ctx.amount + 100,
+          splitAmongEnemies: false,
+        }),
+
+        // Mock ability that splits threat
+        [SPELLS.MOCK_ABILITY_2]: (ctx: ThreatContext) => ({
+          formula: '0.5 * amt',
+          value: ctx.amount * 0.5,
+          splitAmongEnemies: true,
+        }),
       },
+
+      gearImplications: (gear: GearItem[]) => {
+        // Simulate detecting set bonus from gear
+        const hasSetItem = gear.some((item) => item.setID === 1)
+        if (hasSetItem) {
+          return [SPELLS.SET_BONUS_AURA]
+        }
+        return []
+      },
+
+      fixateBuffs: new Set(),
+      aggroLossBuffs: new Set(),
+      invulnerabilityBuffs: new Set(),
     },
 
-    auraModifiers: {},
-    untauntableEnemies: new Set(),
-    fixateBuffs: new Set(),
-    aggroLossBuffs: new Set(),
-    invulnerabilityBuffs: new Set(),
-  }
-}
-
-const mockConfig = createMockConfig()
-
-function createCombatantInfoAura(
-  abilityId: number,
-  name: string,
-  sourceId: number = warriorActor.id
-): CombatantInfoAura {
-  return {
-    source: sourceId,
-    ability: abilityId,
-    stacks: 1,
-    icon: `spell_${name.toLowerCase().replace(/\s/g, '_')}.png`,
-    name,
-  }
-}
+    priest: {
+      baseThreatFactor: 1.0,
+      auraModifiers: {
+        // Mock aura for priest
+        [SPELLS.MOCK_AURA_THREAT_UP]: () => ({
+          source: 'buff',
+          name: 'Test Threat Up',
+          value: 1.5,
+        }),
+      },
+      abilities: {},
+    },
+    // rogue from default is included
+  },
+})
 
 describe('processEvents', () => {
   describe('event counting', () => {
@@ -188,7 +170,10 @@ describe('processEvents', () => {
         createDamageEvent({ sourceID: warriorActor.id, targetID: bossEnemy.id }),
         createDamageEvent({ sourceID: warriorActor.id, targetID: bossEnemy.id }),
         createHealEvent({ sourceID: warriorActor.id, targetID: warriorActor.id }),
-        createApplyBuffEvent({ targetID: warriorActor.id, abilityId: SPELLS.DEFENSIVE_STANCE }),
+        createApplyBuffEvent({ 
+          targetID: warriorActor.id, 
+          ability: { guid: SPELLS.DEFENSIVE_STANCE, name: 'Defensive Stance', type: 1, abilityIcon: 'ability_warrior_defensivestance.jpg' }
+        }),
       ]
 
       const result = processEvents({
@@ -325,8 +310,12 @@ describe('processEvents', () => {
         // Apply threat up aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          abilityId: SPELLS.MOCK_AURA_THREAT_UP,
-          abilityName: 'Test Threat Up',
+          ability: { 
+            guid: SPELLS.MOCK_AURA_THREAT_UP, 
+            name: 'Test Threat Up', 
+            type: 1, 
+            abilityIcon: 'spell_holy_powerwordfortitude.jpg' 
+          },
         }),
         // Damage event should get the aura modifier
         createDamageEvent({
@@ -337,8 +326,12 @@ describe('processEvents', () => {
         // Remove threat up aura
         createRemoveBuffEvent({
           targetID: warriorActor.id,
-          abilityId: SPELLS.MOCK_AURA_THREAT_UP,
-          abilityName: 'Test Threat Up',
+          ability: { 
+            guid: SPELLS.MOCK_AURA_THREAT_UP, 
+            name: 'Test Threat Up', 
+            type: 1, 
+            abilityIcon: 'spell_holy_powerwordfortitude.jpg' 
+          },
         }),
         // Damage event should not get the aura modifier
         createDamageEvent({
@@ -451,8 +444,12 @@ describe('processEvents', () => {
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          abilityId: SPELLS.MOCK_ABILITY_1,
-          abilityName: 'Mock Ability 1',
+          ability: {
+            guid: SPELLS.MOCK_ABILITY_1,
+            name: 'Mock Ability 1',
+            type: 1,
+            abilityIcon: 'ability_warrior_savageblow.jpg',
+          },
           amount: 200,
         }),
       ]
@@ -477,8 +474,12 @@ describe('processEvents', () => {
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          abilityId: SPELLS.MOCK_ABILITY_2, // This ability splits threat
-          abilityName: 'Mock Ability 2',
+          ability: {
+            guid: SPELLS.MOCK_ABILITY_2,
+            name: 'Mock Ability 2',
+            type: 1,
+            abilityIcon: 'ability_warrior_cleave.jpg',
+          },
           amount: 200,
         }),
       ]
@@ -702,8 +703,7 @@ describe('processEvents', () => {
       const GLOBAL_ABILITY_ID = 88888
       const CLASS_ONLY_ABILITY_ID = 99999
       
-      const customConfig: ThreatConfig = {
-        ...mockConfig,
+      const customConfig: ThreatConfig = createMockThreatConfig({
         // Global ability
         abilities: {
           [GLOBAL_ABILITY_ID]: (ctx: ThreatContext) => ({
@@ -713,9 +713,9 @@ describe('processEvents', () => {
           }),
         },
         classes: {
-          ...mockConfig.classes,
           warrior: {
-            ...mockConfig.classes.warrior!,
+            baseThreatFactor: 1.3,
+            auraModifiers: {},
             abilities: {
               // This should override global config
               [GLOBAL_ABILITY_ID]: (ctx: ThreatContext) => ({
@@ -732,7 +732,7 @@ describe('processEvents', () => {
             },
           },
         },
-      }
+      })
 
       const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
@@ -741,16 +741,24 @@ describe('processEvents', () => {
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          abilityId: GLOBAL_ABILITY_ID,
-          abilityName: 'Global Ability',
+          ability: {
+            guid: GLOBAL_ABILITY_ID,
+            name: 'Global Ability',
+            type: 1,
+            abilityIcon: 'ability_global.jpg',
+          },
           amount: 100,
         }),
         // Class-only ability
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          abilityId: CLASS_ONLY_ABILITY_ID,
-          abilityName: 'Class Only Ability',
+          ability: {
+            guid: CLASS_ONLY_ABILITY_ID,
+            name: 'Class Only Ability',
+            type: 1,
+            abilityIcon: 'ability_classonly.jpg',
+          },
           amount: 100,
         }),
       ]
@@ -776,8 +784,7 @@ describe('processEvents', () => {
     it('should use global auraModifiers and merge with class auraModifiers', () => {
       const GLOBAL_AURA_ID = 77777
       
-      const customConfig: ThreatConfig = {
-        ...mockConfig,
+      const customConfig: ThreatConfig = createMockThreatConfig({
         // Global aura modifier
         auraModifiers: {
           [GLOBAL_AURA_ID]: () => ({
@@ -786,7 +793,7 @@ describe('processEvents', () => {
             value: 2.0,
           }),
         },
-      }
+      })
 
       const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
@@ -794,8 +801,12 @@ describe('processEvents', () => {
         // Apply global aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          abilityId: GLOBAL_AURA_ID,
-          abilityName: 'Global Threat Modifier',
+          ability: {
+            guid: GLOBAL_AURA_ID,
+            name: 'Global Threat Modifier',
+            type: 1,
+            abilityIcon: 'spell_holy_divineprovidence.jpg',
+          },
         }),
         // Damage event should get the global aura modifier
         createDamageEvent({
@@ -824,8 +835,7 @@ describe('processEvents', () => {
     it('should apply both global and class auraModifiers when both are active', () => {
       const GLOBAL_AURA_ID = 77777
       
-      const customConfig: ThreatConfig = {
-        ...mockConfig,
+      const customConfig: ThreatConfig = createMockThreatConfig({
         auraModifiers: {
           [GLOBAL_AURA_ID]: () => ({
             source: 'aura',
@@ -833,7 +843,20 @@ describe('processEvents', () => {
             value: 2.0,
           }),
         },
-      }
+        classes: {
+          warrior: {
+            baseThreatFactor: 1.3,
+            auraModifiers: {
+              [SPELLS.MOCK_AURA_THREAT_UP]: () => ({
+                source: 'buff',
+                name: 'Test Threat Up',
+                value: 1.5,
+              }),
+            },
+            abilities: {},
+          },
+        },
+      })
 
       const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
@@ -841,14 +864,22 @@ describe('processEvents', () => {
         // Apply global aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          abilityId: GLOBAL_AURA_ID,
-          abilityName: 'Global Threat Modifier',
+          ability: {
+            guid: GLOBAL_AURA_ID,
+            name: 'Global Threat Modifier',
+            type: 1,
+            abilityIcon: 'spell_holy_divineprovidence.jpg',
+          },
         }),
         // Apply class-specific aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          abilityId: SPELLS.MOCK_AURA_THREAT_UP,
-          abilityName: 'Test Threat Up',
+          ability: {
+            guid: SPELLS.MOCK_AURA_THREAT_UP,
+            name: 'Test Threat Up',
+            type: 1,
+            abilityIcon: 'spell_holy_powerwordfortitude.jpg',
+          },
         }),
         // Damage event should get both modifiers
         createDamageEvent({
@@ -885,8 +916,7 @@ describe('processEvents', () => {
     it('should allow global auraModifiers to work for any class', () => {
       const GLOBAL_AURA_ID = 77777
       
-      const customConfig: ThreatConfig = {
-        ...mockConfig,
+      const customConfig: ThreatConfig = createMockThreatConfig({
         auraModifiers: {
           [GLOBAL_AURA_ID]: () => ({
             source: 'aura',
@@ -894,7 +924,14 @@ describe('processEvents', () => {
             value: 2.0,
           }),
         },
-      }
+        classes: {
+          priest: {
+            baseThreatFactor: 1.0,
+            auraModifiers: {},
+            abilities: {},
+          },
+        },
+      })
 
       const actorMap = new Map<number, Actor>([
         [priestActor.id, priestActor], // Priest, not warrior
@@ -904,8 +941,12 @@ describe('processEvents', () => {
         // Apply global aura to priest
         createApplyBuffEvent({
           targetID: priestActor.id,
-          abilityId: GLOBAL_AURA_ID,
-          abilityName: 'Global Threat Modifier',
+          ability: {
+            guid: GLOBAL_AURA_ID,
+            name: 'Global Threat Modifier',
+            type: 1,
+            abilityIcon: 'spell_holy_divineprovidence.jpg',
+          },
         }),
         // Heal event from priest should get the global modifier
         createHealEvent({
@@ -932,129 +973,11 @@ describe('processEvents', () => {
   })
 })
 
-// Helper functions to create test events
-
-interface DamageEventOptions {
-  sourceID?: number
-  targetID?: number
-  sourceIsFriendly?: boolean
-  targetIsFriendly?: boolean
-  abilityId?: number
-  abilityName?: string
-  amount?: number
-}
-
-function createDamageEvent(options: DamageEventOptions = {}): DamageEvent {
-  return {
-    timestamp: 1000,
-    type: 'damage',
-    sourceID: options.sourceID ?? 1,
-    sourceIsFriendly: options.sourceIsFriendly ?? true,
-    targetID: options.targetID ?? 25,
-    targetIsFriendly: options.targetIsFriendly ?? false,
-    ability: {
-      guid: options.abilityId ?? 1,
-      name: options.abilityName ?? 'Auto Attack',
-      type: 1,
-      abilityIcon: 'ability_meleedamage.png',
-    },
-    amount: options.amount ?? 100,
-    absorbed: 0,
-    blocked: 0,
-    mitigated: 0,
-    overkill: 0,
-    hitType: 'hit',
-    tick: false,
-    multistrike: false,
-  }
-}
-
-interface HealEventOptions {
-  sourceID?: number
-  targetID?: number
-  abilityId?: number
-  abilityName?: string
-  amount?: number
-  overheal?: number
-}
-
-function createHealEvent(options: HealEventOptions = {}): HealEvent {
-  return {
-    timestamp: 1000,
-    type: 'heal',
-    sourceID: options.sourceID ?? 2,
-    sourceIsFriendly: true,
-    targetID: options.targetID ?? 1,
-    targetIsFriendly: true,
-    ability: {
-      guid: options.abilityId ?? 1,
-      name: options.abilityName ?? 'Heal',
-      type: 2,
-      abilityIcon: 'spell_holy_heal.png',
-    },
-    amount: options.amount ?? 1000,
-    absorbed: 0,
-    overheal: options.overheal ?? 0,
-    tick: false,
-  }
-}
-
-interface ApplyBuffEventOptions {
-  targetID?: number
-  abilityId?: number
-  abilityName?: string
-}
-
-function createApplyBuffEvent(
-  options: ApplyBuffEventOptions = {}
-): ApplyBuffEvent {
-  return {
-    timestamp: 1000,
-    type: 'applybuff',
-    sourceID: options.targetID ?? 1,
-    sourceIsFriendly: true,
-    targetID: options.targetID ?? 1,
-    targetIsFriendly: true,
-    ability: {
-      guid: options.abilityId ?? 1,
-      name: options.abilityName ?? 'Buff',
-      type: 1,
-      abilityIcon: 'spell_holy_buff.png',
-    },
-  }
-}
-
-interface RemoveBuffEventOptions {
-  targetID?: number
-  abilityId?: number
-  abilityName?: string
-}
-
-function createRemoveBuffEvent(
-  options: RemoveBuffEventOptions = {}
-): RemoveBuffEvent {
-  return {
-    timestamp: 2000,
-    type: 'removebuff',
-    sourceID: options.targetID ?? 1,
-    sourceIsFriendly: true,
-    targetID: options.targetID ?? 1,
-    targetIsFriendly: true,
-    ability: {
-      guid: options.abilityId ?? 1,
-      name: options.abilityName ?? 'Buff',
-      type: 1,
-      abilityIcon: 'spell_holy_buff.png',
-    },
-  }
-}
-
 describe('Custom Threat Integration', () => {
   const CUSTOM_ABILITY_ID = 99999
 
   it('should apply customThreat modifications to threat tracker', () => {
-    const customConfig: ThreatConfig = {
-      ...mockConfig,
+    const customConfig: ThreatConfig = createMockThreatConfig({
       abilities: {
         [CUSTOM_ABILITY_ID]: () => ({
           formula: '0 (customThreat)',
@@ -1069,7 +992,7 @@ describe('Custom Threat Integration', () => {
           },
         }),
       },
-    }
+    })
 
     const actorMap = new Map<number, Actor>([
       [1, warriorActor],
@@ -1081,8 +1004,12 @@ describe('Custom Threat Integration', () => {
       createDamageEvent({
         sourceID: 1,
         targetID: bossEnemy.id,
-        abilityId: CUSTOM_ABILITY_ID,
-        abilityName: 'Custom Ability',
+        ability: {
+          guid: CUSTOM_ABILITY_ID,
+          name: 'Custom Ability',
+          type: 1,
+          abilityIcon: 'ability_warrior_challange.jpg',
+        },
         amount: 1000,
       }),
     ]
@@ -1165,8 +1092,7 @@ describe('Custom Threat Integration', () => {
   })
 
   it('should accumulate threat from both base and custom threat', () => {
-    const customConfig: ThreatConfig = {
-      ...mockConfig,
+    const customConfig: ThreatConfig = createMockThreatConfig({
       abilities: {
         [CUSTOM_ABILITY_ID]: () => ({
           formula: '100 (customThreat)',
@@ -1180,7 +1106,7 @@ describe('Custom Threat Integration', () => {
           },
         }),
       },
-    }
+    })
 
     const actorMap = new Map<number, Actor>([
       [1, warriorActor],
@@ -1191,8 +1117,12 @@ describe('Custom Threat Integration', () => {
       createDamageEvent({
         sourceID: 1,
         targetID: bossEnemy.id,
-        abilityId: CUSTOM_ABILITY_ID,
-        abilityName: 'Custom Ability',
+        ability: {
+          guid: CUSTOM_ABILITY_ID,
+          name: 'Custom Ability',
+          type: 1,
+          abilityIcon: 'ability_warrior_challange.jpg',
+        },
         amount: 1000,
       }),
     ]

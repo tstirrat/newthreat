@@ -13,180 +13,30 @@ import {
   type SpellSchool,
 } from '@wcl-threat/threat-config'
 import { calculateThreat } from './threat'
+import { createMockThreatConfig, createMockActorContext } from '../../test/helpers/config'
+import { createDamageEvent, createHealEvent, createEnergizeEvent } from '../../test/helpers/events'
 
 // ============================================================================
-// Mock Actor Context
+// Test-Specific Constants
 // ============================================================================
 
-function createMockActorContext(): ActorContext {
-  return {
-    getPosition: () => null,
-    getDistance: () => null,
-    getActorsInRange: () => [],
-    getThreat: () => 0,
-    getTopActorsByThreat: () => [],
-  }
-}
-
-// ============================================================================
-// Mock Threat Config (self-contained, no external dependencies)
-// ============================================================================
-
-const mockThreatConfig: ThreatConfig = {
-  version: '1.0.0-test',
-  gameVersion: 100000,
-  baseThreat: {
-    damage: (ctx: ThreatContext) => ({
-      formula: 'amount',
-      value: ctx.amount,
-      splitAmongEnemies: false,
-    }),
-    heal: (ctx: ThreatContext) => {
-      // Effective healing: amount - overheal
-      const effectiveHeal = ctx.amount
-      const baseThreat = effectiveHeal * 0.5 // 50% of heal
-      return {
-        formula: 'amount * 0.5',
-        value: baseThreat,
-        splitAmongEnemies: true,
-      }
-    },
-    energize: (ctx: ThreatContext) => ({
-      formula: 'amount * 5',
-      value: ctx.amount * 5,
-      splitAmongEnemies: true,
-    }),
-  },
-  classes: {
-    warrior: {
-      baseThreatFactor: 1.0,
-      auraModifiers: {
-        71: (ctx: ThreatContext) => ({
-          source: 'stance',
-          name: 'Defensive Stance',
-          value: 1.3,
-        }),
-        12305: (ctx: ThreatContext) => ({
-          source: 'talent',
-          name: 'Defiance (Rank 5)',
-          value: 1.15,
-        }),
-      },
-      abilities: {},
-    },
-    rogue: {
-      baseThreatFactor: 0.71,
-      auraModifiers: {},
-      abilities: {},
-    },
-    priest: {
-      baseThreatFactor: 1.0,
-      auraModifiers: {},
-      abilities: {},
-    },
-    druid: {
-      baseThreatFactor: 1.0,
-      auraModifiers: {
-        5487: (ctx: ThreatContext) => ({
-          source: 'stance',
-          name: 'Bear Form',
-          value: 1.3,
-        }),
-      },
-      abilities: {},
-    },
-    paladin: {
-      baseThreatFactor: 1.0,
-      auraModifiers: {
-        25780: (ctx: ThreatContext) => ({
-          source: 'stance',
-          name: 'Righteous Fury',
-          value: 1.6,
-          schools: new Set(['holy'] as SpellSchool[]),
-        }),
-      },
-      abilities: {},
-    },
-    mage: {
-      baseThreatFactor: 1.0,
-      auraModifiers: {},
-      abilities: {},
-    },
-  },
-  auraModifiers: {
-    25846: (ctx: ThreatContext) => ({
-      source: 'aura',
-      name: 'Blessing of Salvation',
-      value: 0.7,
-    }),
-    25895: (ctx: ThreatContext) => ({
-      source: 'aura',
-      name: 'Greater Blessing of Salvation',
-      value: 0.7,
-    }),
-    26400: (ctx: ThreatContext) => ({
-      source: 'aura',
-      name: 'Fetish of the Sand Reaver',
-      value: 0.3,
-    }),
-  },
-  untauntableEnemies: new Set(),
-}
+const SPELLS = {
+  DEFENSIVE_STANCE: 71,
+  DEFIANCE_RANK_5: 12305,
+  BEAR_FORM: 5487,
+  RIGHTEOUS_FURY: 25780,
+  SEAL_OF_RIGHTEOUSNESS: 25742,
+  BLESSING_OF_SALVATION: 25846,
+  GREATER_BLESSING_OF_SALVATION: 25895,
+  FETISH_OF_THE_SAND_REAVER: 26400,
+} as const
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
 
-function createDamageEvent(overrides: Partial<DamageEvent> = {}): DamageEvent {
-  return {
-    timestamp: 1000,
-    type: 'damage',
-    sourceID: 1,
-    sourceIsFriendly: true,
-    targetID: 25,
-    targetIsFriendly: false,
-    ability: {
-      guid: 12345,
-      name: 'Test Attack',
-      type: 1,
-      abilityIcon: 'test.jpg',
-    },
-    amount: 1000,
-    absorbed: 0,
-    blocked: 0,
-    mitigated: 0,
-    overkill: 0,
-    hitType: 'hit',
-    tick: false,
-    multistrike: false,
-    ...overrides,
-  }
-}
-
-function createHealEvent(overrides: Partial<HealEvent> = {}): HealEvent {
-  return {
-    timestamp: 1000,
-    type: 'heal',
-    sourceID: 2,
-    sourceIsFriendly: true,
-    targetID: 1,
-    targetIsFriendly: true,
-    ability: {
-      guid: 25314,
-      name: 'Greater Heal',
-      type: 2,
-      abilityIcon: 'heal.jpg',
-    },
-    amount: 4000,
-    absorbed: 0,
-    overheal: 500,
-    tick: false,
-    ...overrides,
-  }
-}
-
 const defaultActor: Actor = { id: 1, name: 'TestPlayer', class: 'warrior' }
-const defaultEnemy: Enemy = { id: 25, name: 'TestBoss', instance: 0 }
+const defaultEnemy: Enemy = { id: 99, name: 'TestBoss', instance: 0 }
 
 interface TestCallOptions {
   sourceAuras?: Set<number>
@@ -206,11 +56,91 @@ function createTestOptions(overrides: TestCallOptions = {}) {
     targetAuras: overrides.targetAuras ?? new Set(),
     enemies: overrides.enemies ?? [defaultEnemy],
     sourceActor: overrides.sourceActor ?? defaultActor,
-    targetActor: overrides.targetActor ?? { id: 25, name: 'Boss', class: null },
+    targetActor: overrides.targetActor ?? { id: 99, name: 'Boss', class: null },
     encounterId: overrides.encounterId ?? null,
     actors: createMockActorContext(),
   }
 }
+
+// ============================================================================
+// Mock Config
+// ============================================================================
+
+const mockThreatConfig: ThreatConfig = createMockThreatConfig({
+  classes: {
+    warrior: {
+      baseThreatFactor: 1.0,
+      auraModifiers: {
+        [SPELLS.DEFENSIVE_STANCE]: (ctx: ThreatContext) => ({
+          source: 'stance',
+          name: 'Defensive Stance',
+          value: 1.3,
+        }),
+        [SPELLS.DEFIANCE_RANK_5]: (ctx: ThreatContext) => ({
+          source: 'talent',
+          name: 'Defiance (Rank 5)',
+          value: 1.15,
+        }),
+      },
+      abilities: {},
+    },
+    // rogue automatically included from default
+    druid: {
+      baseThreatFactor: 1.0,
+      auraModifiers: {
+        [SPELLS.BEAR_FORM]: (ctx: ThreatContext) => ({
+          source: 'stance',
+          name: 'Bear Form',
+          value: 1.3,
+        }),
+      },
+      abilities: {},
+    },
+    paladin: {
+      baseThreatFactor: 1.0,
+      auraModifiers: {
+        [SPELLS.RIGHTEOUS_FURY]: (ctx: ThreatContext) => ({
+          source: 'stance',
+          name: 'Righteous Fury',
+          value: 1.6,
+          schools: new Set(['holy'] as SpellSchool[]),
+        }),
+      },
+      abilities: {},
+    },
+    mage: {
+      baseThreatFactor: 1.0,
+      auraModifiers: {},
+      abilities: {},
+    },
+    priest: {
+      baseThreatFactor: 1.0,
+      auraModifiers: {},
+      abilities: {},
+    },
+  },
+  auraModifiers: {
+    [SPELLS.BLESSING_OF_SALVATION]: (ctx: ThreatContext) => ({
+      source: 'aura',
+      name: 'Blessing of Salvation',
+      value: 0.7,
+    }),
+    [SPELLS.GREATER_BLESSING_OF_SALVATION]: (ctx: ThreatContext) => ({
+      source: 'aura',
+      name: 'Greater Blessing of Salvation',
+      value: 0.7,
+    }),
+    [SPELLS.FETISH_OF_THE_SAND_REAVER]: (ctx: ThreatContext) => ({
+      source: 'aura',
+      name: 'Fetish of the Sand Reaver',
+      value: 0.3,
+    }),
+  },
+})
+
+// ============================================================================
+// Tests
+// ============================================================================
 
 describe('calculateThreat', () => {
   describe('damage events', () => {
@@ -236,7 +166,7 @@ describe('calculateThreat', () => {
       const result = calculateThreat(
         event,
         createTestOptions({
-          sourceAuras: new Set([71]), // Defensive Stance
+          sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE]),
         }),
         mockThreatConfig
       )
@@ -254,7 +184,7 @@ describe('calculateThreat', () => {
         event,
         createTestOptions({
           // Defensive Stance (1.3) + Defiance Rank 5 (1.15)
-          sourceAuras: new Set([71, 12305]),
+          sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.DEFIANCE_RANK_5]),
         }),
         mockThreatConfig
       )
@@ -311,7 +241,7 @@ describe('calculateThreat', () => {
       })
 
       const enemies = [
-        { id: 25, name: 'Boss', instance: 0 },
+        { id: 99, name: 'Boss', instance: 0 },
         { id: 26, name: 'Add', instance: 0 },
       ]
 
@@ -335,27 +265,6 @@ describe('calculateThreat', () => {
   })
 
   describe('energize events', () => {
-    function createEnergizeEvent(overrides: Partial<EnergizeEvent> = {}): EnergizeEvent {
-      return {
-        timestamp: 1000,
-        type: 'energize',
-        sourceID: 1,
-        sourceIsFriendly: true,
-        targetID: 1,
-        targetIsFriendly: true,
-        ability: {
-          guid: 12975,
-          name: 'Rage Gain',
-          type: 1,
-          abilityIcon: 'rage.jpg',
-        },
-        resourceChange: 20,
-        resourceChangeType: 'rage',
-        waste: 0,
-        ...overrides,
-      }
-    }
-
     it('calculates threat from resource generation', () => {
       const event = createEnergizeEvent({ resourceChange: 30 })
 
@@ -378,7 +287,7 @@ describe('calculateThreat', () => {
       const event = createEnergizeEvent({ resourceChange: 40 })
 
       const enemies = [
-        { id: 25, name: 'Boss', instance: 0 },
+        { id: 99, name: 'Boss', instance: 0 },
         { id: 26, name: 'Add', instance: 0 },
       ]
 
@@ -427,7 +336,7 @@ describe('calculateThreat', () => {
         type: 'cast' as const,
         sourceID: 1,
         sourceIsFriendly: true,
-        targetID: 25,
+        targetID: 99,
         targetIsFriendly: false,
         ability: {
           guid: 100,
@@ -488,7 +397,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([25846]), // Blessing of Salvation
+            sourceAuras: new Set([SPELLS.BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
           mockThreatConfig
@@ -507,7 +416,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([25846]), // Blessing of Salvation
+            sourceAuras: new Set([SPELLS.BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'RoguePlayer', class: 'rogue' },
           }),
           mockThreatConfig
@@ -529,7 +438,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([25895]), // Greater Blessing of Salvation
+            sourceAuras: new Set([SPELLS.GREATER_BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'MagePlayer', class: 'mage' },
           }),
           mockThreatConfig
@@ -550,7 +459,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([26400]), // Fetish of the Sand Reaver
+            sourceAuras: new Set([SPELLS.FETISH_OF_THE_SAND_REAVER]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
           mockThreatConfig
@@ -569,7 +478,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([26400]), // Fetish of the Sand Reaver
+            sourceAuras: new Set([SPELLS.FETISH_OF_THE_SAND_REAVER]),
             sourceActor: { id: 1, name: 'MagePlayer', class: 'mage' },
           }),
           mockThreatConfig
@@ -591,7 +500,7 @@ describe('calculateThreat', () => {
           event,
           createTestOptions({
             // Defensive Stance (1.3x) + Blessing of Salvation (0.7x)
-            sourceAuras: new Set([71, 25846]),
+            sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
           mockThreatConfig
@@ -614,7 +523,7 @@ describe('calculateThreat', () => {
           event,
           createTestOptions({
             // Blessing of Salvation (0.7x) + Fetish of the Sand Reaver (0.3x)
-            sourceAuras: new Set([25846, 26400]),
+            sourceAuras: new Set([SPELLS.BLESSING_OF_SALVATION, SPELLS.FETISH_OF_THE_SAND_REAVER]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
           mockThreatConfig
@@ -637,7 +546,7 @@ describe('calculateThreat', () => {
           event,
           createTestOptions({
             // Defensive Stance (1.3x) + Defiance Rank 5 (1.15x) + Blessing of Salvation (0.7x)
-            sourceAuras: new Set([71, 12305, 25846]),
+            sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.DEFIANCE_RANK_5, SPELLS.BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
           mockThreatConfig
@@ -656,7 +565,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([71]), // Defensive Stance
+            sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
           mockThreatConfig
@@ -674,7 +583,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([5487]), // Bear Form
+            sourceAuras: new Set([SPELLS.BEAR_FORM]),
             sourceActor: { id: 1, name: 'DruidPlayer', class: 'druid' },
           }),
           mockThreatConfig
@@ -691,7 +600,7 @@ describe('calculateThreat', () => {
         const holyDamageEvent = createDamageEvent({
           amount: 1000,
           ability: {
-            guid: 25742, // Seal of Righteousness (holy school)
+            guid: SPELLS.SEAL_OF_RIGHTEOUSNESS,
             name: 'Seal of Righteousness',
             type: 2,
             abilityIcon: 'ability_thunderbolt.jpg',
@@ -701,7 +610,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           holyDamageEvent,
           createTestOptions({
-            sourceAuras: new Set([25780]), // Righteous Fury
+            sourceAuras: new Set([SPELLS.RIGHTEOUS_FURY]),
             sourceActor: { id: 1, name: 'PaladinPlayer', class: 'paladin' },
           }),
           mockThreatConfig
@@ -719,7 +628,7 @@ describe('calculateThreat', () => {
         const result = calculateThreat(
           event,
           createTestOptions({
-            sourceAuras: new Set([12305]), // Defiance Rank 5
+            sourceAuras: new Set([SPELLS.DEFIANCE_RANK_5]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
           mockThreatConfig

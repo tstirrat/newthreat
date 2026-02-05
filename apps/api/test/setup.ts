@@ -78,3 +78,19 @@ export function createMockResponse(data: unknown, status = 200): Response {
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+// Threat config helpers
+export {
+  createMockThreatConfig,
+  createMockActorContext,
+} from './helpers/config'
+
+// Event helpers
+export {
+  createDamageEvent,
+  createHealEvent,
+  createEnergizeEvent,
+  createApplyBuffEvent,
+  createRemoveBuffEvent,
+  createCombatantInfoAura,
+} from './helpers/events'
