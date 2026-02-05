@@ -5,7 +5,7 @@
  */
 
 import type { ClassThreatConfig, ThreatContext } from '../../types'
-import { flat, modAmount, tauntTarget, threatOnDebuff, noThreat } from '../../shared/formulas'
+import { calculateThreat, tauntTarget, threatOnDebuff, noThreat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -138,20 +138,20 @@ export const druidConfig: ClassThreatConfig = {
     [Spells.MoonkinForm]: noThreat(),
 
     // Maul - 1.75x damage
-    [Spells.MaulR1]: modAmount(Mods.Maul),
-    [Spells.MaulR2]: modAmount(Mods.Maul),
-    [Spells.MaulR3]: modAmount(Mods.Maul),
-    [Spells.MaulR4]: modAmount(Mods.Maul),
-    [Spells.MaulR5]: modAmount(Mods.Maul),
-    [Spells.MaulR6]: modAmount(Mods.Maul),
-    [Spells.MaulR7]: modAmount(Mods.Maul),
+    [Spells.MaulR1]: calculateThreat({ modifier: Mods.Maul }),
+    [Spells.MaulR2]: calculateThreat({ modifier: Mods.Maul }),
+    [Spells.MaulR3]: calculateThreat({ modifier: Mods.Maul }),
+    [Spells.MaulR4]: calculateThreat({ modifier: Mods.Maul }),
+    [Spells.MaulR5]: calculateThreat({ modifier: Mods.Maul }),
+    [Spells.MaulR6]: calculateThreat({ modifier: Mods.Maul }),
+    [Spells.MaulR7]: calculateThreat({ modifier: Mods.Maul }),
 
     // Swipe - 1.75x damage
-    [Spells.SwipeR1]: modAmount(Mods.Swipe),
-    [Spells.SwipeR2]: modAmount(Mods.Swipe),
-    [Spells.SwipeR3]: modAmount(Mods.Swipe),
-    [Spells.SwipeR4]: modAmount(Mods.Swipe),
-    [Spells.SwipeR5]: modAmount(Mods.Swipe),
+    [Spells.SwipeR1]: calculateThreat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR2]: calculateThreat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR3]: calculateThreat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR4]: calculateThreat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR5]: calculateThreat({ modifier: Mods.Swipe }),
 
     // Demoralizing Roar - flat threat per rank
     [Spells.DemoRoarR1]: threatOnDebuff(9),
@@ -170,9 +170,9 @@ export const druidConfig: ClassThreatConfig = {
     [Spells.Bash]: noThreat(),
 
     // Cower - negative threat
-    [Spells.CowerR1]: flat(-240),
-    [Spells.CowerR2]: flat(-390),
-    [Spells.CowerR3]: flat(-600),
+    [Spells.CowerR1]: calculateThreat({ modifier: 0, bonus: -240 }),
+    [Spells.CowerR2]: calculateThreat({ modifier: 0, bonus: -390 }),
+    [Spells.CowerR3]: calculateThreat({ modifier: 0, bonus: -600 }),
 
     // Faerie Fire (all ranks) - flat 108 threat
     [Spells.FaerieFireFeralR1]: threatOnDebuff(108),

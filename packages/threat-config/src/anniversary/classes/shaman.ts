@@ -5,7 +5,7 @@
  */
 
 import type { ClassThreatConfig, ThreatContext } from '../../types'
-import { modAmount } from '../../shared/formulas'
+import { calculateThreat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -51,12 +51,12 @@ export const shamanConfig: ClassThreatConfig = {
 
   abilities: {
     // Earth Shock - 2x threat
-    [Spells.EarthShockR1]: modAmount(Mods.EarthShock),
-    [Spells.EarthShockR2]: modAmount(Mods.EarthShock),
-    [Spells.EarthShockR3]: modAmount(Mods.EarthShock),
-    [Spells.EarthShockR4]: modAmount(Mods.EarthShock),
-    [Spells.EarthShockR5]: modAmount(Mods.EarthShock),
-    [Spells.EarthShockR6]: modAmount(Mods.EarthShock),
-    [Spells.EarthShockR7]: modAmount(Mods.EarthShock),
+    [Spells.EarthShockR1]: calculateThreat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR2]: calculateThreat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR3]: calculateThreat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR4]: calculateThreat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR5]: calculateThreat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR6]: calculateThreat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR7]: calculateThreat({ modifier: Mods.EarthShock }),
   },
 }

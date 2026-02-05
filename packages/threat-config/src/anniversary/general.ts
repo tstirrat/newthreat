@@ -5,6 +5,7 @@
  */
 
 import type { ThreatContext, ThreatFormulaResult, BaseThreatConfig } from '../types'
+import { calculateThreat } from '../shared/formulas'
 
 /**
  * Base threat configurations for Anniversary Edition
@@ -13,40 +14,45 @@ export const baseThreat: BaseThreatConfig = {
   /**
    * Damage threat: 1 damage = 1 threat (before modifiers)
    */
-  damage: (ctx: ThreatContext): ThreatFormulaResult => ({
-    formula: 'amt',
-    baseThreat: ctx.amount,
-    modifiers: [],
-    splitAmongEnemies: false,
-  }),
+  damage: calculateThreat({ modifier: 1 }),
 
   /**
    * Healing threat: effective healing * 0.5, split among enemies
-   * Overheal does not generate threat
+   * Overheal does not generate threat (handled in getEventAmount)
    */
-  heal: (ctx: ThreatContext): ThreatFormulaResult => {
-    // Extract overheal from the event if available
-    const event = ctx.event
-    const overheal =
-      event.type === 'heal' && 'overheal' in event ? event.overheal : 0
-    const effectiveHeal = Math.max(0, ctx.amount - overheal)
-
-    return {
-      formula: 'effectiveHeal * 0.5',
-      baseThreat: effectiveHeal * 0.5,
-      modifiers: [],
-      splitAmongEnemies: true,
-    }
-  },
-
-  /**
-   * Resource generation threat: resource * 0.5, split among enemies
-   * Only mana and energy count (rage does not generate threat from generation)
-   */
-  energize: (ctx: ThreatContext): ThreatFormulaResult => ({
-    formula: 'resource * 0.5',
+  heal: (ctx: ThreatContext): ThreatFormulaResult => ({
+    formula: 'effectiveHeal * 0.5',
     baseThreat: ctx.amount * 0.5,
     modifiers: [],
     splitAmongEnemies: true,
   }),
+
+  /**
+   * Resource generation threat: split among enemies
+   * - Rage: 5x threat multiplier
+   * - Mana: 0.5x threat multiplier
+   * - Energy: No threat
+   */
+  energize: (ctx: ThreatContext): ThreatFormulaResult => {
+    const event = ctx.event
+    if (event.type !== 'energize') {
+      return { formula: '0', baseThreat: 0, modifiers: [], splitAmongEnemies: false }
+    }
+
+    // Energy gains do not generate threat
+    if (event.resourceChangeType === 'energy') {
+      return { formula: '0', baseThreat: 0, modifiers: [], splitAmongEnemies: false }
+    }
+
+    // Rage: 5x threat, Mana: 0.5x threat
+    const multiplier = event.resourceChangeType === 'rage' ? 5 : 0.5
+    const resourceLabel = event.resourceChangeType
+
+    return {
+      formula: `${resourceLabel} * ${multiplier}`,
+      baseThreat: ctx.amount * multiplier,
+      modifiers: [],
+      splitAmongEnemies: true,
+    }
+  },
 }

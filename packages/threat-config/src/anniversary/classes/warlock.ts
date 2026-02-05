@@ -5,7 +5,7 @@
  */
 
 import type { ClassThreatConfig } from '../../types'
-import { modAmount, threatOnDebuff, noThreat } from '../../shared/formulas'
+import { calculateThreat, threatOnDebuff, noThreat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -86,12 +86,12 @@ export const warlockConfig: ClassThreatConfig = {
 
   abilities: {
     // Searing Pain - 2x threat
-    [Spells.SearingPainR1]: modAmount(Mods.SearingPain),
-    [Spells.SearingPainR2]: modAmount(Mods.SearingPain),
-    [Spells.SearingPainR3]: modAmount(Mods.SearingPain),
-    [Spells.SearingPainR4]: modAmount(Mods.SearingPain),
-    [Spells.SearingPainR5]: modAmount(Mods.SearingPain),
-    [Spells.SearingPainR6]: modAmount(Mods.SearingPain),
+    [Spells.SearingPainR1]: calculateThreat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR2]: calculateThreat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR3]: calculateThreat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR4]: calculateThreat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR5]: calculateThreat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR6]: calculateThreat({ modifier: Mods.SearingPain }),
 
     // Curses - 2x mana cost as threat
     [Spells.CurseOfRecklessnessR1]: threatOnDebuff(2 * 14),

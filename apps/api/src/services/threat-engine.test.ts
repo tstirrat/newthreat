@@ -562,8 +562,8 @@ describe('processEvents', () => {
       expect(augmented.type).toBe('heal')
       expect(augmented.threat).toBeDefined()
       expect(augmented.threat.values).toBeDefined()
-      // Base formula: 0.5 * 1000 = 500
-      expect(augmented.threat.calculation.baseThreat).toBe(500)
+      // Effective heal: 1000 - 200 overheal = 800, formula: 0.5 * 800 = 400
+      expect(augmented.threat.calculation.baseThreat).toBe(400)
     })
 
     it('calculates threat to specific enemy when targeting hostile', () => {

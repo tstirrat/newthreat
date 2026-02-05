@@ -256,9 +256,9 @@ describe('calculateThreat', () => {
         config
       )
 
-      // Energize events generate threat: resource * 0.5
+      // Energize events generate threat: rage * 5
       expect(result.calculation.baseValue).toBe(30)
-      expect(result.calculation.baseThreat).toBe(15) // 30 * 0.5
+      expect(result.calculation.baseThreat).toBe(150) // 30 * 5
       expect(result.values).toHaveLength(1)
     })
 
@@ -283,12 +283,12 @@ describe('calculateThreat', () => {
         config
       )
 
-      // 40 resource * 0.5 = 20 base threat, split 2 ways = 10 each
-      expect(result.calculation.baseThreat).toBe(20)
+      // 40 rage * 5 = 200 base threat, split 2 ways = 100 each
+      expect(result.calculation.baseThreat).toBe(200)
       expect(result.values).toHaveLength(2)
-      expect(result.values[0]?.amount).toBe(10)
+      expect(result.values[0]?.amount).toBe(100)
       expect(result.values[0]?.isSplit).toBe(true)
-      expect(result.values[1]?.amount).toBe(10)
+      expect(result.values[1]?.amount).toBe(100)
       expect(result.values[1]?.isSplit).toBe(true)
     })
   })

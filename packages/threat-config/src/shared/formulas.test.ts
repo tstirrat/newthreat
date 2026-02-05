@@ -5,10 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import type { ThreatContext } from '../types'
 import {
-  defaultFormula,
-  flat,
-  modAmount,
-  modAmountFlat,
+  calculateThreat,
   tauntTarget,
   threatDrop,
   noThreat,
@@ -29,9 +26,9 @@ function createMockContext(overrides: Partial<ThreatContext> = {}): ThreatContex
   }
 }
 
-describe('defaultFormula', () => {
-  it('returns threat equal to amount', () => {
-    const formula = defaultFormula()
+describe('calculateThreat', () => {
+  it('returns default threat (amt) with no options', () => {
+    const formula = calculateThreat()
     const ctx = createMockContext({ amount: 500 })
 
     const result = formula(ctx)
@@ -42,120 +39,107 @@ describe('defaultFormula', () => {
     expect(result.modifiers).toEqual([])
   })
 
-  it('supports split option', () => {
-    const formula = defaultFormula({ split: true })
-    const ctx = createMockContext({ amount: 1000 })
+  it('applies modifier to amount', () => {
+    const formula = calculateThreat({ modifier: 2 })
+    const ctx = createMockContext({ amount: 100 })
 
     const result = formula(ctx)
 
-    expect(result.baseThreat).toBe(1000)
-    expect(result.splitAmongEnemies).toBe(true)
+    expect(result.formula).toBe('amt * 2')
+    expect(result.baseThreat).toBe(200)
   })
-})
 
-describe('flat', () => {
-  it('returns flat threat value ignoring amount', () => {
-    const formula = flat(301)
-    const ctx = createMockContext({ amount: 1000 })
+  it('applies modifier with decimal values', () => {
+    const formula = calculateThreat({ modifier: 0.5 })
+    const ctx = createMockContext({ amount: 100 })
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('amt * 0.5')
+    expect(result.baseThreat).toBe(50)
+  })
+
+  it('returns flat bonus threat with modifier: 0', () => {
+    const formula = calculateThreat({ modifier: 0, bonus: 301 })
+    const ctx = createMockContext({ amount: 100 })
 
     const result = formula(ctx)
 
     expect(result.formula).toBe('301')
     expect(result.baseThreat).toBe(301)
-    expect(result.splitAmongEnemies).toBe(false)
   })
 
-  it('supports split option', () => {
-    const formula = flat(70, { split: true })
-    const ctx = createMockContext({ amount: 0 })
+  it('applies both modifier and bonus', () => {
+    const formula = calculateThreat({ modifier: 2, bonus: 150 })
+    const ctx = createMockContext({ amount: 100 })
 
     const result = formula(ctx)
 
+    expect(result.formula).toBe('(amt * 2) + 150')
+    expect(result.baseThreat).toBe(350) // (100 * 2) + 150
+  })
+
+  it('applies bonus without modifier', () => {
+    const formula = calculateThreat({ modifier: 1, bonus: 145 })
+    const ctx = createMockContext({ amount: 100 })
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('amt + 145')
+    expect(result.baseThreat).toBe(245)
+  })
+
+  it('supports split option', () => {
+    const formula = calculateThreat({ modifier: 0, bonus: 70, split: true })
+    const ctx = createMockContext()
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('70')
     expect(result.baseThreat).toBe(70)
     expect(result.splitAmongEnemies).toBe(true)
   })
 
-  it('works with zero value', () => {
-    const formula = flat(0)
+  it('handles negative bonus (threat reduction)', () => {
+    const formula = calculateThreat({ modifier: 0, bonus: -240 })
     const ctx = createMockContext()
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('-240')
+    expect(result.baseThreat).toBe(-240)
+  })
+
+  it('handles zero threat', () => {
+    const formula = calculateThreat({ modifier: 0, bonus: 0 })
+    const ctx = createMockContext({ amount: 100 })
 
     const result = formula(ctx)
 
     expect(result.formula).toBe('0')
     expect(result.baseThreat).toBe(0)
   })
-})
 
-describe('modAmount', () => {
-  it('multiplies amount by modifier', () => {
-    const formula = modAmount(0.5)
+  it('handles complex formula with modifier and split', () => {
+    const formula = calculateThreat({ modifier: 0.5, split: true })
     const ctx = createMockContext({ amount: 1000 })
 
     const result = formula(ctx)
 
     expect(result.formula).toBe('amt * 0.5')
     expect(result.baseThreat).toBe(500)
-  })
-
-  it('simplifies formula when mod is 1', () => {
-    const formula = modAmount(1)
-    const ctx = createMockContext({ amount: 200 })
-
-    const result = formula(ctx)
-
-    expect(result.formula).toBe('amt')
-    expect(result.baseThreat).toBe(200)
-  })
-
-  it('handles mod of 2', () => {
-    const formula = modAmount(2)
-    const ctx = createMockContext({ amount: 300 })
-
-    const result = formula(ctx)
-
-    expect(result.formula).toBe('amt * 2')
-    expect(result.baseThreat).toBe(600)
-  })
-})
-
-describe('modAmountFlat', () => {
-  it('calculates (amt * mod) + flat', () => {
-    const formula = modAmountFlat(2, 150)
-    const ctx = createMockContext({ amount: 500 })
-
-    const result = formula(ctx)
-
-    expect(result.formula).toBe('(amt * 2) + 150')
-    expect(result.baseThreat).toBe(1150) // (500 * 2) + 150
-  })
-
-  it('simplifies formula when mod is 1', () => {
-    const formula = modAmountFlat(1, 355)
-    const ctx = createMockContext({ amount: 200 })
-
-    const result = formula(ctx)
-
-    expect(result.formula).toBe('amt + 355')
-    expect(result.baseThreat).toBe(555)
-  })
-
-  it('simplifies formula when mod is 0', () => {
-    const formula = modAmountFlat(0, 100)
-    const ctx = createMockContext({ amount: 500 })
-
-    const result = formula(ctx)
-
-    expect(result.formula).toBe('100')
-    expect(result.baseThreat).toBe(100)
-  })
-
-  it('supports split option', () => {
-    const formula = modAmountFlat(1, 100, { split: true })
-    const ctx = createMockContext({ amount: 200 })
-
-    const result = formula(ctx)
-
     expect(result.splitAmongEnemies).toBe(true)
+  })
+
+  it('handles modifier with bonus and split', () => {
+    const formula = calculateThreat({ modifier: 1.75, bonus: 50, split: false })
+    const ctx = createMockContext({ amount: 100 })
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('(amt * 1.75) + 50')
+    expect(result.baseThreat).toBe(225) // (100 * 1.75) + 50
+    expect(result.splitAmongEnemies).toBe(false)
   })
 })
 

@@ -96,8 +96,11 @@ function getEventAmount(event: WCLEvent): number {
   switch (event.type) {
     case 'damage':
       return event.amount
-    case 'heal':
-      return event.amount
+    case 'heal': {
+      // Only effective healing generates threat (exclude overheal)
+      const overheal = 'overheal' in event ? event.overheal : 0
+      return Math.max(0, event.amount - overheal)
+    }
     case 'energize':
       return event.resourceChange
     default:

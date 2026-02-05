@@ -5,7 +5,7 @@
  */
 
 import type { ClassThreatConfig, ThreatContext, GearItem } from '../../types'
-import { flat, modAmountFlat, tauntTarget } from '../../shared/formulas'
+import { calculateThreat, tauntTarget } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -138,37 +138,37 @@ export const warriorConfig: ClassThreatConfig = {
 
   abilities: {
     // Shield Slam: 2x damage + 150 flat threat
-    [Spells.ShieldSlam]: modAmountFlat(2, 150),
+    [Spells.ShieldSlam]: calculateThreat({ modifier: 2, bonus: 150 }),
 
     // Sunder Armor: flat 301 threat (no damage in Classic)
-    [Spells.SunderArmor]: flat(301),
+    [Spells.SunderArmor]: calculateThreat({ modifier: 0, bonus: 301 }),
 
     // Revenge: damage + 355 flat threat
-    [Spells.Revenge]: modAmountFlat(1, 355),
+    [Spells.Revenge]: calculateThreat({ modifier: 1, bonus: 355 }),
 
     // Heroic Strike: damage + 145 flat threat
-    [Spells.HeroicStrike]: modAmountFlat(1, 145),
+    [Spells.HeroicStrike]: calculateThreat({ modifier: 1, bonus: 145 }),
 
     // Cleave: damage + 100 flat threat per target
-    [Spells.Cleave]: modAmountFlat(1, 100),
+    [Spells.Cleave]: calculateThreat({ modifier: 1, bonus: 100 }),
 
     // Thunder Clap: damage + 175 flat threat
-    [Spells.Thunderclap]: modAmountFlat(1, 175),
+    [Spells.Thunderclap]: calculateThreat({ modifier: 1, bonus: 175 }),
 
     // Battle Shout: 70 threat split among enemies
-    [Spells.BattleShout]: flat(70, { split: true }),
+    [Spells.BattleShout]: calculateThreat({ modifier: 0, bonus: 70, split: true }),
 
     // Demo Shout: 56 threat per target hit
-    [Spells.DemoShout]: flat(56),
+    [Spells.DemoShout]: calculateThreat({ modifier: 0, bonus: 56 }),
 
     // Shield Bash: damage + 187 flat threat
-    [Spells.ShieldBash]: modAmountFlat(1, 187),
+    [Spells.ShieldBash]: calculateThreat({ modifier: 1, bonus: 187 }),
 
     // Hamstring: damage + 141 flat threat
-    [Spells.Hamstring]: modAmountFlat(1, 141),
+    [Spells.Hamstring]: calculateThreat({ modifier: 1, bonus: 141 }),
 
     // Disarm: damage + 104 flat threat
-    [Spells.Disarm]: modAmountFlat(1, 104),
+    [Spells.Disarm]: calculateThreat({ modifier: 1, bonus: 104 }),
 
     // Taunt: match top threat + 1, fixate for 3s
     [Spells.Taunt]: tauntTarget(1, 3000),

@@ -5,7 +5,7 @@
  */
 
 import type { ClassThreatConfig } from '../../types'
-import { flat, modAmountFlat, threatDrop } from '../../shared/formulas'
+import { calculateThreat, threatDrop } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -36,16 +36,16 @@ export const hunterConfig: ClassThreatConfig = {
     [Spells.FeignDeath]: threatDrop(),
 
     // Distracting Shot - damage + flat threat per rank
-    [Spells.DistractingShotR1]: modAmountFlat(1, 110),
-    [Spells.DistractingShotR2]: modAmountFlat(1, 160),
-    [Spells.DistractingShotR3]: modAmountFlat(1, 250),
-    [Spells.DistractingShotR4]: modAmountFlat(1, 350),
-    [Spells.DistractingShotR5]: modAmountFlat(1, 465),
-    [Spells.DistractingShotR6]: modAmountFlat(1, 600),
+    [Spells.DistractingShotR1]: calculateThreat({ modifier: 1, bonus: 110 }),
+    [Spells.DistractingShotR2]: calculateThreat({ modifier: 1, bonus: 160 }),
+    [Spells.DistractingShotR3]: calculateThreat({ modifier: 1, bonus: 250 }),
+    [Spells.DistractingShotR4]: calculateThreat({ modifier: 1, bonus: 350 }),
+    [Spells.DistractingShotR5]: calculateThreat({ modifier: 1, bonus: 465 }),
+    [Spells.DistractingShotR6]: calculateThreat({ modifier: 1, bonus: 600 }),
 
     // Disengage - negative threat
-    [Spells.DisengageR1]: flat(-140),
-    [Spells.DisengageR2]: flat(-280),
-    [Spells.DisengageR3]: flat(-405),
+    [Spells.DisengageR1]: calculateThreat({ modifier: 0, bonus: -140 }),
+    [Spells.DisengageR2]: calculateThreat({ modifier: 0, bonus: -280 }),
+    [Spells.DisengageR3]: calculateThreat({ modifier: 0, bonus: -405 }),
   },
 }

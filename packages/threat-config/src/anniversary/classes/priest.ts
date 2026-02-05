@@ -5,7 +5,7 @@
  */
 
 import type { ClassThreatConfig } from '../../types'
-import { modAmountFlat, noThreat } from '../../shared/formulas'
+import { calculateThreat, noThreat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -53,15 +53,15 @@ export const priestConfig: ClassThreatConfig = {
 
   abilities: {
     // Mind Blast - damage + flat threat per rank
-    [Spells.MindBlastR1]: modAmountFlat(1, 40),
-    [Spells.MindBlastR2]: modAmountFlat(1, 77),
-    [Spells.MindBlastR3]: modAmountFlat(1, 121),
-    [Spells.MindBlastR4]: modAmountFlat(1, 180),
-    [Spells.MindBlastR5]: modAmountFlat(1, 236),
-    [Spells.MindBlastR6]: modAmountFlat(1, 303),
-    [Spells.MindBlastR7]: modAmountFlat(1, 380),
-    [Spells.MindBlastR8]: modAmountFlat(1, 460),
-    [Spells.MindBlastR9]: modAmountFlat(1, 540),
+    [Spells.MindBlastR1]: calculateThreat({ modifier: 1, bonus: 40 }),
+    [Spells.MindBlastR2]: calculateThreat({ modifier: 1, bonus: 77 }),
+    [Spells.MindBlastR3]: calculateThreat({ modifier: 1, bonus: 121 }),
+    [Spells.MindBlastR4]: calculateThreat({ modifier: 1, bonus: 180 }),
+    [Spells.MindBlastR5]: calculateThreat({ modifier: 1, bonus: 236 }),
+    [Spells.MindBlastR6]: calculateThreat({ modifier: 1, bonus: 303 }),
+    [Spells.MindBlastR7]: calculateThreat({ modifier: 1, bonus: 380 }),
+    [Spells.MindBlastR8]: calculateThreat({ modifier: 1, bonus: 460 }),
+    [Spells.MindBlastR9]: calculateThreat({ modifier: 1, bonus: 540 }),
 
     // Holy Nova - zero threat
     [Spells.HolyNovaDmgR1]: noThreat(),

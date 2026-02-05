@@ -5,7 +5,7 @@
  */
 
 import type { ClassThreatConfig, ThreatContext, SpellSchool } from '../../types'
-import { flat, modAmountFlat, modAmount } from '../../shared/formulas'
+import { calculateThreat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -95,32 +95,32 @@ export const paladinConfig: ClassThreatConfig = {
 
   abilities: {
     // Judgement of Light: 194 flat threat (cast)
-    [Spells.JudgementOfLight]: flat(194),
+    [Spells.JudgementOfLight]: calculateThreat({ modifier: 0, bonus: 194 }),
 
     // Judgement of Wisdom: 194 flat threat (cast)
-    [Spells.JudgementOfWisdom]: flat(194),
+    [Spells.JudgementOfWisdom]: calculateThreat({ modifier: 0, bonus: 194 }),
 
     // Judgement of Righteousness: damage counts as holy
-    [Spells.JudgementOfRighteousness]: modAmount(1),
+    [Spells.JudgementOfRighteousness]: calculateThreat({ modifier: 1 }),
 
     // Holy Shield: damage + 35 threat per block (handled per block event)
-    [Spells.HolyShield]: modAmountFlat(1, 35),
+    [Spells.HolyShield]: calculateThreat({ modifier: 1, bonus: 35 }),
 
     // Consecration: damage done (scales with RF)
-    [Spells.Consecration]: modAmount(1),
+    [Spells.Consecration]: calculateThreat({ modifier: 1 }),
 
     // Exorcism: standard damage threat
-    [Spells.Exorcism]: modAmount(1),
+    [Spells.Exorcism]: calculateThreat({ modifier: 1 }),
 
     // Blessings: 60 threat split among enemies
-    [Spells.BlessingOfKings]: flat(60, { split: true }),
-    [Spells.BlessingOfSalvation]: flat(60, { split: true }),
-    [Spells.BlessingOfMight]: flat(60, { split: true }),
-    [Spells.BlessingOfWisdom]: flat(60, { split: true }),
-    [Spells.BlessingOfSanctuary]: flat(60, { split: true }),
-    [Spells.BlessingOfLight]: flat(60, { split: true }),
-    [Spells.GreaterBlessingOfKings]: flat(60, { split: true }),
-    [Spells.GreaterBlessingOfSalvation]: flat(60, { split: true }),
+    [Spells.BlessingOfKings]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.BlessingOfSalvation]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.BlessingOfMight]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.BlessingOfWisdom]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.BlessingOfSanctuary]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.BlessingOfLight]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.GreaterBlessingOfKings]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.GreaterBlessingOfSalvation]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
   },
 
   invulnerabilityBuffs: new Set([

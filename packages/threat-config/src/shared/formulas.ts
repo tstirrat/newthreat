@@ -14,72 +14,64 @@ export interface FormulaOptions {
   split?: boolean
 }
 
-/**
- * Default formula: threat = event amount
- * Used when no config exists for a spell
- */
-export function defaultFormula(options?: FormulaOptions): FormulaFn {
-  return (ctx) => ({
-    formula: 'amt',
-    baseThreat: ctx.amount,
-    modifiers: [],
-    splitAmongEnemies: options?.split ?? false,
-  })
+export interface CalculateThreatOptions {
+  /** Multiplier applied to event amount (default: 1) */
+  modifier?: number
+  /** Flat bonus threat added after modifier (default: 0) */
+  bonus?: number
+  /** Split threat among all enemies (default: false) */
+  split?: boolean
 }
 
 /**
- * Flat threat value, ignores event amount
- * Example: Sunder Armor (301 flat threat)
+ * Consolidated threat formula: (amount × modifier) + bonus
+ * Replaces flat(), modAmount(), modAmountFlat(), defaultFormula(), threatOnBuff(), modHeal()
+ * 
+ * @example
+ * calculateThreat() // amt (default damage)
+ * calculateThreat({ modifier: 2 }) // amt * 2
+ * calculateThreat({ modifier: 0, bonus: 301 }) // 301 (flat threat)
+ * calculateThreat({ modifier: 2, bonus: 150 }) // (amt * 2) + 150
+ * calculateThreat({ modifier: 0.5, split: true }) // amt * 0.5 (split among enemies)
  */
-export function flat(value: number, options?: FormulaOptions): FormulaFn {
-  return () => ({
-    formula: `${value}`,
-    baseThreat: value,
-    modifiers: [],
-    splitAmongEnemies: options?.split ?? false,
-  })
-}
+export function calculateThreat(options: CalculateThreatOptions = {}): FormulaFn {
+  const { modifier = 1, bonus = 0, split = false } = options
 
-/**
- * Multiply event amount by modifier
- * Example: heal threat (amt * 0.5)
- */
-export function modAmount(mod: number, options?: FormulaOptions): FormulaFn {
-  return (ctx) => ({
-    formula: mod === 1 ? 'amt' : `amt * ${mod}`,
-    baseThreat: ctx.amount * mod,
-    modifiers: [],
-    splitAmongEnemies: options?.split ?? false,
-  })
-}
-
-/**
- * Multiply event amount by modifier, then add flat value
- * Example: Shield Slam ((amt * 2) + 150)
- */
-export function modAmountFlat(
-  mod: number,
-  flatVal: number,
-  options?: FormulaOptions
-): FormulaFn {
   return (ctx) => {
-    const base = ctx.amount * mod + flatVal
+    const base = ctx.amount * modifier + bonus
+    
+    // Generate formula string
     let formula: string
-    if (mod === 1) {
-      formula = `amt + ${flatVal}`
-    } else if (mod === 0) {
-      formula = `${flatVal}`
+    if (modifier === 0 && bonus !== 0) {
+      // Pure flat threat: "301"
+      formula = `${bonus}`
+    } else if (modifier === 1 && bonus === 0) {
+      // Default: "amt"
+      formula = 'amt'
+    } else if (modifier === 1 && bonus !== 0) {
+      // Amount + bonus: "amt + 150"
+      formula = `amt + ${bonus}`
+    } else if (modifier === 0 && bonus === 0) {
+      // Zero threat: "0"
+      formula = '0'
+    } else if (bonus === 0) {
+      // Pure multiplier: "amt * 2"
+      formula = `amt * ${modifier}`
     } else {
-      formula = `(amt * ${mod}) + ${flatVal}`
+      // Full formula: "(amt * 2) + 150"
+      formula = `(amt * ${modifier}) + ${bonus}`
     }
+
     return {
       formula,
       baseThreat: base,
       modifiers: [],
-      splitAmongEnemies: options?.split ?? false,
+      splitAmongEnemies: split,
     }
   }
 }
+
+
 
 export interface TauntOptions {
   /** Add damage amount to threat (e.g., Mocking Blow) */
