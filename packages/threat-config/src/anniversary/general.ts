@@ -22,8 +22,7 @@ export const baseThreat: BaseThreatConfig = {
    */
   heal: (ctx: ThreatContext): ThreatFormulaResult => ({
     formula: 'effectiveHeal * 0.5',
-    baseThreat: ctx.amount * 0.5,
-    modifiers: [],
+    value: ctx.amount * 0.5,
     splitAmongEnemies: true,
   }),
 
@@ -36,12 +35,12 @@ export const baseThreat: BaseThreatConfig = {
   energize: (ctx: ThreatContext): ThreatFormulaResult => {
     const event = ctx.event
     if (event.type !== 'energize') {
-      return { formula: '0', baseThreat: 0, modifiers: [], splitAmongEnemies: false }
+      return { formula: '0', value: 0, splitAmongEnemies: false }
     }
 
     // Energy gains do not generate threat
     if (event.resourceChangeType === 'energy') {
-      return { formula: '0', baseThreat: 0, modifiers: [], splitAmongEnemies: false }
+      return { formula: '0', value: 0, splitAmongEnemies: false }
     }
 
     // Rage: 5x threat, Mana: 0.5x threat
@@ -50,8 +49,7 @@ export const baseThreat: BaseThreatConfig = {
 
     return {
       formula: `${resourceLabel} * ${multiplier}`,
-      baseThreat: ctx.amount * multiplier,
-      modifiers: [],
+      value: ctx.amount * multiplier,
       splitAmongEnemies: true,
     }
   },

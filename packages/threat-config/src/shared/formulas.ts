@@ -38,7 +38,7 @@ export function calculateThreat(options: CalculateThreatOptions = {}): FormulaFn
   const { modifier = 1, bonus = 0, split = false } = options
 
   return (ctx) => {
-    const base = ctx.amount * modifier + bonus
+    const value = ctx.amount * modifier + bonus
     
     // Generate formula string
     let formula: string
@@ -64,8 +64,7 @@ export function calculateThreat(options: CalculateThreatOptions = {}): FormulaFn
 
     return {
       formula,
-      baseThreat: base,
-      modifiers: [],
+      value,
       splitAmongEnemies: split,
     }
   }
@@ -93,8 +92,7 @@ export function tauntTarget(
       formula: options?.addDamage
         ? `topThreat + amt + ${bonusThreat}`
         : `topThreat + ${bonusThreat}`,
-      baseThreat: bonus, // Engine adds this to current top threat
-      modifiers: [],
+      value: bonus, // Engine adds this to current top threat
       splitAmongEnemies: false,
       special: {
         type: 'taunt',
@@ -111,8 +109,7 @@ export function tauntTarget(
 export function threatDrop(): FormulaFn {
   return () => ({
     formula: 'threatDrop',
-    baseThreat: 0,
-    modifiers: [],
+    value: 0,
     splitAmongEnemies: false,
     special: {
       type: 'threatDrop',
@@ -127,8 +124,7 @@ export function threatDrop(): FormulaFn {
 export function noThreat(durationMs?: number): FormulaFn {
   return () => ({
     formula: '0',
-    baseThreat: 0,
-    modifiers: [],
+    value: 0,
     splitAmongEnemies: false,
     special: durationMs
       ? {
@@ -146,8 +142,7 @@ export function noThreat(durationMs?: number): FormulaFn {
 export function threatOnDebuff(value: number): FormulaFn {
   return () => ({
     formula: `${value}`,
-    baseThreat: value,
-    modifiers: [],
+    value,
     splitAmongEnemies: false,
   })
 }
@@ -162,8 +157,7 @@ export function threatOnBuff(
 ): FormulaFn {
   return () => ({
     formula: `${value}`,
-    baseThreat: value,
-    modifiers: [],
+    value,
     splitAmongEnemies: options?.split ?? true,
   })
 }
@@ -176,8 +170,7 @@ export function threatOnBuff(
 export function modHeal(multiplier: number): FormulaFn {
   return (ctx) => ({
     formula: multiplier === 0.5 ? 'amt * 0.5' : `amt * ${multiplier}`,
-    baseThreat: ctx.amount * multiplier,
-    modifiers: [],
+    value: ctx.amount * multiplier,
     splitAmongEnemies: true,
   })
 }
@@ -190,8 +183,7 @@ export function modHeal(multiplier: number): FormulaFn {
 export function castCanMiss(value: number): FormulaFn {
   return () => ({
     formula: `${value} (cast)`,
-    baseThreat: value,
-    modifiers: [],
+    value,
     splitAmongEnemies: false,
   })
 }

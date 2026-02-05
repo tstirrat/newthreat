@@ -12,6 +12,7 @@ import type {
   AugmentedEvent,
   Actor,
   Enemy,
+  ActorContext,
 } from '@wcl-threat/threat-config'
 
 import { calculateThreat, type CalculateThreatOptions } from './threat'
@@ -78,9 +79,29 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
         sourceActor,
         targetActor,
         encounterId: null,
+        // NEW: Build actor context from fight state
+        actors: {
+          getPosition: (actorId) => fightState.getPosition(actorId),
+          getDistance: (actorId1, actorId2) => fightState.getDistance(actorId1, actorId2),
+          getActorsInRange: (actorId, range) => fightState.getActorsInRange(actorId, range),
+          getThreat: (actorId, enemyId) => fightState.getThreat(actorId, enemyId),
+          getTopActorsByThreat: (enemyId, count) => fightState.getTopActorsByThreat(enemyId, count),
+        },
       }
 
       const threatResult = calculateThreat(event, threatOptions, config)
+
+      // Update threat tracker with base threat
+      for (const threatValue of threatResult.values) {
+        fightState.addThreat(event.sourceID, threatValue.enemyId, threatValue.amount)
+      }
+
+      // Process custom threat modifications
+      if (threatResult.calculation.special?.type === 'customThreat') {
+        for (const mod of threatResult.calculation.special.modifications) {
+          fightState.addThreat(mod.actorId, mod.enemyId, mod.amount)
+        }
+      }
       augmentedEvents.push(buildAugmentedEvent(event, threatResult))
     }
   }

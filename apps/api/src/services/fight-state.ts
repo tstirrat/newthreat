@@ -10,6 +10,8 @@ import type { WCLEvent, GearItem } from '@wcl-threat/wcl-types'
 import type { ThreatConfig, Actor, WowClass } from '@wcl-threat/threat-config'
 
 import { ActorState } from './actor-state'
+import { PositionTracker } from './position-tracker'
+import { ThreatTracker } from './threat-tracker'
 
 /** Top-level state container for a fight */
 export class FightState {
@@ -17,6 +19,8 @@ export class FightState {
   private actorMap: Map<number, Actor>
   private config: ThreatConfig
   private allExclusiveAuras: Set<number>[]
+  private positionTracker = new PositionTracker()
+  private threatTracker = new ThreatTracker()
 
   constructor(actorMap: Map<number, Actor>, config: ThreatConfig) {
     this.actorMap = actorMap
@@ -38,6 +42,11 @@ export class FightState {
 
   /** Process a WCL event and update relevant actor state */
   processEvent(event: WCLEvent, config: ThreatConfig): void {
+    // Update positions if available
+    if ('x' in event && 'y' in event && event.x != null && event.y != null) {
+      this.positionTracker.updatePosition(event.sourceID, event.x, event.y)
+    }
+
     switch (event.type) {
       case 'combatantinfo':
         this.processCombatantInfo(event, config)
@@ -113,5 +122,31 @@ export class FightState {
       this.actors.set(actorId, state)
     }
     return state
+  }
+
+  // Position tracking methods
+  getPosition(actorId: number) {
+    return this.positionTracker.getPosition(actorId)
+  }
+
+  getDistance(actorId1: number, actorId2: number) {
+    return this.positionTracker.getDistance(actorId1, actorId2)
+  }
+
+  getActorsInRange(actorId: number, maxDistance: number) {
+    return this.positionTracker.getActorsInRange(actorId, maxDistance)
+  }
+
+  // Threat tracking methods
+  getThreat(actorId: number, enemyId: number) {
+    return this.threatTracker.getThreat(actorId, enemyId)
+  }
+
+  getTopActorsByThreat(enemyId: number, count: number) {
+    return this.threatTracker.getTopActorsByThreat(enemyId, count)
+  }
+
+  addThreat(actorId: number, enemyId: number, amount: number) {
+    this.threatTracker.addThreat(actorId, enemyId, amount)
   }
 }

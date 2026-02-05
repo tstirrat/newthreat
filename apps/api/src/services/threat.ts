@@ -14,6 +14,7 @@ import {
   type WowClass,
   type Actor,
   type Enemy,
+  type ActorContext,
   getActiveModifiers,
   getTotalMultiplier,
 } from '@wcl-threat/threat-config'
@@ -21,10 +22,11 @@ import {
 export interface CalculateThreatOptions {
   sourceAuras: Set<number>
   targetAuras: Set<number>
-  enemies: Enemy[]
+  enemies: Enemy[] // Still needed for building threat values
   sourceActor: Actor
   targetActor: Actor
   encounterId: number | null
+  actors: ActorContext // NEW: Actor state accessors
 }
 
 /**
@@ -42,25 +44,24 @@ export function calculateThreat(
     amount,
     sourceAuras: options.sourceAuras,
     targetAuras: options.targetAuras,
-    enemies: options.enemies,
     sourceActor: options.sourceActor,
     targetActor: options.targetActor,
     encounterId: options.encounterId,
+    actors: options.actors, // NEW: Actor context
   }
 
   // Get the threat formula result
   const formulaResult = getFormulaResult(ctx, config)
 
-  // Collect all modifiers
+  // Collect all modifiers (no longer from formula result)
   const allModifiers: ThreatModifier[] = [
-    ...formulaResult.modifiers,
     ...getClassModifiers(options.sourceActor.class, config),
     ...getAuraModifiers(ctx, config),
   ]
 
   // Calculate total multiplier
   const totalMultiplier = getTotalMultiplier(allModifiers)
-  const modifiedThreat = formulaResult.baseThreat * totalMultiplier
+  const modifiedThreat = formulaResult.value * totalMultiplier
 
   // Split among enemies if needed
   const numEnemies = formulaResult.splitAmongEnemies ? options.enemies.length : 1
@@ -82,9 +83,10 @@ export function calculateThreat(
     calculation: {
       formula: formulaResult.formula,
       baseValue: amount,
-      baseThreat: formulaResult.baseThreat,
+      baseThreat: formulaResult.value,
       threatToEnemy,
       modifiers: allModifiers,
+      special: formulaResult.special, // NEW: Include special behaviors
     },
   }
 }
@@ -114,7 +116,15 @@ function getEventAmount(event: WCLEvent): number {
 function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
   const event = ctx.event
 
-  // Check for ability-specific formula first
+  // Check for global ability-specific formula first (boss mechanics)
+  if ('ability' in event && event.ability && config.abilities) {
+    const globalAbilityFormula = config.abilities[event.ability.guid]
+    if (globalAbilityFormula) {
+      return globalAbilityFormula(ctx)
+    }
+  }
+
+  // Check for class-specific ability formula
   if ('ability' in event && event.ability) {
     const classConfig = getClassConfig(ctx.sourceActor.class, config)
     const abilityFormula = classConfig?.abilities[event.ability.guid]
@@ -135,8 +145,7 @@ function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
       // Default: no threat
       return {
         formula: '0',
-        baseThreat: 0,
-        modifiers: [],
+        value: 0,
         splitAmongEnemies: false,
       }
   }

@@ -50,6 +50,23 @@ export type ModifierSource =
 // Threat Context & Results
 // ============================================================================
 
+/**
+ * Actor state accessors for threat formulas
+ * Provides access to position and threat tracking during threat calculations
+ */
+export interface ActorContext {
+  /** Get position of an actor (null if not available) */
+  getPosition: (actorId: number) => { x: number; y: number } | null
+  /** Calculate distance between two actors (null if positions unavailable) */
+  getDistance: (actorId1: number, actorId2: number) => number | null
+  /** Get actors within range of a position */
+  getActorsInRange: (actorId: number, maxDistance: number) => number[]
+  /** Get current threat for an actor against an enemy */
+  getThreat: (actorId: number, enemyId: number) => number
+  /** Get top N actors by threat against an enemy */
+  getTopActorsByThreat: (enemyId: number, count: number) => Array<{ actorId: number; threat: number }>
+}
+
 export interface ThreatContext {
   /** The WCL event being processed */
   event: WCLEvent
@@ -59,14 +76,14 @@ export interface ThreatContext {
   sourceAuras: Set<number>
   /** Active auras on the target actor (spell IDs) */
   targetAuras: Set<number>
-  /** All enemies in the fight */
-  enemies: Enemy[]
   /** The source actor of the event */
   sourceActor: Actor
   /** The target actor of the event */
   targetActor: Actor
   /** Encounter ID if this is a boss fight */
   encounterId: number | null
+  /** Access to actor positions and threat state */
+  actors: ActorContext
 }
 
 export interface Actor {
@@ -91,6 +108,19 @@ export interface ThreatModifier {
   schools?: Set<SpellSchool>
 }
 
+/**
+ * Threat modification for custom threat mechanics
+ * Used in customThreat special type
+ */
+export interface ThreatModification {
+  /** Actor receiving the threat */
+  actorId: number
+  /** Enemy the threat is against */
+  enemyId: number
+  /** Amount of threat to add */
+  amount: number
+}
+
 export type ThreatSpecial =
   | { type: 'taunt'; fixateDuration: number }
   | { type: 'threatDrop' }
@@ -101,17 +131,16 @@ export type ThreatSpecial =
   | { type: 'aggroLossEnd' }
   | { type: 'invulnerable' }
   | { type: 'invulnerableEnd' }
+  | { type: 'customThreat'; modifications: ThreatModification[] }
 
 export interface ThreatFormulaResult {
   /** Human-readable formula, e.g., "(2 * amt) + 115" */
   formula: string
-  /** Result of applying formula to amount */
-  baseThreat: number
-  /** Additional modifiers to apply */
-  modifiers: ThreatModifier[]
+  /** Threat value to apply to the target */
+  value: number
   /** Whether to divide threat among all enemies */
   splitAmongEnemies: boolean
-  /** Special behaviors (taunt, threat drop, etc.) */
+  /** Special behaviors (taunt, threat drop, custom threat, etc.) */
   special?: ThreatSpecial
 }
 
@@ -176,6 +205,8 @@ export interface ThreatConfig {
   aggroLossBuffs?: Set<number>
   /** Buffs that indicate invulnerability */
   invulnerabilityBuffs?: Set<number>
+  /** Global ability overrides (boss mechanics, etc.) - checked before class abilities */
+  abilities?: Record<number, ThreatFormula>
 }
 
 // ============================================================================
@@ -200,6 +231,8 @@ export interface ThreatCalculation {
   threatToEnemy: number
   /** Modifiers applied (multiplicative with each other) */
   modifiers: ThreatModifier[]
+  /** Special behaviors (taunt, threat drop, custom threat, etc.) */
+  special?: ThreatSpecial
 }
 
 export interface ThreatResult {
