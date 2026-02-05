@@ -12,10 +12,12 @@ import type {
   AugmentedEvent,
   Actor,
   Enemy,
-  ActorContext,
+  ThreatCalculation,
+  TargetThreatValue,
+  ThreatResult,
 } from '@wcl-threat/threat-config'
 
-import { calculateThreat, calculateThreatModification, type CalculateThreatOptions } from './threat'
+import { calculateModifiedThreat, calculateThreatModification, type CalculateThreatOptions } from './threat'
 import { FightState } from './fight-state'
 
 export interface ProcessEventsInput {
@@ -79,41 +81,54 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
         sourceActor,
         targetActor,
         encounterId: null,
-        // NEW: Build actor context from fight state
-        actors: {
-          getPosition: (actorId) => fightState.getPosition(actorId),
-          getDistance: (actorId1, actorId2) => fightState.getDistance(actorId1, actorId2),
-          getActorsInRange: (actorId, range) => fightState.getActorsInRange(actorId, range),
-          getThreat: (actorId, enemyId) => fightState.getThreat(actorId, enemyId),
-          getTopActorsByThreat: (enemyId, count) => fightState.getTopActorsByThreat(enemyId, count),
-        },
+        actors: fightState,
       }
 
-      const threatResult = calculateThreat(event, threatOptions, config)
+      const calculation = calculateModifiedThreat(event, threatOptions, config)
 
-      // Update threat tracker with base threat
-      for (const threatValue of threatResult.values) {
-        fightState.addThreat(event.sourceID, threatValue.enemyId, threatValue.amount)
+      // Update threat tracker with threat
+      if (calculation.isSplit) {
+        const splitThreat = calculation.modifiedThreat / enemies.length;
+        let values: TargetThreatValue[] = [];
+        for (const enemy of enemies) {
+          // TODO: check enemies are alive
+          fightState.addThreat(event.sourceID, enemy.id, splitThreat);
+          values.push({
+            id: enemy.id,
+            instance: enemy.instance,
+            amount: splitThreat,
+            cumulative: fightState.getThreat(event.sourceID, enemy.id),
+          })
+        }
+        augmentedEvents.push(buildAugmentedEvent(event, calculation, values))
+      } else {
+        fightState.addThreat(event.sourceID, event.targetID, calculation.modifiedThreat)
+        const enemy = enemies.find((e) => e.id === event.targetID)
+        const values: TargetThreatValue[] =  enemy ? [{
+          id: enemy.id,
+          instance: enemy.instance,
+          amount: calculation.modifiedThreat,
+          cumulative: fightState.getThreat(event.sourceID, event.targetID),
+        }] : []
+        augmentedEvents.push(buildAugmentedEvent(event, calculation, values))
       }
 
       // Process custom threat modifications
-      if (threatResult.calculation.special?.type === 'customThreat') {
-        for (const mod of threatResult.calculation.special.modifications) {
+      if (calculation.special?.type === 'customThreat') {
+        for (const mod of calculation.special.modifications) {
           fightState.addThreat(mod.actorId, mod.enemyId, mod.amount)
         }
       }
 
       // Process threat modifications (boss abilities that modify threat)
-      if (threatResult.calculation.special?.type === 'modifyThreat') {
+      if (calculation.special?.type === 'modifyThreat') {
         const currentThreat = fightState.getThreat(event.targetID, event.sourceID)
         const newThreat = calculateThreatModification(
           currentThreat,
-          threatResult.calculation.special.multiplier
+          calculation.special.multiplier
         )
         fightState.setThreat(event.targetID, event.sourceID, newThreat)
       }
-
-       augmentedEvents.push(buildAugmentedEvent(event, threatResult, fightState))
     }
   }
 
@@ -127,6 +142,9 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
  * Determine if an event should have threat calculated
  */
 function shouldCalculateThreat(event: WCLEvent): boolean {
+  if (event.type === 'damage' && event.targetIsFriendly) {
+    return false
+  }
   return ['damage', 'heal', 'energize', 'cast'].includes(event.type)
 }
 
@@ -135,16 +153,13 @@ function shouldCalculateThreat(event: WCLEvent): boolean {
  */
 function buildAugmentedEvent(
   event: WCLEvent,
-  threatResult: ReturnType<typeof calculateThreat>,
-  fightState: FightState
+  calculation: ThreatCalculation,
+  values: TargetThreatValue[],
 ): AugmentedEvent {
   // Add cumulative threat values from fight state
-  const threatWithCumulative = {
-    ...threatResult,
-    values: threatResult.values.map((tv) => ({
-      ...tv,
-      cumulative: fightState.getThreat(event.sourceID, tv.enemyId),
-    })),
+  const threatWithCumulative: ThreatResult = {
+    calculation,
+    values,
   }
 
   const base: AugmentedEvent = {

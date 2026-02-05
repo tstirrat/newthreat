@@ -17,6 +17,7 @@ import {
   type ActorContext,
   getActiveModifiers,
   getTotalMultiplier,
+  type ThreatCalculation,
 } from '@wcl-threat/threat-config'
 
 export interface CalculateThreatOptions {
@@ -30,13 +31,13 @@ export interface CalculateThreatOptions {
 }
 
 /**
- * Calculate threat for a single event
+ * Calculate threat with modifications
  */
-export function calculateThreat(
+export function calculateModifiedThreat(
   event: WCLEvent,
   options: CalculateThreatOptions,
   config: ThreatConfig
-): ThreatResult {
+): ThreatCalculation {
   const amount = getEventAmount(event)
 
   const ctx: ThreatContext = {
@@ -63,31 +64,14 @@ export function calculateThreat(
   const totalMultiplier = getTotalMultiplier(allModifiers)
   const modifiedThreat = formulaResult.value * totalMultiplier
 
-  // Split among enemies if needed
-  const numEnemies = formulaResult.splitAmongEnemies ? options.enemies.length : 1
-  const threatPerEnemy = numEnemies > 0 ? modifiedThreat / numEnemies : 0
-
-  // Build threat values (returns empty array for friendly targets)
-  const values = buildThreatValues(
-    options.enemies,
-    threatPerEnemy,
-    formulaResult.splitAmongEnemies,
-    event
-  )
-
-  // If targeting a friendly unit, threat to enemies is 0
-  const threatToEnemy = values.length === 0 ? 0 : threatPerEnemy
-
   return {
-    values,
-    calculation: {
-      formula: formulaResult.formula,
-      baseValue: amount,
-      baseThreat: formulaResult.value,
-      threatToEnemy,
-      modifiers: allModifiers,
-      special: formulaResult.special, // NEW: Include special behaviors
-    },
+    formula: formulaResult.formula,
+    amount: amount,
+    baseThreat: formulaResult.value,
+    modifiedThreat: modifiedThreat,
+    isSplit: formulaResult.splitAmongEnemies,
+    modifiers: allModifiers,
+    special: formulaResult.special, // NEW: Include special behaviors
   }
 }
 
@@ -217,45 +201,6 @@ function getAuraModifiers(
 
   // Apply the merged aura modifiers based on active auras
   return getActiveModifiers(ctx, mergedAuraModifiers)
-}
-
-/**
- * Build threat values for all relevant enemies
- */
-function buildThreatValues(
-  enemies: Enemy[],
-  threatPerEnemy: number,
-  isSplit: boolean,
-  event: WCLEvent
-): ThreatResult['values'] {
-  // Damage to friendly targets generates no threat to enemies
-  // (healing and energizing friendly targets still generate threat)
-  if (event.type === 'damage' && 'targetIsFriendly' in event && event.targetIsFriendly) {
-    return []
-  }
-
-  // If targeting a specific enemy (damage event), only that enemy gets threat
-  if (!isSplit && 'targetID' in event && !event.targetIsFriendly) {
-    const targetEnemy = enemies.find((e) => e.id === event.targetID)
-    if (targetEnemy) {
-      return [
-        {
-          enemyId: targetEnemy.id,
-          enemyInstance: 'targetInstance' in event ? (event.targetInstance ?? 0) : 0,
-          amount: threatPerEnemy,
-          isSplit: false,
-        },
-      ]
-    }
-  }
-
-  // Split threat among all enemies
-  return enemies.map((enemy) => ({
-    enemyId: enemy.id,
-    enemyInstance: enemy.instance,
-    amount: threatPerEnemy,
-    isSplit,
-  }))
 }
 
 

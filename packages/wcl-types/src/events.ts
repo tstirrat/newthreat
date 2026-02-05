@@ -163,7 +163,7 @@ export interface GearItem {
 /** Aura snapshot from combatant info at fight start */
 export interface CombatantInfoAura {
   source: number
-  ability: number
+  abilityGameID: number
   stacks: number
   icon: string
   name: string

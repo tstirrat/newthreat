@@ -213,23 +213,24 @@ export interface ThreatConfig {
 // Augmented Event Types (API Response)
 // ============================================================================
 
-export interface ThreatValue {
-  enemyId: number
-  enemyInstance: number
+export interface TargetThreatValue {
+  id: number
+  instance: number
   amount: number
   cumulative: number
-  isSplit: boolean
 }
 
 export interface ThreatCalculation {
   /** The base threat formula */
   formula: string
   /** Event amount (damage/heal/etc.) - for reference */
-  baseValue: number
+  amount: number
   /** Result of formula applied to baseValue */
   baseThreat: number
-  /** Final threat per enemy after all modifiers and splitting */
-  threatToEnemy: number
+  /** Final threat (before splitting) */
+  modifiedThreat: number
+  /** Whether threat was split among multiple enemies */
+  isSplit: boolean;
   /** Modifiers applied (multiplicative with each other) */
   modifiers: ThreatModifier[]
   /** Special behaviors (taunt, threat drop, custom threat, etc.) */
@@ -238,7 +239,7 @@ export interface ThreatCalculation {
 
 export interface ThreatResult {
   /** Threat applied to each enemy */
-  values: ThreatValue[]
+  values: TargetThreatValue[]
   /** Calculation breakdown for debugging/tooltips */
   calculation: ThreatCalculation
 }

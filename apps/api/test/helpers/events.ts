@@ -22,7 +22,7 @@ import type {
  * - sourceID: 1 (player)
  * - targetID: 99 (enemy)
  * - amount: 100
- * - Basic ability (guid: 1, name: 'Auto Attack')
+ * - Basic ability (id: 1)
  */
 export function createDamageEvent(overrides: Partial<DamageEvent> = {}): DamageEvent {
   return {
@@ -32,12 +32,7 @@ export function createDamageEvent(overrides: Partial<DamageEvent> = {}): DamageE
     sourceIsFriendly: true,
     targetID: 99,
     targetIsFriendly: false,
-    ability: {
-      guid: 1,
-      name: 'Auto Attack',
-      type: 1,
-      abilityIcon: 'ability_meleedamage.jpg',
-    },
+    abilityGameID: 1,
     amount: 100,
     absorbed: 0,
     blocked: 0,
@@ -59,7 +54,7 @@ export function createDamageEvent(overrides: Partial<DamageEvent> = {}): DamageE
  * - targetID: 1 (player)
  * - amount: 1000
  * - overheal: 0
- * - Basic heal ability (guid: 1, name: 'Heal')
+ * - Basic heal ability (id: 1)
  */
 export function createHealEvent(overrides: Partial<HealEvent> = {}): HealEvent {
   return {
@@ -69,12 +64,7 @@ export function createHealEvent(overrides: Partial<HealEvent> = {}): HealEvent {
     sourceIsFriendly: true,
     targetID: 1,
     targetIsFriendly: true,
-    ability: {
-      guid: 1,
-      name: 'Heal',
-      type: 2,
-      abilityIcon: 'spell_holy_heal.jpg',
-    },
+    abilityGameID: 1,
     amount: 1000,
     absorbed: 0,
     overheal: 0,
@@ -93,7 +83,7 @@ export function createHealEvent(overrides: Partial<HealEvent> = {}): HealEvent {
  * - resourceChange: 20
  * - resourceChangeType: 'rage'
  * - waste: 0
- * - Basic ability (guid: 1, name: 'Rage Gain')
+ * - Basic ability (id: 1)
  */
 export function createEnergizeEvent(overrides: Partial<EnergizeEvent> = {}): EnergizeEvent {
   return {
@@ -103,12 +93,7 @@ export function createEnergizeEvent(overrides: Partial<EnergizeEvent> = {}): Ene
     sourceIsFriendly: true,
     targetID: 1,
     targetIsFriendly: true,
-    ability: {
-      guid: 1,
-      name: 'Rage Gain',
-      type: 1,
-      abilityIcon: 'ability_warrior_innerrage.jpg',
-    },
+    abilityGameID: 1,
     resourceChange: 20,
     resourceChangeType: 'rage',
     waste: 0,
@@ -123,7 +108,7 @@ export function createEnergizeEvent(overrides: Partial<EnergizeEvent> = {}): Ene
  * - timestamp: 1000
  * - sourceID: 1 (self-buff)
  * - targetID: 1 (self)
- * - Basic buff ability (guid: 1, name: 'Buff')
+ * - Basic buff ability (id: 1)
  */
 export function createApplyBuffEvent(overrides: Partial<ApplyBuffEvent> = {}): ApplyBuffEvent {
   return {
@@ -133,12 +118,7 @@ export function createApplyBuffEvent(overrides: Partial<ApplyBuffEvent> = {}): A
     sourceIsFriendly: true,
     targetID: 1,
     targetIsFriendly: true,
-    ability: {
-      guid: 1,
-      name: 'Buff',
-      type: 1,
-      abilityIcon: 'spell_holy_buff.jpg',
-    },
+    abilityGameID: 1,
     ...overrides,
   }
 }
@@ -150,7 +130,7 @@ export function createApplyBuffEvent(overrides: Partial<ApplyBuffEvent> = {}): A
  * - timestamp: 2000 (later than apply)
  * - sourceID: 1
  * - targetID: 1
- * - Basic buff ability (guid: 1, name: 'Buff')
+ * - Basic buff ability (id: 1)
  */
 export function createRemoveBuffEvent(overrides: Partial<RemoveBuffEvent> = {}): RemoveBuffEvent {
   return {
@@ -160,12 +140,7 @@ export function createRemoveBuffEvent(overrides: Partial<RemoveBuffEvent> = {}):
     sourceIsFriendly: true,
     targetID: 1,
     targetIsFriendly: true,
-    ability: {
-      guid: 1,
-      name: 'Buff',
-      type: 1,
-      abilityIcon: 'spell_holy_buff.jpg',
-    },
+    abilityGameID: 1,
     ...overrides,
   }
 }
@@ -184,7 +159,7 @@ export function createCombatantInfoAura(
 ): CombatantInfoAura {
   return {
     source: sourceId,
-    ability: abilityId,
+    abilityGameID: abilityId,
     stacks: 1,
     icon: `spell_${name.toLowerCase().replace(/\s/g, '_')}.jpg`,
     name,

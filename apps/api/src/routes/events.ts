@@ -16,6 +16,8 @@ import { processEvents } from '../services/threat-engine'
 
 export const eventsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+const ENVIRONMENT_NPC = -1;
+
 /**
  * GET /reports/:code/fights/:id/events
  * Returns all events with threat calculations
@@ -83,7 +85,7 @@ eventsRoutes.get('/', async (c) => {
 
   // Build enemy list
   const enemies: Enemy[] = report.masterData.actors
-    .filter((a) => a.type === 'NPC' || a.type === 'Boss')
+    .filter((a) => (a.type === 'NPC' || a.type === 'Boss') && a.id !== ENVIRONMENT_NPC)
     .map((a) => ({
       id: a.id,
       name: a.name,

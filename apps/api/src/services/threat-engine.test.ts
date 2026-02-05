@@ -172,7 +172,7 @@ describe('processEvents', () => {
         createHealEvent({ sourceID: warriorActor.id, targetID: warriorActor.id }),
         createApplyBuffEvent({ 
           targetID: warriorActor.id, 
-          ability: { guid: SPELLS.DEFENSIVE_STANCE, name: 'Defensive Stance', type: 1, abilityIcon: 'ability_warrior_defensivestance.jpg' }
+          abilityGameID: SPELLS.DEFENSIVE_STANCE
         }),
       ]
 
@@ -310,12 +310,7 @@ describe('processEvents', () => {
         // Apply threat up aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          ability: { 
-            guid: SPELLS.MOCK_AURA_THREAT_UP, 
-            name: 'Test Threat Up', 
-            type: 1, 
-            abilityIcon: 'spell_holy_powerwordfortitude.jpg' 
-          },
+          abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
         }),
         // Damage event should get the aura modifier
         createDamageEvent({
@@ -326,12 +321,7 @@ describe('processEvents', () => {
         // Remove threat up aura
         createRemoveBuffEvent({
           targetID: warriorActor.id,
-          ability: { 
-            guid: SPELLS.MOCK_AURA_THREAT_UP, 
-            name: 'Test Threat Up', 
-            type: 1, 
-            abilityIcon: 'spell_holy_powerwordfortitude.jpg' 
-          },
+          abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
         }),
         // Damage event should not get the aura modifier
         createDamageEvent({
@@ -444,12 +434,7 @@ describe('processEvents', () => {
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          ability: {
-            guid: SPELLS.MOCK_ABILITY_1,
-            name: 'Mock Ability 1',
-            type: 1,
-            abilityIcon: 'ability_warrior_savageblow.jpg',
-          },
+          abilityGameID: SPELLS.MOCK_ABILITY_1,
           amount: 200,
         }),
       ]
@@ -474,12 +459,7 @@ describe('processEvents', () => {
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          ability: {
-            guid: SPELLS.MOCK_ABILITY_2,
-            name: 'Mock Ability 2',
-            type: 1,
-            abilityIcon: 'ability_warrior_cleave.jpg',
-          },
+          abilityGameID: SPELLS.MOCK_ABILITY_2,
           amount: 200,
         }),
       ]
@@ -494,8 +474,7 @@ describe('processEvents', () => {
       const augmented = result.augmentedEvents[0]
       // Should have threat values for both enemies
       expect(augmented.threat.values.length).toBe(2)
-      expect(augmented.threat.values[0].isSplit).toBe(true)
-      expect(augmented.threat.values[1].isSplit).toBe(true)
+      expect(augmented.threat.calculation.isSplit).toBe(true)
       // Calculation: 200 * 0.5 = 100 base, class factor 1.3x = 130, split among 2 enemies = 65 each
       expect(augmented.threat.values[0].amount).toBe(65)
       expect(augmented.threat.values[1].amount).toBe(65)
@@ -582,8 +561,7 @@ describe('processEvents', () => {
 
       const augmented = result.augmentedEvents[0]
       expect(augmented.threat.values.length).toBe(1)
-      expect(augmented.threat.values[0].enemyId).toBe(bossEnemy.id)
-      expect(augmented.threat.values[0].isSplit).toBe(false)
+      expect(augmented.threat.values[0].id).toBe(bossEnemy.id)
     })
 
     it('generates zero threat to enemies when target is friendly', () => {
@@ -608,11 +586,8 @@ describe('processEvents', () => {
         config: mockConfig,
       })
 
-      const augmented = result.augmentedEvents[0]
-      expect(augmented.threat).toBeDefined()
-      // Damage to friendly targets generates no threat to enemies
-      expect(augmented.threat.values.length).toBe(0)
-      expect(augmented.threat.calculation.threatToEnemy).toBe(0)
+      // Damage to friendly targets is filtered out of augmented events
+      expect(result.augmentedEvents.length).toBe(0)
     })
   })
 
@@ -629,12 +604,7 @@ describe('processEvents', () => {
         targetIsFriendly: false,
         sourceInstance: 1,
         targetInstance: 2,
-        ability: {
-          guid: SPELLS.MOCK_ABILITY_1,
-          name: 'Mock Ability',
-          type: 1,
-          abilityIcon: 'ability_mock.png',
-        },
+        abilityGameID: SPELLS.MOCK_ABILITY_1,
         amount: 2500,
         absorbed: 100,
         blocked: 200,
@@ -661,7 +631,7 @@ describe('processEvents', () => {
       expect(augmented.targetID).toBe(bossEnemy.id)
       expect(augmented.sourceInstance).toBe(1)
       expect(augmented.targetInstance).toBe(2)
-      expect(augmented.ability?.guid).toBe(SPELLS.MOCK_ABILITY_1)
+      expect(augmented.abilityGameID).toBe(SPELLS.MOCK_ABILITY_1)
       expect(augmented.amount).toBe(2500)
       expect(augmented.absorbed).toBe(100)
       expect(augmented.blocked).toBe(200)
@@ -690,9 +660,9 @@ describe('processEvents', () => {
 
       const augmented = result.augmentedEvents[0]
       expect(augmented.threat.calculation.formula).toBeDefined()
-      expect(augmented.threat.calculation.baseValue).toBe(1000)
+      expect(augmented.threat.calculation.amount).toBe(1000)
       expect(augmented.threat.calculation.baseThreat).toBeGreaterThan(0)
-      expect(augmented.threat.calculation.threatToEnemy).toBeGreaterThan(0)
+      expect(augmented.threat.calculation.modifiedThreat).toBeGreaterThan(0)
       expect(augmented.threat.calculation.modifiers).toBeDefined()
       expect(Array.isArray(augmented.threat.calculation.modifiers)).toBe(true)
     })
@@ -741,24 +711,14 @@ describe('processEvents', () => {
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          ability: {
-            guid: GLOBAL_ABILITY_ID,
-            name: 'Global Ability',
-            type: 1,
-            abilityIcon: 'ability_global.jpg',
-          },
+            abilityGameID: GLOBAL_ABILITY_ID,
           amount: 100,
         }),
         // Class-only ability
         createDamageEvent({
           sourceID: warriorActor.id,
           targetID: bossEnemy.id,
-          ability: {
-            guid: CLASS_ONLY_ABILITY_ID,
-            name: 'Class Only Ability',
-            type: 1,
-            abilityIcon: 'ability_classonly.jpg',
-          },
+            abilityGameID: CLASS_ONLY_ABILITY_ID,
           amount: 100,
         }),
       ]
@@ -801,12 +761,7 @@ describe('processEvents', () => {
         // Apply global aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          ability: {
-            guid: GLOBAL_AURA_ID,
-            name: 'Global Threat Modifier',
-            type: 1,
-            abilityIcon: 'spell_holy_divineprovidence.jpg',
-          },
+            abilityGameID: GLOBAL_AURA_ID,
         }),
         // Damage event should get the global aura modifier
         createDamageEvent({
@@ -864,22 +819,12 @@ describe('processEvents', () => {
         // Apply global aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          ability: {
-            guid: GLOBAL_AURA_ID,
-            name: 'Global Threat Modifier',
-            type: 1,
-            abilityIcon: 'spell_holy_divineprovidence.jpg',
-          },
+            abilityGameID: GLOBAL_AURA_ID,
         }),
         // Apply class-specific aura
         createApplyBuffEvent({
           targetID: warriorActor.id,
-          ability: {
-            guid: SPELLS.MOCK_AURA_THREAT_UP,
-            name: 'Test Threat Up',
-            type: 1,
-            abilityIcon: 'spell_holy_powerwordfortitude.jpg',
-          },
+            abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
         }),
         // Damage event should get both modifiers
         createDamageEvent({
@@ -941,12 +886,7 @@ describe('processEvents', () => {
         // Apply global aura to priest
         createApplyBuffEvent({
           targetID: priestActor.id,
-          ability: {
-            guid: GLOBAL_AURA_ID,
-            name: 'Global Threat Modifier',
-            type: 1,
-            abilityIcon: 'spell_holy_divineprovidence.jpg',
-          },
+            abilityGameID: GLOBAL_AURA_ID,
         }),
         // Heal event from priest should get the global modifier
         createHealEvent({
@@ -1004,12 +944,7 @@ describe('Custom Threat Integration', () => {
       createDamageEvent({
         sourceID: 1,
         targetID: bossEnemy.id,
-        ability: {
-          guid: CUSTOM_ABILITY_ID,
-          name: 'Custom Ability',
-          type: 1,
-          abilityIcon: 'ability_warrior_challange.jpg',
-        },
+        abilityGameID: CUSTOM_ABILITY_ID,
         amount: 1000,
       }),
     ]
@@ -1117,12 +1052,7 @@ describe('Custom Threat Integration', () => {
       createDamageEvent({
         sourceID: 1,
         targetID: bossEnemy.id,
-        ability: {
-          guid: CUSTOM_ABILITY_ID,
-          name: 'Custom Ability',
-          type: 1,
-          abilityIcon: 'ability_warrior_challange.jpg',
-        },
+        abilityGameID: CUSTOM_ABILITY_ID,
         amount: 1000,
       }),
     ]
@@ -1224,91 +1154,90 @@ describe('Custom Threat Integration', () => {
 
       // Event 1: 100 to enemy1
       const event1 = result.augmentedEvents[0]
-      expect(event1.threat.values[0].enemyId).toBe(enemy1.id)
+      expect(event1.threat.values[0].id).toBe(enemy1.id)
       // 100 damage * 2 (base) * 1.3 (warrior class factor) = 260
       expect(event1.threat.values[0].cumulative).toBe(260)
 
       // Event 2: 200 to enemy2
       const event2 = result.augmentedEvents[1]
-      expect(event2.threat.values[0].enemyId).toBe(enemy2.id)
+      expect(event2.threat.values[0].id).toBe(enemy2.id)
       // 200 damage * 2 (base) * 1.3 (warrior class factor) = 520
       expect(event2.threat.values[0].cumulative).toBe(520)
 
       // Event 3: 150 to enemy1 again
       const event3 = result.augmentedEvents[2]
-      expect(event3.threat.values[0].enemyId).toBe(enemy1.id)
+      expect(event3.threat.values[0].id).toBe(enemy1.id)
       // 150 damage * 2 (base) * 1.3 (warrior class factor) = 390
       // Total for enemy1: 260 + 390 = 650
       expect(event3.threat.values[0].cumulative).toBe(650)
    })
 
-   it('updates cumulative threat after threat modifications', () => {
-     const config = createMockThreatConfig({
-       abilities: {
-         [SPELLS.MOCK_ABILITY_1]: () => ({
-           formula: '1 * amt',
-           value: 100,
-           splitAmongEnemies: false,
-         }),
-         [SPELLS.MOCK_ABILITY_2]: () => ({
-           formula: 'threat * 0.5',
-           value: 50,
-           splitAmongEnemies: false,
-           special: {
-             type: 'modifyThreat',
-             multiplier: 0.5,
-           },
-         }),
-       },
-     })
+    it('updates cumulative threat after threat modifications', () => {
+      const config = createMockThreatConfig({
+        abilities: {
+          [SPELLS.MOCK_ABILITY_1]: () => ({
+            formula: '1 * amt',
+            value: 100,
+            splitAmongEnemies: false,
+          }),
+          [SPELLS.MOCK_ABILITY_2]: () => ({
+            formula: 'threat * 0.5',
+            value: 50,
+            splitAmongEnemies: false,
+            special: {
+              type: 'modifyThreat',
+              multiplier: 0.5,
+            },
+          }),
+        },
+      })
 
-     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
-     const events: WCLEvent[] = [
-       createDamageEvent({
-         sourceID: warriorActor.id,
-         targetID: bossEnemy.id,
-         ability: {
-           guid: SPELLS.MOCK_ABILITY_1,
-           name: 'Mock Ability 1',
-           type: 1,
-           abilityIcon: 'ability_warrior_savageblow.jpg',
-         },
-         amount: 100,
-         timestamp: 1000,
-       }),
-       // Threat modification event (e.g., Fade)
-       createDamageEvent({
-         sourceID: bossEnemy.id,
-         targetID: warriorActor.id,
-         ability: {
-           guid: SPELLS.MOCK_ABILITY_2,
-           name: 'Mock Ability 2',
-           type: 1,
-           abilityIcon: 'ability_warrior_cleave.jpg',
-         },
-         amount: 100,
-         timestamp: 2000,
-       }),
-     ]
+      const events: WCLEvent[] = [
+        createDamageEvent({
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          abilityGameID: SPELLS.MOCK_ABILITY_1,
+          amount: 100,
+          timestamp: 1000,
+        }),
+        // Threat modification event (e.g., Fade)
+        createDamageEvent({
+          sourceID: bossEnemy.id,
+          targetID: warriorActor.id,
+          abilityGameID: SPELLS.MOCK_ABILITY_2,
+          amount: 100,
+          timestamp: 2000,
+        }),
+        // Subsequent event to check cumulative threat
+        createDamageEvent({
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          abilityGameID: SPELLS.MOCK_ABILITY_1,
+          amount: 100,
+          timestamp: 3000,
+        }),
+      ]
 
-     const result = processEvents({
-       rawEvents: events,
-       actorMap,
-       enemies,
-       config,
-     })
+      const result = processEvents({
+        rawEvents: events,
+        actorMap,
+        enemies,
+        config,
+      })
 
-     expect(result.augmentedEvents.length).toBe(2)
+      expect(result.augmentedEvents.length).toBe(3)
 
-     // After first event, cumulative is 100
-     const event1 = result.augmentedEvents[0]
-     expect(event1.threat.values[0].cumulative).toBe(100)
+      // After first event, cumulative is 100
+      const event1 = result.augmentedEvents[0]
+      expect(event1.threat.values[0].cumulative).toBe(100)
 
-     // After threat modification (0.5x), cumulative is 50
-     const event2 = result.augmentedEvents[1]
-     expect(event2.threat.values[0].cumulative).toBe(50)
-   })
+      // Event 2 is threat modification, verify next event starts from modified baseline
+      // 100 * 0.5 = 50. Plus 100 from event 3 = 150.
+      const event3 = result.augmentedEvents[2]
+      expect(event3.threat.values[0].cumulative).toBe(150)
+    })
 
    it('tracks cumulative threat for split-threat abilities', () => {
      const config = createMockThreatConfig({
@@ -1330,12 +1259,7 @@ describe('Custom Threat Integration', () => {
        createDamageEvent({
          sourceID: warriorActor.id,
          targetID: enemy1.id,
-         ability: {
-           guid: SPELLS.MOCK_ABILITY_1,
-           name: 'Split Ability',
-           type: 1,
-           abilityIcon: 'ability_warrior_cleave.jpg',
-         },
+         abilityGameID: SPELLS.MOCK_ABILITY_1,
          amount: 100,
          timestamp: 1000,
        }),
@@ -1352,8 +1276,8 @@ describe('Custom Threat Integration', () => {
      expect(event.threat.values.length).toBe(2) // Split to both enemies
 
      // Both enemies get 50 threat, but cumulative tracks total
-     const enemy1Threat = event.threat.values.find((v) => v.enemyId === enemy1.id)!
-     const enemy2Threat = event.threat.values.find((v) => v.enemyId === enemy2.id)!
+     const enemy1Threat = event.threat.values.find((v) => v.id === enemy1.id)!
+     const enemy2Threat = event.threat.values.find((v) => v.id === enemy2.id)!
 
      expect(enemy1Threat.amount).toBe(50)
      expect(enemy1Threat.cumulative).toBe(50)
