@@ -1,0 +1,72 @@
+/**
+ * Onyxia Boss Abilities Tests
+ */
+
+import { describe, it, expect } from 'vitest'
+import type { ThreatContext } from '../types'
+import { knockAway, Spells } from './ony'
+
+// Mock ThreatContext factory
+function createMockContext(overrides: Partial<ThreatContext> = {}): ThreatContext {
+  return {
+    event: { type: 'cast' } as ThreatContext['event'],
+    amount: 0,
+    sourceAuras: new Set(),
+    targetAuras: new Set(),
+    sourceActor: { id: 1, name: 'Onyxia', class: null },
+    targetActor: { id: 2, name: 'Tank', class: 'warrior' },
+    encounterId: null,
+    actors: {
+      getPosition: () => null,
+      getDistance: () => null,
+      getActorsInRange: () => [],
+      getThreat: () => 0,
+      getTopActorsByThreat: () => [],
+    },
+    ...overrides,
+  }
+}
+
+describe('Onyxia Abilities', () => {
+  describe('Spell constants', () => {
+    it('has correct spell ID for Knock Away', () => {
+      expect(Spells.KnockAway).toBe(19633)
+    })
+  })
+
+  describe('Knock Away', () => {
+    it('returns modifyThreat special with 0.75 multiplier', () => {
+      const result = knockAway(createMockContext())
+
+      expect(result.special?.type).toBe('modifyThreat')
+      if (result.special?.type === 'modifyThreat') {
+        expect(result.special.multiplier).toBe(0.75)
+      }
+    })
+
+    it('has descriptive formula', () => {
+      const result = knockAway(createMockContext())
+      expect(result.formula).toBe('threat * 0.75')
+    })
+
+    it('returns zero base threat value', () => {
+      const result = knockAway(createMockContext())
+      expect(result.value).toBe(0)
+    })
+
+    it('does not split among enemies', () => {
+      const result = knockAway(createMockContext())
+      expect(result.splitAmongEnemies).toBe(false)
+    })
+
+    it('reduces threat by 25% (multiplies by 0.75)', () => {
+      // This test verifies the math: if threat is 1000, it becomes 750 (25% reduction)
+      const result = knockAway(createMockContext())
+      expect(result.special?.type).toBe('modifyThreat')
+      if (result.special?.type === 'modifyThreat') {
+        // Example: 1000 threat * 0.75 = 750 threat (reduced by 250, or 25%)
+        expect(result.special.multiplier).toBe(0.75)
+      }
+    })
+  })
+})
