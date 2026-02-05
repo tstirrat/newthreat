@@ -3,6 +3,10 @@
  *
  * Tracks cumulative threat for each actor against each enemy throughout a fight.
  * Used for abilities that need to query threat state (e.g., Patchwerk's Hateful Strike).
+ *
+ * TODO: Track threat per enemy instance, not just per enemy ID.
+ * Currently sums threat across all instances of the same enemy.
+ * This affects fights with multiple copies of the same NPC.
  */
 
 export class ThreatTracker {

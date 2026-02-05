@@ -1137,9 +1137,227 @@ describe('Custom Threat Integration', () => {
     const event = result.augmentedEvents[0]
     
     // Should have base threat from the ability
-    expect(event.threat?.calculation.baseThreat).toBe(100)
-    
-    // Should also have custom threat modifications
-    expect(event.threat?.calculation.special?.type).toBe('customThreat')
-  })
-})
+     expect(event.threat?.calculation.baseThreat).toBe(100)
+     
+     // Should also have custom threat modifications
+     expect(event.threat?.calculation.special?.type).toBe('customThreat')
+   })
+ })
+
+ describe('cumulative threat tracking', () => {
+   it('includes cumulative threat values in augmented events', () => {
+     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+     // Two damage events from the same actor to the same enemy
+     const events: WCLEvent[] = [
+       createDamageEvent({
+         sourceID: warriorActor.id,
+         targetID: bossEnemy.id,
+         amount: 500,
+         timestamp: 1000,
+       }),
+       createDamageEvent({
+         sourceID: warriorActor.id,
+         targetID: bossEnemy.id,
+         amount: 300,
+         timestamp: 2000,
+       }),
+     ]
+
+     const result = processEvents({
+       rawEvents: events,
+       actorMap,
+       enemies,
+       config: mockConfig,
+     })
+
+     expect(result.augmentedEvents.length).toBe(2)
+
+     const event1 = result.augmentedEvents[0]
+     expect(event1.threat.values[0]).toBeDefined()
+     // 500 damage * 2 (base) * 1.3 (warrior class factor) = 1300
+     expect(event1.threat.values[0].amount).toBe(1300)
+     expect(event1.threat.values[0].cumulative).toBe(1300) // First event, cumulative = amount
+
+     const event2 = result.augmentedEvents[1]
+     expect(event2.threat.values[0]).toBeDefined()
+     // 300 damage * 2 (base) * 1.3 (warrior class factor) = 780
+     expect(event2.threat.values[0].amount).toBe(780)
+     expect(event2.threat.values[0].cumulative).toBe(2080) // 1300 + 780
+   })
+
+   it('tracks cumulative threat separately per enemy', () => {
+     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+     const enemy1 = { id: 10, name: 'Boss 1', instance: 0 }
+     const enemy2 = { id: 11, name: 'Boss 2', instance: 0 }
+
+     const events: WCLEvent[] = [
+       createDamageEvent({
+         sourceID: warriorActor.id,
+         targetID: enemy1.id,
+         amount: 100,
+         timestamp: 1000,
+       }),
+       createDamageEvent({
+         sourceID: warriorActor.id,
+         targetID: enemy2.id,
+         amount: 200,
+         timestamp: 2000,
+       }),
+       createDamageEvent({
+         sourceID: warriorActor.id,
+         targetID: enemy1.id,
+         amount: 150,
+         timestamp: 3000,
+       }),
+     ]
+
+     const result = processEvents({
+       rawEvents: events,
+       actorMap,
+       enemies: [enemy1, enemy2],
+       config: mockConfig,
+     })
+
+     expect(result.augmentedEvents.length).toBe(3)
+
+      // Event 1: 100 to enemy1
+      const event1 = result.augmentedEvents[0]
+      expect(event1.threat.values[0].enemyId).toBe(enemy1.id)
+      // 100 damage * 2 (base) * 1.3 (warrior class factor) = 260
+      expect(event1.threat.values[0].cumulative).toBe(260)
+
+      // Event 2: 200 to enemy2
+      const event2 = result.augmentedEvents[1]
+      expect(event2.threat.values[0].enemyId).toBe(enemy2.id)
+      // 200 damage * 2 (base) * 1.3 (warrior class factor) = 520
+      expect(event2.threat.values[0].cumulative).toBe(520)
+
+      // Event 3: 150 to enemy1 again
+      const event3 = result.augmentedEvents[2]
+      expect(event3.threat.values[0].enemyId).toBe(enemy1.id)
+      // 150 damage * 2 (base) * 1.3 (warrior class factor) = 390
+      // Total for enemy1: 260 + 390 = 650
+      expect(event3.threat.values[0].cumulative).toBe(650)
+   })
+
+   it('updates cumulative threat after threat modifications', () => {
+     const config = createMockThreatConfig({
+       abilities: {
+         [SPELLS.MOCK_ABILITY_1]: () => ({
+           formula: '1 * amt',
+           value: 100,
+           splitAmongEnemies: false,
+         }),
+         [SPELLS.MOCK_ABILITY_2]: () => ({
+           formula: 'threat * 0.5',
+           value: 50,
+           splitAmongEnemies: false,
+           special: {
+             type: 'modifyThreat',
+             multiplier: 0.5,
+           },
+         }),
+       },
+     })
+
+     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+     const events: WCLEvent[] = [
+       createDamageEvent({
+         sourceID: warriorActor.id,
+         targetID: bossEnemy.id,
+         ability: {
+           guid: SPELLS.MOCK_ABILITY_1,
+           name: 'Mock Ability 1',
+           type: 1,
+           abilityIcon: 'ability_warrior_savageblow.jpg',
+         },
+         amount: 100,
+         timestamp: 1000,
+       }),
+       // Threat modification event (e.g., Fade)
+       createDamageEvent({
+         sourceID: bossEnemy.id,
+         targetID: warriorActor.id,
+         ability: {
+           guid: SPELLS.MOCK_ABILITY_2,
+           name: 'Mock Ability 2',
+           type: 1,
+           abilityIcon: 'ability_warrior_cleave.jpg',
+         },
+         amount: 100,
+         timestamp: 2000,
+       }),
+     ]
+
+     const result = processEvents({
+       rawEvents: events,
+       actorMap,
+       enemies,
+       config,
+     })
+
+     expect(result.augmentedEvents.length).toBe(2)
+
+     // After first event, cumulative is 100
+     const event1 = result.augmentedEvents[0]
+     expect(event1.threat.values[0].cumulative).toBe(100)
+
+     // After threat modification (0.5x), cumulative is 50
+     const event2 = result.augmentedEvents[1]
+     expect(event2.threat.values[0].cumulative).toBe(50)
+   })
+
+   it('tracks cumulative threat for split-threat abilities', () => {
+     const config = createMockThreatConfig({
+       abilities: {
+         [SPELLS.MOCK_ABILITY_1]: () => ({
+           formula: '1 * amt',
+           value: 100,
+           splitAmongEnemies: true, // Splits among all enemies
+         }),
+       },
+     })
+
+     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+     const enemy1 = { id: 10, name: 'Enemy 1', instance: 0 }
+     const enemy2 = { id: 11, name: 'Enemy 2', instance: 0 }
+
+     const events: WCLEvent[] = [
+       createDamageEvent({
+         sourceID: warriorActor.id,
+         targetID: enemy1.id,
+         ability: {
+           guid: SPELLS.MOCK_ABILITY_1,
+           name: 'Split Ability',
+           type: 1,
+           abilityIcon: 'ability_warrior_cleave.jpg',
+         },
+         amount: 100,
+         timestamp: 1000,
+       }),
+     ]
+
+     const result = processEvents({
+       rawEvents: events,
+       actorMap,
+       enemies: [enemy1, enemy2],
+       config,
+     })
+
+     const event = result.augmentedEvents[0]
+     expect(event.threat.values.length).toBe(2) // Split to both enemies
+
+     // Both enemies get 50 threat, but cumulative tracks total
+     const enemy1Threat = event.threat.values.find((v) => v.enemyId === enemy1.id)!
+     const enemy2Threat = event.threat.values.find((v) => v.enemyId === enemy2.id)!
+
+     expect(enemy1Threat.amount).toBe(50)
+     expect(enemy1Threat.cumulative).toBe(50)
+     expect(enemy2Threat.amount).toBe(50)
+     expect(enemy2Threat.cumulative).toBe(50)
+   })
+ })

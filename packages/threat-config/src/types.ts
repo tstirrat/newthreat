@@ -217,6 +217,7 @@ export interface ThreatValue {
   enemyId: number
   enemyInstance: number
   amount: number
+  cumulative: number
   isSplit: boolean
 }
 

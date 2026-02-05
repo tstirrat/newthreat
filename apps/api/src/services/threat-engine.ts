@@ -113,7 +113,7 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
         fightState.setThreat(event.targetID, event.sourceID, newThreat)
       }
 
-      augmentedEvents.push(buildAugmentedEvent(event, threatResult))
+       augmentedEvents.push(buildAugmentedEvent(event, threatResult, fightState))
     }
   }
 
@@ -135,8 +135,18 @@ function shouldCalculateThreat(event: WCLEvent): boolean {
  */
 function buildAugmentedEvent(
   event: WCLEvent,
-  threatResult: ReturnType<typeof calculateThreat>
+  threatResult: ReturnType<typeof calculateThreat>,
+  fightState: FightState
 ): AugmentedEvent {
+  // Add cumulative threat values from fight state
+  const threatWithCumulative = {
+    ...threatResult,
+    values: threatResult.values.map((tv) => ({
+      ...tv,
+      cumulative: fightState.getThreat(event.sourceID, tv.enemyId),
+    })),
+  }
+
   const base: AugmentedEvent = {
     timestamp: event.timestamp,
     type: event.type,
@@ -146,7 +156,7 @@ function buildAugmentedEvent(
     targetIsFriendly: event.targetIsFriendly,
     sourceInstance: event.sourceInstance,
     targetInstance: event.targetInstance,
-    threat: threatResult,
+    threat: threatWithCumulative,
   }
 
   // Add event-specific fields
