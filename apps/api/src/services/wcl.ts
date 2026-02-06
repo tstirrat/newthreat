@@ -3,11 +3,14 @@
  *
  * Handles OAuth authentication and GraphQL queries to WCL API.
  */
+import type {
+  WCLEventsResponse,
+  WCLReportResponse,
+} from '@wcl-threat/wcl-types'
 
-import type { Bindings } from '../types/bindings'
-import type { WCLReportResponse, WCLEventsResponse } from '@wcl-threat/wcl-types'
-import { type CacheService, CacheKeys, createCache } from './cache'
 import { wclApiError, wclRateLimited } from '../middleware/error'
+import type { Bindings } from '../types/bindings'
+import { CacheKeys, type CacheService, createCache } from './cache'
 
 const WCL_API_URL = 'https://www.warcraftlogs.com/api/v2/client'
 const WCL_TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token'
@@ -40,7 +43,9 @@ export class WCLClient {
     }
 
     // Fetch new token
-    const credentials = btoa(`${this.env.WCL_CLIENT_ID}:${this.env.WCL_CLIENT_SECRET}`)
+    const credentials = btoa(
+      `${this.env.WCL_CLIENT_ID}:${this.env.WCL_CLIENT_SECRET}`,
+    )
 
     const response = await fetch(WCL_TOKEN_URL, {
       method: 'POST',
@@ -67,7 +72,10 @@ export class WCLClient {
   /**
    * Execute a GraphQL query against WCL API
    */
-  private async query<T>(graphqlQuery: string, variables: Record<string, unknown> = {}): Promise<T> {
+  private async query<T>(
+    graphqlQuery: string,
+    variables: Record<string, unknown> = {},
+  ): Promise<T> {
     const token = await this.getToken()
 
     const response = await fetch(WCL_API_URL, {
@@ -90,7 +98,10 @@ export class WCLClient {
       throw wclApiError(`WCL API error: ${response.status}`)
     }
 
-    const result = (await response.json()) as { data?: T; errors?: Array<{ message: string }> }
+    const result = (await response.json()) as {
+      data?: T
+      errors?: Array<{ message: string }>
+    }
 
     if (result.errors?.length) {
       throw wclApiError(result.errors[0]?.message ?? 'Unknown GraphQL error')
@@ -186,7 +197,7 @@ export class WCLClient {
     code: string,
     fightId: number,
     startTime?: number,
-    endTime?: number
+    endTime?: number,
   ): Promise<unknown[]> {
     // Check cache
     const cacheKey = CacheKeys.events(code, fightId)

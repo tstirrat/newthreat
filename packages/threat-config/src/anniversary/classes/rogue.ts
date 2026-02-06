@@ -3,9 +3,8 @@
  *
  * Rogues have a base 0.71x threat coefficient for all actions.
  */
-
-import type { ClassThreatConfig } from '../../types'
 import { calculateThreat, modifyThreat } from '../../shared/formulas'
+import type { ClassThreatConfig } from '../../types'
 
 // ============================================================================
 // Spell IDs

@@ -1,13 +1,15 @@
 /**
  * Tests for Warrior Threat Configuration
  */
+import { describe, expect, it } from 'vitest'
 
-import { describe, it, expect } from 'vitest'
 import type { ThreatContext } from '../../types'
-import { warriorConfig, Spells, exclusiveAuras, SetIds } from './warrior'
+import { SetIds, Spells, exclusiveAuras, warriorConfig } from './warrior'
 
 // Mock ThreatContext factory
-function createMockContext(overrides: Partial<ThreatContext> = {}): ThreatContext {
+function createMockContext(
+  overrides: Partial<ThreatContext> = {},
+): ThreatContext {
   return {
     event: { type: 'damage' } as ThreatContext['event'],
     amount: 100,
@@ -72,7 +74,6 @@ describe('auraModifiers', () => {
     expect(modifier.name).toBe('Defensive Stance')
     expect(modifier.value).toBe(1.3)
     expect(modifier.source).toBe('stance')
-
   })
 
   it('returns Berserker Stance modifier with threat reduction', () => {
@@ -157,11 +158,7 @@ describe('gearImplications', () => {
   })
 
   it('returns empty when no set pieces equipped', () => {
-    const gear = [
-      { id: 1 },
-      { id: 2 },
-      { id: 3 },
-    ]
+    const gear = [{ id: 1 }, { id: 2 }, { id: 3 }]
 
     const result = warriorConfig.gearImplications!(gear)
 

@@ -1,18 +1,20 @@
 /**
  * Tests for Built-in Threat Formulas
  */
+import { describe, expect, it } from 'vitest'
 
-import { describe, it, expect } from 'vitest'
 import type { ThreatContext } from '../types'
 import {
   calculateThreat,
-  tauntTarget,
   modifyThreat,
   noThreat,
+  tauntTarget,
 } from './formulas'
 
 // Mock ThreatContext factory
-function createMockContext(overrides: Partial<ThreatContext> = {}): ThreatContext {
+function createMockContext(
+  overrides: Partial<ThreatContext> = {},
+): ThreatContext {
   return {
     event: { type: 'damage' } as ThreatContext['event'],
     amount: 100,

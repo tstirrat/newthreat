@@ -1,13 +1,15 @@
 /**
  * Tests for Paladin Threat Configuration
  */
+import { describe, expect, it } from 'vitest'
 
-import { describe, it, expect } from 'vitest'
 import type { ThreatContext } from '../../types'
-import { paladinConfig, Spells } from './paladin'
+import { Spells, paladinConfig } from './paladin'
 
 // Mock ThreatContext factory
-function createMockContext(overrides: Partial<ThreatContext> = {}): ThreatContext {
+function createMockContext(
+  overrides: Partial<ThreatContext> = {},
+): ThreatContext {
   return {
     event: { type: 'damage' } as ThreatContext['event'],
     amount: 100,

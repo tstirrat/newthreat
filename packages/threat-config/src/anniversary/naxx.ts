@@ -3,7 +3,6 @@
  *
  * Custom threat formulas for Naxxramas bosses in Anniversary Edition.
  */
-
 import type { ThreatFormula, ThreatModification } from '../types'
 
 const HATEFUL_STRIKE_ID = 28308

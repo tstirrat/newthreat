@@ -1,8 +1,7 @@
 /**
  * Cross-version utility functions for threat calculations
  */
-
-import type { ThreatContext, ThreatModifier, ThreatConfig } from '../types'
+import type { ThreatConfig, ThreatContext, ThreatModifier } from '../types'
 
 /**
  * Checks if a spell ID is active in the source actor's auras
@@ -23,7 +22,7 @@ export function hasAnyAura(ctx: ThreatContext, spellIds: number[]): boolean {
  */
 export function getActiveModifiers(
   ctx: ThreatContext,
-  auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier>
+  auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier>,
 ): ThreatModifier[] {
   const modifiers: ThreatModifier[] = []
 
@@ -31,10 +30,11 @@ export function getActiveModifiers(
     const spellId = parseInt(spellIdStr, 10)
     if (ctx.sourceAuras.has(spellId)) {
       const modifier = modifierFn(ctx)
-      
+
       // If modifier relies on specific spell IDs, check if current event matches
       if (modifier.spellIds) {
-        const eventAbilityId = 'abilityGameID' in ctx.event ? ctx.event.abilityGameID : undefined
+        const eventAbilityId =
+          'abilityGameID' in ctx.event ? ctx.event.abilityGameID : undefined
         if (!eventAbilityId || !modifier.spellIds.has(eventAbilityId)) {
           continue
         }
@@ -59,7 +59,7 @@ export function getTotalMultiplier(modifiers: ThreatModifier[]): number {
  */
 export function getActiveExclusiveAura(
   ctx: ThreatContext,
-  exclusiveAuras: Set<number>[]
+  exclusiveAuras: Set<number>[],
 ): number | null {
   for (const auraSet of exclusiveAuras) {
     for (const auraId of auraSet) {
@@ -77,7 +77,7 @@ export function getActiveExclusiveAura(
  */
 export function validateAuraModifiers(config: ThreatConfig): void {
   const spellIdSources = new Map<number, string[]>()
-  
+
   // Track global aura modifiers
   for (const spellIdStr of Object.keys(config.auraModifiers)) {
     const spellId = parseInt(spellIdStr, 10)
@@ -86,11 +86,11 @@ export function validateAuraModifiers(config: ThreatConfig): void {
     }
     spellIdSources.get(spellId)!.push('global')
   }
-  
+
   // Track class aura modifiers
   for (const [className, classConfig] of Object.entries(config.classes)) {
     if (!classConfig?.auraModifiers) continue
-    
+
     for (const spellIdStr of Object.keys(classConfig.auraModifiers)) {
       const spellId = parseInt(spellIdStr, 10)
       if (!spellIdSources.has(spellId)) {
@@ -99,7 +99,7 @@ export function validateAuraModifiers(config: ThreatConfig): void {
       spellIdSources.get(spellId)!.push(className)
     }
   }
-  
+
   // Report duplicates
   const duplicates: Array<{ spellId: number; sources: string[] }> = []
   for (const [spellId, sources] of spellIdSources) {
@@ -107,11 +107,11 @@ export function validateAuraModifiers(config: ThreatConfig): void {
       duplicates.push({ spellId, sources })
     }
   }
-  
+
   if (duplicates.length > 0) {
     console.warn(
       '[ThreatConfig] Warning: Duplicate spell IDs found in aura modifiers. ' +
-      'Later configs will override earlier ones when merged:'
+        'Later configs will override earlier ones when merged:',
     )
     for (const { spellId, sources } of duplicates) {
       console.warn(`  Spell ID ${spellId}: ${sources.join(', ')}`)
@@ -125,7 +125,7 @@ export function validateAuraModifiers(config: ThreatConfig): void {
  */
 export function validateAbilities(config: ThreatConfig): void {
   const spellIdSources = new Map<number, string[]>()
-  
+
   // Track global abilities
   if (config.abilities) {
     for (const spellIdStr of Object.keys(config.abilities)) {
@@ -136,11 +136,11 @@ export function validateAbilities(config: ThreatConfig): void {
       spellIdSources.get(spellId)!.push('global')
     }
   }
-  
+
   // Track class abilities
   for (const [className, classConfig] of Object.entries(config.classes)) {
     if (!classConfig?.abilities) continue
-    
+
     for (const spellIdStr of Object.keys(classConfig.abilities)) {
       const spellId = parseInt(spellIdStr, 10)
       if (!spellIdSources.has(spellId)) {
@@ -149,7 +149,7 @@ export function validateAbilities(config: ThreatConfig): void {
       spellIdSources.get(spellId)!.push(className)
     }
   }
-  
+
   // Report duplicates
   const duplicates: Array<{ spellId: number; sources: string[] }> = []
   for (const [spellId, sources] of spellIdSources) {
@@ -157,11 +157,11 @@ export function validateAbilities(config: ThreatConfig): void {
       duplicates.push({ spellId, sources })
     }
   }
-  
+
   if (duplicates.length > 0) {
     console.warn(
       '[ThreatConfig] Warning: Duplicate spell IDs found in abilities. ' +
-      'Later configs will override earlier ones when merged:'
+        'Later configs will override earlier ones when merged:',
     )
     for (const { spellId, sources } of duplicates) {
       console.warn(`  Spell ID ${spellId}: ${sources.join(', ')}`)

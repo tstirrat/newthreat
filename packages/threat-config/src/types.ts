@@ -4,8 +4,7 @@
  * These types define the structure of threat calculation configurations
  * for different game versions.
  */
-
-import type { WCLEvent, Ability, GearItem } from '@wcl-threat/wcl-types'
+import type { Ability, GearItem, WCLEvent } from '@wcl-threat/wcl-types'
 
 export type { GearItem }
 
@@ -64,7 +63,10 @@ export interface ActorContext {
   /** Get current threat for an actor against an enemy */
   getThreat: (actorId: number, enemyId: number) => number
   /** Get top N actors by threat against an enemy */
-  getTopActorsByThreat: (enemyId: number, count: number) => Array<{ actorId: number; threat: number }>
+  getTopActorsByThreat: (
+    enemyId: number,
+    count: number,
+  ) => Array<{ actorId: number; threat: number }>
 }
 
 export interface ThreatContext {
@@ -164,7 +166,6 @@ export interface ClassThreatConfig {
   /** Base threat factor for the class (default: 1.0) */
   baseThreatFactor?: number
 
-
   /** Aura-based modifiers: spellId -> modifier function */
   auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier>
 
@@ -191,9 +192,9 @@ export interface ThreatConfig {
   baseThreat: BaseThreatConfig
   /** Class-specific configurations */
   classes: Partial<Record<WowClass, ClassThreatConfig>>
-  /** 
+  /**
    * Global aura modifiers (items, consumables, cross-class buffs).
-   * Merged with all class aura modifiers at runtime and applied based on which 
+   * Merged with all class aura modifiers at runtime and applied based on which
    * auras the source actor has active.
    */
   auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier>
@@ -230,7 +231,7 @@ export interface ThreatCalculation {
   /** Final threat (before splitting) */
   modifiedThreat: number
   /** Whether threat was split among multiple enemies */
-  isSplit: boolean;
+  isSplit: boolean
   /** Modifiers applied (multiplicative with each other) */
   modifiers: ThreatModifier[]
   /** Special behaviors (taunt, threat drop, custom threat, etc.) */

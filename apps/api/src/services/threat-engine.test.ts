@@ -5,17 +5,6 @@
  * threat. Uses mock configs to test behaviors surgically without dependencies on
  * real config evolution.
  */
-
-import { describe, it, expect } from 'vitest'
-import type {
-  WCLEvent,
-  GearItem,
-  DamageEvent,
-  HealEvent,
-  ApplyBuffEvent,
-  RemoveBuffEvent,
-  EnergizeEvent,
-} from '@wcl-threat/wcl-types'
 import type {
   Actor,
   Enemy,
@@ -23,16 +12,34 @@ import type {
   ThreatContext,
   ThreatModifier,
 } from '@wcl-threat/threat-config'
-import { processEvents, calculateModifiedThreat, calculateThreatModification } from './threat-engine'
-import { createMockThreatConfig, createMockActorContext } from '../../test/helpers/config'
+import type {
+  ApplyBuffEvent,
+  DamageEvent,
+  EnergizeEvent,
+  GearItem,
+  HealEvent,
+  RemoveBuffEvent,
+  WCLEvent,
+} from '@wcl-threat/wcl-types'
+import { describe, expect, it } from 'vitest'
+
 import {
-  createDamageEvent,
-  createHealEvent,
+  createMockActorContext,
+  createMockThreatConfig,
+} from '../../test/helpers/config'
+import {
   createApplyBuffEvent,
-  createRemoveBuffEvent,
   createCombatantInfoAura,
+  createDamageEvent,
   createEnergizeEvent,
+  createHealEvent,
+  createRemoveBuffEvent,
 } from '../../test/helpers/events'
+import {
+  calculateModifiedThreat,
+  calculateThreatModification,
+  processEvents,
+} from './threat-engine'
 
 // Test fixtures
 const warriorActor: Actor = { id: 1, name: 'WarriorTank', class: 'warrior' }
@@ -84,7 +91,13 @@ const mockConfig = createMockThreatConfig({
 
   classes: {
     warrior: {
-      exclusiveAuras: [new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.BATTLE_STANCE, SPELLS.BERSERKER_STANCE])],
+      exclusiveAuras: [
+        new Set([
+          SPELLS.DEFENSIVE_STANCE,
+          SPELLS.BATTLE_STANCE,
+          SPELLS.BERSERKER_STANCE,
+        ]),
+      ],
       baseThreatFactor: 1.3,
 
       auraModifiers: {
@@ -169,12 +182,21 @@ describe('processEvents', () => {
       const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
       const events: WCLEvent[] = [
-        createDamageEvent({ sourceID: warriorActor.id, targetID: bossEnemy.id }),
-        createDamageEvent({ sourceID: warriorActor.id, targetID: bossEnemy.id }),
-        createHealEvent({ sourceID: warriorActor.id, targetID: warriorActor.id }),
-        createApplyBuffEvent({ 
-          targetID: warriorActor.id, 
-          abilityGameID: SPELLS.DEFENSIVE_STANCE
+        createDamageEvent({
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+        }),
+        createDamageEvent({
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+        }),
+        createHealEvent({
+          sourceID: warriorActor.id,
+          targetID: warriorActor.id,
+        }),
+        createApplyBuffEvent({
+          targetID: warriorActor.id,
+          abilityGameID: SPELLS.DEFENSIVE_STANCE,
         }),
       ]
 
@@ -188,8 +210,8 @@ describe('processEvents', () => {
       expect(result.eventCounts.damage).toBe(2)
       expect(result.eventCounts.heal).toBe(1)
       expect(result.eventCounts.applybuff).toBe(1)
-     })
-   })
+    })
+  })
 })
 
 // ============================================================================
@@ -231,7 +253,11 @@ describe('calculateModifiedThreat', () => {
       targetAuras: overrides.targetAuras ?? new Set(),
       enemies: overrides.enemies ?? [defaultEnemy],
       sourceActor: overrides.sourceActor ?? defaultActor,
-      targetActor: overrides.targetActor ?? { id: 99, name: 'Boss', class: null },
+      targetActor: overrides.targetActor ?? {
+        id: 99,
+        name: 'Boss',
+        class: null,
+      },
       encounterId: overrides.encounterId ?? null,
       actors: createMockActorContext(),
     }
@@ -316,7 +342,7 @@ describe('calculateModifiedThreat', () => {
       const result = calculateModifiedThreat(
         event,
         createTestOptions(),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       expect(result.baseThreat).toBe(1000)
@@ -331,11 +357,11 @@ describe('calculateModifiedThreat', () => {
         createTestOptions({
           sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE]),
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       expect(result.modifiers).toContainEqual(
-        expect.objectContaining({ name: 'Defensive Stance', value: 1.3 })
+        expect.objectContaining({ name: 'Defensive Stance', value: 1.3 }),
       )
       expect(result.modifiedThreat).toBe(1300) // 1000 * 1.3
     })
@@ -347,9 +373,12 @@ describe('calculateModifiedThreat', () => {
         event,
         createTestOptions({
           // Defensive Stance (1.3) + Defiance Rank 5 (1.15)
-          sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.DEFIANCE_RANK_5]),
+          sourceAuras: new Set([
+            SPELLS.DEFENSIVE_STANCE,
+            SPELLS.DEFIANCE_RANK_5,
+          ]),
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       expect(result.modifiers).toHaveLength(2)
@@ -365,12 +394,12 @@ describe('calculateModifiedThreat', () => {
         createTestOptions({
           sourceActor: { id: 1, name: 'RoguePlayer', class: 'rogue' },
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // Modifiers should contain the base modifier named "Rogue"
       expect(result.modifiers).toContainEqual(
-        expect.objectContaining({ name: 'Rogue', value: 0.71 })
+        expect.objectContaining({ name: 'Rogue', value: 0.71 }),
       )
       // 1000 * 0.71 = 710
       expect(result.modifiedThreat).toBe(710)
@@ -384,7 +413,7 @@ describe('calculateModifiedThreat', () => {
         createTestOptions({
           sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // Should verify that NO modifier with source 'class' or name 'Warrior' exists
@@ -415,7 +444,7 @@ describe('calculateModifiedThreat', () => {
           sourceActor: { id: 2, name: 'Healer', class: 'priest' },
           targetActor: defaultActor,
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // Effective heal: 3500, base threat: 1750, split 2 ways: 875 each
@@ -434,7 +463,7 @@ describe('calculateModifiedThreat', () => {
           sourceActor: defaultActor,
           targetActor: defaultActor,
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // Energize events generate threat: rage * 5
@@ -457,7 +486,7 @@ describe('calculateModifiedThreat', () => {
           sourceActor: defaultActor,
           targetActor: defaultActor,
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // 40 rage * 5 = 200 base threat, split 2 ways = 100 each
@@ -474,7 +503,7 @@ describe('calculateModifiedThreat', () => {
           sourceActor: defaultActor,
           targetActor: defaultActor,
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // Only 25 rage actually gained (30 - 5 waste), threat = 25 * 5 = 125
@@ -494,13 +523,12 @@ describe('calculateModifiedThreat', () => {
         targetID: 99,
         targetIsFriendly: false,
         abilityGameID: 100,
-
       }
 
       const result = calculateModifiedThreat(
         event as WCLEvent,
         createTestOptions(),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       expect(result.baseThreat).toBe(0)
@@ -517,7 +545,7 @@ describe('calculateModifiedThreat', () => {
         createTestOptions({
           enemies: [],
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // With no enemies, threat is still calculated
@@ -532,7 +560,7 @@ describe('calculateModifiedThreat', () => {
         createTestOptions({
           sourceActor: { id: 99, name: 'Pet', class: null },
         }),
-        mockThreatConfig
+        mockThreatConfig,
       )
 
       // Should still calculate base threat without class modifiers
@@ -551,11 +579,14 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Blessing of Salvation', value: 0.7 })
+          expect.objectContaining({
+            name: 'Blessing of Salvation',
+            value: 0.7,
+          }),
         )
         // 1000 * 0.7 = 700
         expect(result.modifiedThreat).toBe(700)
@@ -570,14 +601,17 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'RoguePlayer', class: 'rogue' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Rogue', value: 0.71 })
+          expect.objectContaining({ name: 'Rogue', value: 0.71 }),
         )
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Blessing of Salvation', value: 0.7 })
+          expect.objectContaining({
+            name: 'Blessing of Salvation',
+            value: 0.7,
+          }),
         )
         // 1000 * 0.71 * 0.7 = 497
         expect(result.modifiedThreat).toBeCloseTo(497, 0)
@@ -592,11 +626,14 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.GREATER_BLESSING_OF_SALVATION]),
             sourceActor: { id: 1, name: 'MagePlayer', class: 'mage' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Greater Blessing of Salvation', value: 0.7 })
+          expect.objectContaining({
+            name: 'Greater Blessing of Salvation',
+            value: 0.7,
+          }),
         )
         // 1000 * 0.7 = 700
         expect(result.modifiedThreat).toBe(700)
@@ -613,11 +650,14 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.FETISH_OF_THE_SAND_REAVER]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Fetish of the Sand Reaver', value: 0.3 })
+          expect.objectContaining({
+            name: 'Fetish of the Sand Reaver',
+            value: 0.3,
+          }),
         )
         // 1000 * 0.3 = 300
         expect(result.modifiedThreat).toBe(300)
@@ -632,11 +672,14 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.FETISH_OF_THE_SAND_REAVER]),
             sourceActor: { id: 1, name: 'MagePlayer', class: 'mage' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Fetish of the Sand Reaver', value: 0.3 })
+          expect.objectContaining({
+            name: 'Fetish of the Sand Reaver',
+            value: 0.3,
+          }),
         )
         // 1000 * 0.3 = 300
         expect(result.modifiedThreat).toBe(300)
@@ -651,17 +694,23 @@ describe('calculateModifiedThreat', () => {
           event,
           createTestOptions({
             // Defensive Stance (1.3x) + Blessing of Salvation (0.7x)
-            sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.BLESSING_OF_SALVATION]),
+            sourceAuras: new Set([
+              SPELLS.DEFENSIVE_STANCE,
+              SPELLS.BLESSING_OF_SALVATION,
+            ]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Defensive Stance', value: 1.3 })
+          expect.objectContaining({ name: 'Defensive Stance', value: 1.3 }),
         )
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Blessing of Salvation', value: 0.7 })
+          expect.objectContaining({
+            name: 'Blessing of Salvation',
+            value: 0.7,
+          }),
         )
         // 1000 * 1.3 * 0.7 = 910
         expect(result.modifiedThreat).toBeCloseTo(910, 0)
@@ -674,17 +723,26 @@ describe('calculateModifiedThreat', () => {
           event,
           createTestOptions({
             // Blessing of Salvation (0.7x) + Fetish of the Sand Reaver (0.3x)
-            sourceAuras: new Set([SPELLS.BLESSING_OF_SALVATION, SPELLS.FETISH_OF_THE_SAND_REAVER]),
+            sourceAuras: new Set([
+              SPELLS.BLESSING_OF_SALVATION,
+              SPELLS.FETISH_OF_THE_SAND_REAVER,
+            ]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Blessing of Salvation', value: 0.7 })
+          expect.objectContaining({
+            name: 'Blessing of Salvation',
+            value: 0.7,
+          }),
         )
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Fetish of the Sand Reaver', value: 0.3 })
+          expect.objectContaining({
+            name: 'Fetish of the Sand Reaver',
+            value: 0.3,
+          }),
         )
         // 1000 * 0.7 * 0.3 = 210
         expect(result.modifiedThreat).toBe(210)
@@ -697,10 +755,14 @@ describe('calculateModifiedThreat', () => {
           event,
           createTestOptions({
             // Defensive Stance (1.3x) + Defiance Rank 5 (1.15x) + Blessing of Salvation (0.7x)
-            sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE, SPELLS.DEFIANCE_RANK_5, SPELLS.BLESSING_OF_SALVATION]),
+            sourceAuras: new Set([
+              SPELLS.DEFENSIVE_STANCE,
+              SPELLS.DEFIANCE_RANK_5,
+              SPELLS.BLESSING_OF_SALVATION,
+            ]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toHaveLength(3)
@@ -719,11 +781,11 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.DEFENSIVE_STANCE]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Defensive Stance', value: 1.3 })
+          expect.objectContaining({ name: 'Defensive Stance', value: 1.3 }),
         )
         expect(result.modifiedThreat).toBe(1300)
       })
@@ -737,11 +799,11 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.BEAR_FORM]),
             sourceActor: { id: 1, name: 'DruidPlayer', class: 'druid' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Bear Form', value: 1.3 })
+          expect.objectContaining({ name: 'Bear Form', value: 1.3 }),
         )
         expect(result.modifiedThreat).toBe(1300)
       })
@@ -759,12 +821,12 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.RIGHTEOUS_FURY]),
             sourceActor: { id: 1, name: 'PaladinPlayer', class: 'paladin' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         // Righteous Fury should apply to holy spells
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Righteous Fury', value: 1.6 })
+          expect.objectContaining({ name: 'Righteous Fury', value: 1.6 }),
         )
       })
 
@@ -777,11 +839,11 @@ describe('calculateModifiedThreat', () => {
             sourceAuras: new Set([SPELLS.DEFIANCE_RANK_5]),
             sourceActor: { id: 1, name: 'WarriorPlayer', class: 'warrior' },
           }),
-          mockThreatConfig
+          mockThreatConfig,
         )
 
         expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Defiance (Rank 5)', value: 1.15 })
+          expect.objectContaining({ name: 'Defiance (Rank 5)', value: 1.15 }),
         )
         expect(result.modifiedThreat).toBe(1150)
       })
@@ -823,7 +885,7 @@ describe('calculateThreatModification', () => {
   })
 })
 
-  describe('combatantinfo processing', () => {
+describe('combatantinfo processing', () => {
   it('seeds auras from combatantinfo and applies them to subsequent damage events', () => {
     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
@@ -864,689 +926,702 @@ describe('calculateThreatModification', () => {
     // The damage event should have the aura modifier from combatantinfo
     const damageEvent = result.augmentedEvents[0]
     const threatUpModifier = damageEvent.threat.calculation.modifiers.find(
-      (m: ThreatModifier) => m.name === 'Test Threat Up'
+      (m: ThreatModifier) => m.name === 'Test Threat Up',
     )
     expect(threatUpModifier).toBeDefined()
     expect(threatUpModifier?.value).toBe(1.5)
   })
 
   it('injects synthetic auras from gear implications and applies them to threat', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
-      const combatantInfo: WCLEvent = {
+    const combatantInfo: WCLEvent = {
+      timestamp: 1000,
+      type: 'combatantinfo',
+      sourceID: warriorActor.id,
+      sourceIsFriendly: true,
+      targetID: warriorActor.id,
+      targetIsFriendly: true,
+      auras: [],
+      gear: [
+        { id: 1, setID: 1 }, // Item with set bonus - triggers gearImplications
+      ],
+    }
+
+    // Follow with damage to verify gear implications injected the aura
+    const events: WCLEvent[] = [
+      combatantInfo,
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    // Damage event should be present with the synthetic aura modifier
+    expect(result.augmentedEvents.length).toBe(1)
+    const damageEvent = result.augmentedEvents[0]
+    const setBonusModifier = damageEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.source === 'gear',
+    )
+    expect(setBonusModifier).toBeDefined()
+    expect(setBonusModifier?.value).toBe(0.8)
+  })
+
+  it('processes combatantinfo for unknown actor gracefully', () => {
+    const actorMap = new Map<number, Actor>() // Empty - actor not known
+
+    const combatantInfo: WCLEvent = {
+      timestamp: 1000,
+      type: 'combatantinfo',
+      sourceID: 99, // Unknown actor
+      sourceIsFriendly: true,
+      targetID: 99,
+      targetIsFriendly: true,
+      auras: [
+        createCombatantInfoAura(
+          SPELLS.DEFENSIVE_STANCE,
+          'Defensive Stance',
+          99,
+        ),
+      ],
+    }
+
+    const events: WCLEvent[] = [combatantInfo]
+
+    // Should not throw for unknown actor
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    expect(result.eventCounts.combatantinfo).toBe(1)
+  })
+})
+
+describe('aura tracking', () => {
+  it('tracks auras from applybuff and removebuff events', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      // Apply threat up aura
+      createApplyBuffEvent({
+        targetID: warriorActor.id,
+        abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
+      }),
+      // Damage event should get the aura modifier
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+      // Remove threat up aura
+      createRemoveBuffEvent({
+        targetID: warriorActor.id,
+        abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
+      }),
+      // Damage event should not get the aura modifier
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    // Both damage events should be present
+    expect(result.augmentedEvents.length).toBe(2)
+
+    // First event should have the threat up modifier (1.5x)
+    const firstEvent = result.augmentedEvents[0]
+    expect(firstEvent.threat).toBeDefined()
+    const firstThreatUpModifier = firstEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.name === 'Test Threat Up',
+    )
+    expect(firstThreatUpModifier).toBeDefined()
+    expect(firstThreatUpModifier?.value).toBe(1.5)
+
+    // Second event should not have the threat up modifier
+    const secondEvent = result.augmentedEvents[1]
+    const secondThreatUpModifier =
+      secondEvent.threat.calculation.modifiers.find(
+        (m: ThreatModifier) => m.name === 'Test Threat Up',
+      )
+    expect(secondThreatUpModifier).toBeUndefined()
+  })
+
+  it('applies aura modifiers correctly from combatantinfo', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      // Combatantinfo with aura active
+      {
         timestamp: 1000,
         type: 'combatantinfo',
         sourceID: warriorActor.id,
         sourceIsFriendly: true,
         targetID: warriorActor.id,
         targetIsFriendly: true,
-        auras: [],
-        gear: [
-          { id: 1, setID: 1 }, // Item with set bonus - triggers gearImplications
+        auras: [
+          createCombatantInfoAura(SPELLS.MOCK_AURA_THREAT_UP, 'Test Threat Up'),
         ],
-      }
-
-      // Follow with damage to verify gear implications injected the aura
-      const events: WCLEvent[] = [
-        combatantInfo,
-        createDamageEvent({ sourceID: warriorActor.id, targetID: bossEnemy.id, amount: 100 }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      // Damage event should be present with the synthetic aura modifier
-      expect(result.augmentedEvents.length).toBe(1)
-      const damageEvent = result.augmentedEvents[0]
-      const setBonusModifier = damageEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.source === 'gear'
-      )
-      expect(setBonusModifier).toBeDefined()
-      expect(setBonusModifier?.value).toBe(0.8)
-    })
-
-    it('processes combatantinfo for unknown actor gracefully', () => {
-      const actorMap = new Map<number, Actor>() // Empty - actor not known
-
-      const combatantInfo: WCLEvent = {
-        timestamp: 1000,
-        type: 'combatantinfo',
-        sourceID: 99, // Unknown actor
-        sourceIsFriendly: true,
-        targetID: 99,
-        targetIsFriendly: true,
-        auras: [createCombatantInfoAura(SPELLS.DEFENSIVE_STANCE, 'Defensive Stance', 99)],
-      }
-
-      const events: WCLEvent[] = [combatantInfo]
-
-      // Should not throw for unknown actor
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      expect(result.eventCounts.combatantinfo).toBe(1)
-    })
-  })
-
-  describe('aura tracking', () => {
-    it('tracks auras from applybuff and removebuff events', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        // Apply threat up aura
-        createApplyBuffEvent({
-          targetID: warriorActor.id,
-          abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
-        }),
-        // Damage event should get the aura modifier
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 100,
-        }),
-        // Remove threat up aura
-        createRemoveBuffEvent({
-          targetID: warriorActor.id,
-          abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
-        }),
-        // Damage event should not get the aura modifier
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 100,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      // Both damage events should be present
-      expect(result.augmentedEvents.length).toBe(2)
-
-      // First event should have the threat up modifier (1.5x)
-      const firstEvent = result.augmentedEvents[0]
-      expect(firstEvent.threat).toBeDefined()
-      const firstThreatUpModifier = firstEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.name === 'Test Threat Up'
-      )
-      expect(firstThreatUpModifier).toBeDefined()
-      expect(firstThreatUpModifier?.value).toBe(1.5)
-
-      // Second event should not have the threat up modifier
-      const secondEvent = result.augmentedEvents[1]
-      const secondThreatUpModifier = secondEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.name === 'Test Threat Up'
-      )
-      expect(secondThreatUpModifier).toBeUndefined()
-    })
-
-    it('applies aura modifiers correctly from combatantinfo', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        // Combatantinfo with aura active
-        {
-          timestamp: 1000,
-          type: 'combatantinfo',
-          sourceID: warriorActor.id,
-          sourceIsFriendly: true,
-          targetID: warriorActor.id,
-          targetIsFriendly: true,
-          auras: [createCombatantInfoAura(SPELLS.MOCK_AURA_THREAT_UP, 'Test Threat Up')],
-          gear: [],
-        },
-        // Damage event should have aura modifier
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 100,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      const damageEvent = result.augmentedEvents[0]
-      expect(damageEvent.threat).toBeDefined()
-
-      // Check for the threat up modifier
-      const threatUpModifier = damageEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.name === 'Test Threat Up'
-      )
-      expect(threatUpModifier).toBeDefined()
-      expect(threatUpModifier?.value).toBe(1.5)
-    })
-
-    it('applies class base threat factor', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 100,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      const damageEvent = result.augmentedEvents[0]
-      const classModifier = damageEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.source === 'class'
-      )
-      expect(classModifier).toBeDefined()
-      expect(classModifier?.value).toBe(1.3)
-    })
-  })
-
-  describe('ability-specific threat calculation', () => {
-    it('uses custom ability formula when configured', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          abilityGameID: SPELLS.MOCK_ABILITY_1,
-          amount: 200,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      const augmented = result.augmentedEvents[0]
-      // Custom formula: amount + 100 = 300
-      expect(augmented.threat.calculation.baseThreat).toBe(300)
-      expect(augmented.threat.calculation.formula).toBe('1 * amt + 100')
-    })
-
-    it('splits threat among enemies when configured', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          abilityGameID: SPELLS.MOCK_ABILITY_2,
-          amount: 200,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      const augmented = result.augmentedEvents[0]
-      // Should have threat values for both enemies
-      expect(augmented.threat.values.length).toBe(2)
-      expect(augmented.threat.calculation.isSplit).toBe(true)
-      // Calculation: 200 * 0.5 = 100 base, class factor 1.3x = 130, split among 2 enemies = 65 each
-      expect(augmented.threat.values[0].amount).toBe(65)
-      expect(augmented.threat.values[1].amount).toBe(65)
-    })
-  })
-
-  describe('base threat calculations', () => {
-    it('calculates threat for damage events using base formula', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 500,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      expect(result.augmentedEvents.length).toBe(1)
-
-      const augmented = result.augmentedEvents[0]
-      expect(augmented.type).toBe('damage')
-      expect(augmented.threat).toBeDefined()
-      expect(augmented.threat.values).toBeDefined()
-      expect(augmented.threat.calculation).toBeDefined()
-      // Base formula: 2 * 500 = 1000
-      expect(augmented.threat.calculation.baseThreat).toBe(1000)
-      expect(augmented.threat.calculation.formula).toBe('2 * damage')
-    })
-
-    it('calculates threat for heal events using base formula', () => {
-      const actorMap = new Map<number, Actor>([[priestActor.id, priestActor]])
-
-      const events: WCLEvent[] = [
-        createHealEvent({
-          sourceID: priestActor.id,
-          targetID: warriorActor.id,
-          amount: 1000,
-          overheal: 200,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      expect(result.augmentedEvents.length).toBe(1)
-
-      const augmented = result.augmentedEvents[0]
-      expect(augmented.type).toBe('heal')
-      expect(augmented.threat).toBeDefined()
-      expect(augmented.threat.values).toBeDefined()
-      // Effective heal: 1000 - 200 overheal = 800, formula: 0.5 * 800 = 400
-      expect(augmented.threat.calculation.baseThreat).toBe(400)
-    })
-
-    it('calculates threat to specific enemy when targeting hostile', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 100,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      const augmented = result.augmentedEvents[0]
-      expect(augmented.threat.values.length).toBe(1)
-      expect(augmented.threat.values[0].id).toBe(bossEnemy.id)
-    })
-
-    it('generates zero threat to enemies when target is friendly', () => {
-      const actorMap = new Map<number, Actor>([
-        [warriorActor.id, warriorActor],
-        [priestActor.id, priestActor],
-      ])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: priestActor.id, // Friendly target
-          targetIsFriendly: true,
-          amount: 100,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      // Damage to friendly targets is filtered out of augmented events
-      expect(result.augmentedEvents.length).toBe(0)
-    })
-  })
-
-  describe('augmented event structure', () => {
-    it('includes all event fields in augmented output', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const damageEvent: DamageEvent = {
-        timestamp: 1000,
-        type: 'damage',
+        gear: [],
+      },
+      // Damage event should have aura modifier
+      createDamageEvent({
         sourceID: warriorActor.id,
-        sourceIsFriendly: true,
         targetID: bossEnemy.id,
-        targetIsFriendly: false,
-        sourceInstance: 1,
-        targetInstance: 2,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const damageEvent = result.augmentedEvents[0]
+    expect(damageEvent.threat).toBeDefined()
+
+    // Check for the threat up modifier
+    const threatUpModifier = damageEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.name === 'Test Threat Up',
+    )
+    expect(threatUpModifier).toBeDefined()
+    expect(threatUpModifier?.value).toBe(1.5)
+  })
+
+  it('applies class base threat factor', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const damageEvent = result.augmentedEvents[0]
+    const classModifier = damageEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.source === 'class',
+    )
+    expect(classModifier).toBeDefined()
+    expect(classModifier?.value).toBe(1.3)
+  })
+})
+
+describe('ability-specific threat calculation', () => {
+  it('uses custom ability formula when configured', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
         abilityGameID: SPELLS.MOCK_ABILITY_1,
-        amount: 2500,
-        absorbed: 100,
-        blocked: 200,
-        mitigated: 50,
-        overkill: 0,
-        hitType: 'hit',
-        tick: false,
-        multistrike: false,
-      }
+        amount: 200,
+      }),
+    ]
 
-      const events: WCLEvent[] = [damageEvent]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      const augmented = result.augmentedEvents[0]
-      expect(augmented.timestamp).toBe(1000)
-      expect(augmented.type).toBe('damage')
-      expect(augmented.sourceID).toBe(warriorActor.id)
-      expect(augmented.targetID).toBe(bossEnemy.id)
-      expect(augmented.sourceInstance).toBe(1)
-      expect(augmented.targetInstance).toBe(2)
-      expect(augmented.abilityGameID).toBe(SPELLS.MOCK_ABILITY_1)
-      expect(augmented.amount).toBe(2500)
-      expect(augmented.absorbed).toBe(100)
-      expect(augmented.blocked).toBe(200)
-      expect(augmented.mitigated).toBe(50)
-      expect(augmented.hitType).toBe('hit')
-      expect(augmented.tick).toBe(false)
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
     })
 
-    it('includes threat calculation details', () => {
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 1000,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: mockConfig,
-      })
-
-      const augmented = result.augmentedEvents[0]
-      expect(augmented.threat.calculation.formula).toBeDefined()
-      expect(augmented.threat.calculation.amount).toBe(1000)
-      expect(augmented.threat.calculation.baseThreat).toBeGreaterThan(0)
-      expect(augmented.threat.calculation.modifiedThreat).toBeGreaterThan(0)
-      expect(augmented.threat.calculation.modifiers).toBeDefined()
-      expect(Array.isArray(augmented.threat.calculation.modifiers)).toBe(true)
-    })
+    const augmented = result.augmentedEvents[0]
+    // Custom formula: amount + 100 = 300
+    expect(augmented.threat.calculation.baseThreat).toBe(300)
+    expect(augmented.threat.calculation.formula).toBe('1 * amt + 100')
   })
 
-  describe('global config properties', () => {
-    it('should merge global and class abilities with class taking precedence', () => {
-      const GLOBAL_ABILITY_ID = 88888
-      const CLASS_ONLY_ABILITY_ID = 99999
-      
-      const customConfig: ThreatConfig = createMockThreatConfig({
-        // Global ability
-        abilities: {
-          [GLOBAL_ABILITY_ID]: (ctx: ThreatContext) => ({
-            formula: 'global: 5 * amt',
-            value: ctx.amount * 5,
-            splitAmongEnemies: false,
-          }),
-        },
-        classes: {
-          warrior: {
-            baseThreatFactor: 1.3,
-            auraModifiers: {},
-            abilities: {
-              // This should override global config
-              [GLOBAL_ABILITY_ID]: (ctx: ThreatContext) => ({
-                formula: 'class: 2 * amt',
-                value: ctx.amount * 2,
-                splitAmongEnemies: false,
-              }),
-              // This is class-only
-              [CLASS_ONLY_ABILITY_ID]: (ctx: ThreatContext) => ({
-                formula: 'class-only: 3 * amt',
-                value: ctx.amount * 3,
-                splitAmongEnemies: false,
-              }),
-            },
-          },
-        },
-      })
+  it('splits threat among enemies when configured', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        abilityGameID: SPELLS.MOCK_ABILITY_2,
+        amount: 200,
+      }),
+    ]
 
-      const events: WCLEvent[] = [
-        // Duplicate ability: class overrides global
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-            abilityGameID: GLOBAL_ABILITY_ID,
-          amount: 100,
-        }),
-        // Class-only ability
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-            abilityGameID: CLASS_ONLY_ABILITY_ID,
-          amount: 100,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: customConfig,
-      })
-
-      // First event: class formula (2x) overrides global (5x)
-      const augmented1 = result.augmentedEvents[0]
-      expect(augmented1.threat.calculation.baseThreat).toBe(200)
-      expect(augmented1.threat.calculation.formula).toBe('class: 2 * amt')
-
-      // Second event: class-only formula (3x)
-      const augmented2 = result.augmentedEvents[1]
-      expect(augmented2.threat.calculation.baseThreat).toBe(300)
-      expect(augmented2.threat.calculation.formula).toBe('class-only: 3 * amt')
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
     })
 
-    it('should use global auraModifiers and merge with class auraModifiers', () => {
-      const GLOBAL_AURA_ID = 77777
-      
-      const customConfig: ThreatConfig = createMockThreatConfig({
-        // Global aura modifier
-        auraModifiers: {
-          [GLOBAL_AURA_ID]: () => ({
-            source: 'aura',
-            name: 'Global Threat Modifier',
-            value: 2.0,
-          }),
-        },
-      })
+    const augmented = result.augmentedEvents[0]
+    // Should have threat values for both enemies
+    expect(augmented.threat.values.length).toBe(2)
+    expect(augmented.threat.calculation.isSplit).toBe(true)
+    // Calculation: 200 * 0.5 = 100 base, class factor 1.3x = 130, split among 2 enemies = 65 each
+    expect(augmented.threat.values[0].amount).toBe(65)
+    expect(augmented.threat.values[1].amount).toBe(65)
+  })
+})
 
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+describe('base threat calculations', () => {
+  it('calculates threat for damage events using base formula', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
-      const events: WCLEvent[] = [
-        // Apply global aura
-        createApplyBuffEvent({
-          targetID: warriorActor.id,
-            abilityGameID: GLOBAL_AURA_ID,
-        }),
-        // Damage event should get the global aura modifier
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 100,
-        }),
-      ]
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 500,
+      }),
+    ]
 
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: customConfig,
-      })
-
-      const damageEvent = result.augmentedEvents[0]
-      const globalModifier = damageEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.name === 'Global Threat Modifier'
-      )
-      expect(globalModifier).toBeDefined()
-      expect(globalModifier?.value).toBe(2.0)
-      expect(globalModifier?.name).toBe('Global Threat Modifier')
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
     })
 
-    it('should apply both global and class auraModifiers when both are active', () => {
-      const GLOBAL_AURA_ID = 77777
-      
-      const customConfig: ThreatConfig = createMockThreatConfig({
-        auraModifiers: {
-          [GLOBAL_AURA_ID]: () => ({
-            source: 'aura',
-            name: 'Global Threat Modifier',
-            value: 2.0,
-          }),
-        },
-        classes: {
-          warrior: {
-            baseThreatFactor: 1.3,
-            auraModifiers: {
-              [SPELLS.MOCK_AURA_THREAT_UP]: () => ({
-                source: 'buff',
-                name: 'Test Threat Up',
-                value: 1.5,
-              }),
-            },
-            abilities: {},
-          },
-        },
-      })
+    expect(result.augmentedEvents.length).toBe(1)
 
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        // Apply global aura
-        createApplyBuffEvent({
-          targetID: warriorActor.id,
-            abilityGameID: GLOBAL_AURA_ID,
-        }),
-        // Apply class-specific aura
-        createApplyBuffEvent({
-          targetID: warriorActor.id,
-            abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
-        }),
-        // Damage event should get both modifiers
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          amount: 100,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: customConfig,
-      })
-
-      const damageEvent = result.augmentedEvents[0]
-      
-      // Should have global modifier
-      const globalModifier = damageEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.name === 'Global Threat Modifier'
-      )
-      expect(globalModifier).toBeDefined()
-      expect(globalModifier?.value).toBe(2.0)
-
-      // Should also have class modifier
-      const classModifier = damageEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.name === 'Test Threat Up'
-      )
-      expect(classModifier).toBeDefined()
-      expect(classModifier?.value).toBe(1.5)
-    })
-
-    it('should allow global auraModifiers to work for any class', () => {
-      const GLOBAL_AURA_ID = 77777
-      
-      const customConfig: ThreatConfig = createMockThreatConfig({
-        auraModifiers: {
-          [GLOBAL_AURA_ID]: () => ({
-            source: 'aura',
-            name: 'Global Threat Modifier',
-            value: 2.0,
-          }),
-        },
-        classes: {
-          priest: {
-            baseThreatFactor: 1.0,
-            auraModifiers: {},
-            abilities: {},
-          },
-        },
-      })
-
-      const actorMap = new Map<number, Actor>([
-        [priestActor.id, priestActor], // Priest, not warrior
-      ])
-
-      const events: WCLEvent[] = [
-        // Apply global aura to priest
-        createApplyBuffEvent({
-          targetID: priestActor.id,
-            abilityGameID: GLOBAL_AURA_ID,
-        }),
-        // Heal event from priest should get the global modifier
-        createHealEvent({
-          sourceID: priestActor.id,
-          targetID: warriorActor.id,
-          amount: 1000,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config: customConfig,
-      })
-
-      const healEvent = result.augmentedEvents[0]
-      const globalModifier = healEvent.threat.calculation.modifiers.find(
-        (m: ThreatModifier) => m.name === 'Global Threat Modifier'
-      )
-      expect(globalModifier).toBeDefined()
-      expect(globalModifier?.value).toBe(2.0)
-    })
+    const augmented = result.augmentedEvents[0]
+    expect(augmented.type).toBe('damage')
+    expect(augmented.threat).toBeDefined()
+    expect(augmented.threat.values).toBeDefined()
+    expect(augmented.threat.calculation).toBeDefined()
+    // Base formula: 2 * 500 = 1000
+    expect(augmented.threat.calculation.baseThreat).toBe(1000)
+    expect(augmented.threat.calculation.formula).toBe('2 * damage')
   })
 
-  describe('Custom Threat Integration', () => {
+  it('calculates threat for heal events using base formula', () => {
+    const actorMap = new Map<number, Actor>([[priestActor.id, priestActor]])
+
+    const events: WCLEvent[] = [
+      createHealEvent({
+        sourceID: priestActor.id,
+        targetID: warriorActor.id,
+        amount: 1000,
+        overheal: 200,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    expect(result.augmentedEvents.length).toBe(1)
+
+    const augmented = result.augmentedEvents[0]
+    expect(augmented.type).toBe('heal')
+    expect(augmented.threat).toBeDefined()
+    expect(augmented.threat.values).toBeDefined()
+    // Effective heal: 1000 - 200 overheal = 800, formula: 0.5 * 800 = 400
+    expect(augmented.threat.calculation.baseThreat).toBe(400)
+  })
+
+  it('calculates threat to specific enemy when targeting hostile', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const augmented = result.augmentedEvents[0]
+    expect(augmented.threat.values.length).toBe(1)
+    expect(augmented.threat.values[0].id).toBe(bossEnemy.id)
+  })
+
+  it('generates zero threat to enemies when target is friendly', () => {
+    const actorMap = new Map<number, Actor>([
+      [warriorActor.id, warriorActor],
+      [priestActor.id, priestActor],
+    ])
+
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: priestActor.id, // Friendly target
+        targetIsFriendly: true,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    // Damage to friendly targets is filtered out of augmented events
+    expect(result.augmentedEvents.length).toBe(0)
+  })
+})
+
+describe('augmented event structure', () => {
+  it('includes all event fields in augmented output', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const damageEvent: DamageEvent = {
+      timestamp: 1000,
+      type: 'damage',
+      sourceID: warriorActor.id,
+      sourceIsFriendly: true,
+      targetID: bossEnemy.id,
+      targetIsFriendly: false,
+      sourceInstance: 1,
+      targetInstance: 2,
+      abilityGameID: SPELLS.MOCK_ABILITY_1,
+      amount: 2500,
+      absorbed: 100,
+      blocked: 200,
+      mitigated: 50,
+      overkill: 0,
+      hitType: 'hit',
+      tick: false,
+      multistrike: false,
+    }
+
+    const events: WCLEvent[] = [damageEvent]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const augmented = result.augmentedEvents[0]
+    expect(augmented.timestamp).toBe(1000)
+    expect(augmented.type).toBe('damage')
+    expect(augmented.sourceID).toBe(warriorActor.id)
+    expect(augmented.targetID).toBe(bossEnemy.id)
+    expect(augmented.sourceInstance).toBe(1)
+    expect(augmented.targetInstance).toBe(2)
+    expect(augmented.abilityGameID).toBe(SPELLS.MOCK_ABILITY_1)
+    expect(augmented.amount).toBe(2500)
+    expect(augmented.absorbed).toBe(100)
+    expect(augmented.blocked).toBe(200)
+    expect(augmented.mitigated).toBe(50)
+    expect(augmented.hitType).toBe('hit')
+    expect(augmented.tick).toBe(false)
+  })
+
+  it('includes threat calculation details', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 1000,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const augmented = result.augmentedEvents[0]
+    expect(augmented.threat.calculation.formula).toBeDefined()
+    expect(augmented.threat.calculation.amount).toBe(1000)
+    expect(augmented.threat.calculation.baseThreat).toBeGreaterThan(0)
+    expect(augmented.threat.calculation.modifiedThreat).toBeGreaterThan(0)
+    expect(augmented.threat.calculation.modifiers).toBeDefined()
+    expect(Array.isArray(augmented.threat.calculation.modifiers)).toBe(true)
+  })
+})
+
+describe('global config properties', () => {
+  it('should merge global and class abilities with class taking precedence', () => {
+    const GLOBAL_ABILITY_ID = 88888
+    const CLASS_ONLY_ABILITY_ID = 99999
+
+    const customConfig: ThreatConfig = createMockThreatConfig({
+      // Global ability
+      abilities: {
+        [GLOBAL_ABILITY_ID]: (ctx: ThreatContext) => ({
+          formula: 'global: 5 * amt',
+          value: ctx.amount * 5,
+          splitAmongEnemies: false,
+        }),
+      },
+      classes: {
+        warrior: {
+          baseThreatFactor: 1.3,
+          auraModifiers: {},
+          abilities: {
+            // This should override global config
+            [GLOBAL_ABILITY_ID]: (ctx: ThreatContext) => ({
+              formula: 'class: 2 * amt',
+              value: ctx.amount * 2,
+              splitAmongEnemies: false,
+            }),
+            // This is class-only
+            [CLASS_ONLY_ABILITY_ID]: (ctx: ThreatContext) => ({
+              formula: 'class-only: 3 * amt',
+              value: ctx.amount * 3,
+              splitAmongEnemies: false,
+            }),
+          },
+        },
+      },
+    })
+
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      // Duplicate ability: class overrides global
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        abilityGameID: GLOBAL_ABILITY_ID,
+        amount: 100,
+      }),
+      // Class-only ability
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        abilityGameID: CLASS_ONLY_ABILITY_ID,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: customConfig,
+    })
+
+    // First event: class formula (2x) overrides global (5x)
+    const augmented1 = result.augmentedEvents[0]
+    expect(augmented1.threat.calculation.baseThreat).toBe(200)
+    expect(augmented1.threat.calculation.formula).toBe('class: 2 * amt')
+
+    // Second event: class-only formula (3x)
+    const augmented2 = result.augmentedEvents[1]
+    expect(augmented2.threat.calculation.baseThreat).toBe(300)
+    expect(augmented2.threat.calculation.formula).toBe('class-only: 3 * amt')
+  })
+
+  it('should use global auraModifiers and merge with class auraModifiers', () => {
+    const GLOBAL_AURA_ID = 77777
+
+    const customConfig: ThreatConfig = createMockThreatConfig({
+      // Global aura modifier
+      auraModifiers: {
+        [GLOBAL_AURA_ID]: () => ({
+          source: 'aura',
+          name: 'Global Threat Modifier',
+          value: 2.0,
+        }),
+      },
+    })
+
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      // Apply global aura
+      createApplyBuffEvent({
+        targetID: warriorActor.id,
+        abilityGameID: GLOBAL_AURA_ID,
+      }),
+      // Damage event should get the global aura modifier
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: customConfig,
+    })
+
+    const damageEvent = result.augmentedEvents[0]
+    const globalModifier = damageEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.name === 'Global Threat Modifier',
+    )
+    expect(globalModifier).toBeDefined()
+    expect(globalModifier?.value).toBe(2.0)
+    expect(globalModifier?.name).toBe('Global Threat Modifier')
+  })
+
+  it('should apply both global and class auraModifiers when both are active', () => {
+    const GLOBAL_AURA_ID = 77777
+
+    const customConfig: ThreatConfig = createMockThreatConfig({
+      auraModifiers: {
+        [GLOBAL_AURA_ID]: () => ({
+          source: 'aura',
+          name: 'Global Threat Modifier',
+          value: 2.0,
+        }),
+      },
+      classes: {
+        warrior: {
+          baseThreatFactor: 1.3,
+          auraModifiers: {
+            [SPELLS.MOCK_AURA_THREAT_UP]: () => ({
+              source: 'buff',
+              name: 'Test Threat Up',
+              value: 1.5,
+            }),
+          },
+          abilities: {},
+        },
+      },
+    })
+
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      // Apply global aura
+      createApplyBuffEvent({
+        targetID: warriorActor.id,
+        abilityGameID: GLOBAL_AURA_ID,
+      }),
+      // Apply class-specific aura
+      createApplyBuffEvent({
+        targetID: warriorActor.id,
+        abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
+      }),
+      // Damage event should get both modifiers
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: customConfig,
+    })
+
+    const damageEvent = result.augmentedEvents[0]
+
+    // Should have global modifier
+    const globalModifier = damageEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.name === 'Global Threat Modifier',
+    )
+    expect(globalModifier).toBeDefined()
+    expect(globalModifier?.value).toBe(2.0)
+
+    // Should also have class modifier
+    const classModifier = damageEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.name === 'Test Threat Up',
+    )
+    expect(classModifier).toBeDefined()
+    expect(classModifier?.value).toBe(1.5)
+  })
+
+  it('should allow global auraModifiers to work for any class', () => {
+    const GLOBAL_AURA_ID = 77777
+
+    const customConfig: ThreatConfig = createMockThreatConfig({
+      auraModifiers: {
+        [GLOBAL_AURA_ID]: () => ({
+          source: 'aura',
+          name: 'Global Threat Modifier',
+          value: 2.0,
+        }),
+      },
+      classes: {
+        priest: {
+          baseThreatFactor: 1.0,
+          auraModifiers: {},
+          abilities: {},
+        },
+      },
+    })
+
+    const actorMap = new Map<number, Actor>([
+      [priestActor.id, priestActor], // Priest, not warrior
+    ])
+
+    const events: WCLEvent[] = [
+      // Apply global aura to priest
+      createApplyBuffEvent({
+        targetID: priestActor.id,
+        abilityGameID: GLOBAL_AURA_ID,
+      }),
+      // Heal event from priest should get the global modifier
+      createHealEvent({
+        sourceID: priestActor.id,
+        targetID: warriorActor.id,
+        amount: 1000,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: customConfig,
+    })
+
+    const healEvent = result.augmentedEvents[0]
+    const globalModifier = healEvent.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.name === 'Global Threat Modifier',
+    )
+    expect(globalModifier).toBeDefined()
+    expect(globalModifier?.value).toBe(2.0)
+  })
+})
+
+describe('Custom Threat Integration', () => {
   const CUSTOM_ABILITY_ID = 99999
 
   it('should apply customThreat modifications to threat tracker', () => {
@@ -1668,9 +1743,7 @@ describe('calculateThreatModification', () => {
           splitAmongEnemies: false,
           special: {
             type: 'customThreat',
-            modifications: [
-              { actorId: 2, enemyId: bossEnemy.id, amount: 500 },
-            ],
+            modifications: [{ actorId: 2, enemyId: bossEnemy.id, amount: 500 }],
           },
         }),
       },
@@ -1698,226 +1771,226 @@ describe('calculateThreatModification', () => {
     })
 
     const event = result.augmentedEvents[0]
-    
+
     // Should have base threat from the ability
-     expect(event.threat?.calculation.baseThreat).toBe(100)
-     
-     // Should also have custom threat modifications
-     expect(event.threat?.calculation.special?.type).toBe('customThreat')
-   })
- })
+    expect(event.threat?.calculation.baseThreat).toBe(100)
 
- describe('cumulative threat tracking', () => {
-   it('includes cumulative threat values in augmented events', () => {
-     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+    // Should also have custom threat modifications
+    expect(event.threat?.calculation.special?.type).toBe('customThreat')
+  })
+})
 
-     // Two damage events from the same actor to the same enemy
-     const events: WCLEvent[] = [
-       createDamageEvent({
-         sourceID: warriorActor.id,
-         targetID: bossEnemy.id,
-         amount: 500,
-         timestamp: 1000,
-       }),
-       createDamageEvent({
-         sourceID: warriorActor.id,
-         targetID: bossEnemy.id,
-         amount: 300,
-         timestamp: 2000,
-       }),
-     ]
+describe('cumulative threat tracking', () => {
+  it('includes cumulative threat values in augmented events', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
-     const result = processEvents({
-       rawEvents: events,
-       actorMap,
-       enemies,
-       config: mockConfig,
-     })
+    // Two damage events from the same actor to the same enemy
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 500,
+        timestamp: 1000,
+      }),
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 300,
+        timestamp: 2000,
+      }),
+    ]
 
-     expect(result.augmentedEvents.length).toBe(2)
-
-     const event1 = result.augmentedEvents[0]
-     expect(event1.threat.values[0]).toBeDefined()
-     // 500 damage * 2 (base) * 1.3 (warrior class factor) = 1300
-     expect(event1.threat.values[0].amount).toBe(1300)
-     expect(event1.threat.values[0].cumulative).toBe(1300) // First event, cumulative = amount
-
-     const event2 = result.augmentedEvents[1]
-     expect(event2.threat.values[0]).toBeDefined()
-     // 300 damage * 2 (base) * 1.3 (warrior class factor) = 780
-     expect(event2.threat.values[0].amount).toBe(780)
-     expect(event2.threat.values[0].cumulative).toBe(2080) // 1300 + 780
-   })
-
-   it('tracks cumulative threat separately per enemy', () => {
-     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-     const enemy1 = { id: 10, name: 'Boss 1', instance: 0 }
-     const enemy2 = { id: 11, name: 'Boss 2', instance: 0 }
-
-     const events: WCLEvent[] = [
-       createDamageEvent({
-         sourceID: warriorActor.id,
-         targetID: enemy1.id,
-         amount: 100,
-         timestamp: 1000,
-       }),
-       createDamageEvent({
-         sourceID: warriorActor.id,
-         targetID: enemy2.id,
-         amount: 200,
-         timestamp: 2000,
-       }),
-       createDamageEvent({
-         sourceID: warriorActor.id,
-         targetID: enemy1.id,
-         amount: 150,
-         timestamp: 3000,
-       }),
-     ]
-
-     const result = processEvents({
-       rawEvents: events,
-       actorMap,
-       enemies: [enemy1, enemy2],
-       config: mockConfig,
-     })
-
-     expect(result.augmentedEvents.length).toBe(3)
-
-      // Event 1: 100 to enemy1
-      const event1 = result.augmentedEvents[0]
-      expect(event1.threat.values[0].id).toBe(enemy1.id)
-      // 100 damage * 2 (base) * 1.3 (warrior class factor) = 260
-      expect(event1.threat.values[0].cumulative).toBe(260)
-
-      // Event 2: 200 to enemy2
-      const event2 = result.augmentedEvents[1]
-      expect(event2.threat.values[0].id).toBe(enemy2.id)
-      // 200 damage * 2 (base) * 1.3 (warrior class factor) = 520
-      expect(event2.threat.values[0].cumulative).toBe(520)
-
-      // Event 3: 150 to enemy1 again
-      const event3 = result.augmentedEvents[2]
-      expect(event3.threat.values[0].id).toBe(enemy1.id)
-      // 150 damage * 2 (base) * 1.3 (warrior class factor) = 390
-      // Total for enemy1: 260 + 390 = 650
-      expect(event3.threat.values[0].cumulative).toBe(650)
-   })
-
-    it('updates cumulative threat after threat modifications', () => {
-      const config = createMockThreatConfig({
-        abilities: {
-          [SPELLS.MOCK_ABILITY_1]: () => ({
-            formula: '1 * amt',
-            value: 100,
-            splitAmongEnemies: false,
-          }),
-          [SPELLS.MOCK_ABILITY_2]: () => ({
-            formula: 'threat * 0.5',
-            value: 50,
-            splitAmongEnemies: false,
-            special: {
-              type: 'modifyThreat',
-              multiplier: 0.5,
-            },
-          }),
-        },
-      })
-
-      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-
-      const events: WCLEvent[] = [
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          abilityGameID: SPELLS.MOCK_ABILITY_1,
-          amount: 100,
-          timestamp: 1000,
-        }),
-        // Threat modification event (e.g., Fade)
-        createDamageEvent({
-          sourceID: bossEnemy.id,
-          targetID: warriorActor.id,
-          abilityGameID: SPELLS.MOCK_ABILITY_2,
-          amount: 100,
-          timestamp: 2000,
-        }),
-        // Subsequent event to check cumulative threat
-        createDamageEvent({
-          sourceID: warriorActor.id,
-          targetID: bossEnemy.id,
-          abilityGameID: SPELLS.MOCK_ABILITY_1,
-          amount: 100,
-          timestamp: 3000,
-        }),
-      ]
-
-      const result = processEvents({
-        rawEvents: events,
-        actorMap,
-        enemies,
-        config,
-      })
-
-      expect(result.augmentedEvents.length).toBe(3)
-
-      // After first event, cumulative is 100
-      const event1 = result.augmentedEvents[0]
-      expect(event1.threat.values[0].cumulative).toBe(100)
-
-      // Event 2 is threat modification, verify next event starts from modified baseline
-      // 100 * 0.5 = 50. Plus 100 from event 3 = 150.
-      const event3 = result.augmentedEvents[2]
-      expect(event3.threat.values[0].cumulative).toBe(150)
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
     })
 
-   it('tracks cumulative threat for split-threat abilities', () => {
-     const config = createMockThreatConfig({
-       abilities: {
-         [SPELLS.MOCK_ABILITY_1]: () => ({
-           formula: '1 * amt',
-           value: 100,
-           splitAmongEnemies: true, // Splits among all enemies
-         }),
-       },
-     })
+    expect(result.augmentedEvents.length).toBe(2)
 
-     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+    const event1 = result.augmentedEvents[0]
+    expect(event1.threat.values[0]).toBeDefined()
+    // 500 damage * 2 (base) * 1.3 (warrior class factor) = 1300
+    expect(event1.threat.values[0].amount).toBe(1300)
+    expect(event1.threat.values[0].cumulative).toBe(1300) // First event, cumulative = amount
 
-     const enemy1 = { id: 10, name: 'Enemy 1', instance: 0 }
-     const enemy2 = { id: 11, name: 'Enemy 2', instance: 0 }
+    const event2 = result.augmentedEvents[1]
+    expect(event2.threat.values[0]).toBeDefined()
+    // 300 damage * 2 (base) * 1.3 (warrior class factor) = 780
+    expect(event2.threat.values[0].amount).toBe(780)
+    expect(event2.threat.values[0].cumulative).toBe(2080) // 1300 + 780
+  })
 
-     const events: WCLEvent[] = [
-       createDamageEvent({
-         sourceID: warriorActor.id,
-         targetID: enemy1.id,
-         abilityGameID: SPELLS.MOCK_ABILITY_1,
-         amount: 100,
-         timestamp: 1000,
-       }),
-     ]
+  it('tracks cumulative threat separately per enemy', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
 
-     const result = processEvents({
-       rawEvents: events,
-       actorMap,
-       enemies: [enemy1, enemy2],
-       config,
-     })
+    const enemy1 = { id: 10, name: 'Boss 1', instance: 0 }
+    const enemy2 = { id: 11, name: 'Boss 2', instance: 0 }
 
-     const event = result.augmentedEvents[0]
-     expect(event.threat.values.length).toBe(2) // Split to both enemies
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: enemy1.id,
+        amount: 100,
+        timestamp: 1000,
+      }),
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: enemy2.id,
+        amount: 200,
+        timestamp: 2000,
+      }),
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: enemy1.id,
+        amount: 150,
+        timestamp: 3000,
+      }),
+    ]
 
-     // Both enemies get 50 threat, but cumulative tracks total
-     const enemy1Threat = event.threat.values.find((v) => v.id === enemy1.id)!
-     const enemy2Threat = event.threat.values.find((v) => v.id === enemy2.id)!
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies: [enemy1, enemy2],
+      config: mockConfig,
+    })
 
-     expect(enemy1Threat.amount).toBe(50)
-     expect(enemy1Threat.cumulative).toBe(50)
-     expect(enemy2Threat.amount).toBe(50)
-     expect(enemy2Threat.cumulative).toBe(50)
-   })
- 
+    expect(result.augmentedEvents.length).toBe(3)
+
+    // Event 1: 100 to enemy1
+    const event1 = result.augmentedEvents[0]
+    expect(event1.threat.values[0].id).toBe(enemy1.id)
+    // 100 damage * 2 (base) * 1.3 (warrior class factor) = 260
+    expect(event1.threat.values[0].cumulative).toBe(260)
+
+    // Event 2: 200 to enemy2
+    const event2 = result.augmentedEvents[1]
+    expect(event2.threat.values[0].id).toBe(enemy2.id)
+    // 200 damage * 2 (base) * 1.3 (warrior class factor) = 520
+    expect(event2.threat.values[0].cumulative).toBe(520)
+
+    // Event 3: 150 to enemy1 again
+    const event3 = result.augmentedEvents[2]
+    expect(event3.threat.values[0].id).toBe(enemy1.id)
+    // 150 damage * 2 (base) * 1.3 (warrior class factor) = 390
+    // Total for enemy1: 260 + 390 = 650
+    expect(event3.threat.values[0].cumulative).toBe(650)
+  })
+
+  it('updates cumulative threat after threat modifications', () => {
+    const config = createMockThreatConfig({
+      abilities: {
+        [SPELLS.MOCK_ABILITY_1]: () => ({
+          formula: '1 * amt',
+          value: 100,
+          splitAmongEnemies: false,
+        }),
+        [SPELLS.MOCK_ABILITY_2]: () => ({
+          formula: 'threat * 0.5',
+          value: 50,
+          splitAmongEnemies: false,
+          special: {
+            type: 'modifyThreat',
+            multiplier: 0.5,
+          },
+        }),
+      },
+    })
+
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        abilityGameID: SPELLS.MOCK_ABILITY_1,
+        amount: 100,
+        timestamp: 1000,
+      }),
+      // Threat modification event (e.g., Fade)
+      createDamageEvent({
+        sourceID: bossEnemy.id,
+        targetID: warriorActor.id,
+        abilityGameID: SPELLS.MOCK_ABILITY_2,
+        amount: 100,
+        timestamp: 2000,
+      }),
+      // Subsequent event to check cumulative threat
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        abilityGameID: SPELLS.MOCK_ABILITY_1,
+        amount: 100,
+        timestamp: 3000,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config,
+    })
+
+    expect(result.augmentedEvents.length).toBe(3)
+
+    // After first event, cumulative is 100
+    const event1 = result.augmentedEvents[0]
+    expect(event1.threat.values[0].cumulative).toBe(100)
+
+    // Event 2 is threat modification, verify next event starts from modified baseline
+    // 100 * 0.5 = 50. Plus 100 from event 3 = 150.
+    const event3 = result.augmentedEvents[2]
+    expect(event3.threat.values[0].cumulative).toBe(150)
+  })
+
+  it('tracks cumulative threat for split-threat abilities', () => {
+    const config = createMockThreatConfig({
+      abilities: {
+        [SPELLS.MOCK_ABILITY_1]: () => ({
+          formula: '1 * amt',
+          value: 100,
+          splitAmongEnemies: true, // Splits among all enemies
+        }),
+      },
+    })
+
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const enemy1 = { id: 10, name: 'Enemy 1', instance: 0 }
+    const enemy2 = { id: 11, name: 'Enemy 2', instance: 0 }
+
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: enemy1.id,
+        abilityGameID: SPELLS.MOCK_ABILITY_1,
+        amount: 100,
+        timestamp: 1000,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies: [enemy1, enemy2],
+      config,
+    })
+
+    const event = result.augmentedEvents[0]
+    expect(event.threat.values.length).toBe(2) // Split to both enemies
+
+    // Both enemies get 50 threat, but cumulative tracks total
+    const enemy1Threat = event.threat.values.find((v) => v.id === enemy1.id)!
+    const enemy2Threat = event.threat.values.find((v) => v.id === enemy2.id)!
+
+    expect(enemy1Threat.amount).toBe(50)
+    expect(enemy1Threat.cumulative).toBe(50)
+    expect(enemy2Threat.amount).toBe(50)
+    expect(enemy2Threat.cumulative).toBe(50)
+  })
+
   describe('environmental threat filtering', () => {
     it('generates zero threat when targeting environment (ID -1)', () => {
       const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
@@ -1941,7 +2014,7 @@ describe('calculateThreatModification', () => {
 
     it('excludes environment from split threat calculations', () => {
       const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
-      
+
       const config = createMockThreatConfig({
         abilities: {
           [SPELLS.MOCK_ABILITY_1]: () => ({
@@ -1951,10 +2024,10 @@ describe('calculateThreatModification', () => {
           }),
         },
       })
-      
+
       const mixedEnemies = [
         bossEnemy,
-        { id: -1, name: 'Environment', instance: 0 }
+        { id: -1, name: 'Environment', instance: 0 },
       ]
 
       const events: WCLEvent[] = [

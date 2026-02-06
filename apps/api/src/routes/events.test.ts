@@ -1,12 +1,12 @@
 /**
  * Integration Tests for Events API
  */
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import app from '../index'
+import mockReportData from '../../test/fixtures/wcl-responses/anniversary-report.json'
 import { mockFetch, restoreFetch } from '../../test/helpers/mock-fetch'
 import { createMockBindings } from '../../test/setup'
-import mockReportData from '../../test/fixtures/wcl-responses/anniversary-report.json'
+import app from '../index'
 
 // Sample events fixture
 const mockEvents = [
@@ -17,7 +17,12 @@ const mockEvents = [
     sourceIsFriendly: true,
     targetID: 25,
     targetIsFriendly: false,
-    ability: { guid: 23922, name: 'Shield Slam', type: 1, abilityIcon: 'ability_warrior_shieldslam.png' },
+    ability: {
+      guid: 23922,
+      name: 'Shield Slam',
+      type: 1,
+      abilityIcon: 'ability_warrior_shieldslam.png',
+    },
     amount: 2500,
     absorbed: 0,
     blocked: 0,
@@ -34,7 +39,12 @@ const mockEvents = [
     sourceIsFriendly: true,
     targetID: 1,
     targetIsFriendly: true,
-    ability: { guid: 25314, name: 'Greater Heal', type: 2, abilityIcon: 'spell_holy_greaterheal.png' },
+    ability: {
+      guid: 25314,
+      name: 'Greater Heal',
+      type: 2,
+      abilityIcon: 'spell_holy_greaterheal.png',
+    },
     amount: 4000,
     absorbed: 0,
     overheal: 500,
@@ -47,7 +57,12 @@ const mockEvents = [
     sourceIsFriendly: true,
     targetID: 1,
     targetIsFriendly: true,
-    ability: { guid: 71, name: 'Defensive Stance', type: 1, abilityIcon: 'ability_warrior_defensivestance.png' },
+    ability: {
+      guid: 71,
+      name: 'Defensive Stance',
+      type: 1,
+      abilityIcon: 'ability_warrior_defensivestance.png',
+    },
   },
 ]
 
@@ -71,7 +86,7 @@ describe('Events API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.status).toBe(200)
@@ -89,11 +104,13 @@ describe('Events API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       const data = await res.json()
-      const damageEvent = data.events.find((e: { type: string }) => e.type === 'damage')
+      const damageEvent = data.events.find(
+        (e: { type: string }) => e.type === 'damage',
+      )
 
       expect(damageEvent).toBeDefined()
       expect(damageEvent.threat).toBeDefined()
@@ -105,11 +122,13 @@ describe('Events API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       const data = await res.json()
-      const healEvent = data.events.find((e: { type: string }) => e.type === 'heal')
+      const healEvent = data.events.find(
+        (e: { type: string }) => e.type === 'heal',
+      )
 
       expect(healEvent).toBeDefined()
       expect(healEvent.threat).toBeDefined()
@@ -119,7 +138,7 @@ describe('Events API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       const data = await res.json()
@@ -131,7 +150,7 @@ describe('Events API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.headers.get('Cache-Control')).toContain('immutable')
@@ -142,7 +161,7 @@ describe('Events API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/999/events',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.status).toBe(404)
@@ -155,11 +174,13 @@ describe('Events API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       const data = await res.json()
-      const healEvent = data.events.find((e: { type: string }) => e.type === 'heal')
+      const healEvent = data.events.find(
+        (e: { type: string }) => e.type === 'heal',
+      )
 
       expect(healEvent).toBeDefined()
       expect(healEvent.threat.calculation.isSplit).toBe(true)

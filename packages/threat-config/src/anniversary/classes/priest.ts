@@ -3,9 +3,8 @@
  *
  * Mind Blast generates extra threat. Silent Resolve and Shadow Affinity talents reduce threat.
  */
-
-import type { ClassThreatConfig } from '../../types'
 import { calculateThreat, noThreat } from '../../shared/formulas'
+import type { ClassThreatConfig } from '../../types'
 
 // ============================================================================
 // Spell IDs

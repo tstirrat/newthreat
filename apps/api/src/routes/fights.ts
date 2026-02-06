@@ -3,14 +3,21 @@
  *
  * GET /reports/:code/fights/:id - Get fight details
  */
-
 import { Hono } from 'hono'
-import type { Bindings, Variables } from '../types/bindings'
+
+import {
+  fightNotFound,
+  invalidFightId,
+  reportNotFound,
+} from '../middleware/error'
 import { WCLClient } from '../services/wcl'
-import { invalidFightId, fightNotFound, reportNotFound } from '../middleware/error'
+import type { Bindings, Variables } from '../types/bindings'
 import { eventsRoutes } from './events'
 
-export const fightsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+export const fightsRoutes = new Hono<{
+  Bindings: Bindings
+  Variables: Variables
+}>()
 
 /**
  * GET /reports/:code/fights/:id
@@ -43,17 +50,21 @@ fightsRoutes.get('/:id', async (c) => {
 
   // Get actors relevant to this fight
   const masterData = report.masterData
-  
+
   // Build a lookup map for faster actor resolution
   const actorLookup = new Map(masterData.actors.map((a) => [a.id, a]))
-  
+
   // Build actors from fight participants
   const actors = (fight.friendlyPlayers ?? [])
     .map((playerId) => ({ id: playerId, actor: actorLookup.get(playerId) }))
     .map(({ id, actor }) => ({
       id,
       name: actor?.name ?? 'Unknown',
-      type: (actor?.type ?? 'Player') as 'Player' | 'Pet' | 'Guardian' | 'Companion',
+      type: (actor?.type ?? 'Player') as
+        | 'Player'
+        | 'Pet'
+        | 'Guardian'
+        | 'Companion',
       class: actor?.type === 'Player' ? actor.subType : null,
       spec: null, // Would need combatantinfo events
       role: null, // Would need combatantinfo events
@@ -68,7 +79,10 @@ fightsRoutes.get('/:id', async (c) => {
       guid: npc.gameID,
       name: actor?.name ?? 'Unknown',
       instanceCount: npc.instanceCount,
-      type: (actor?.type === 'Boss' ? 'Boss' : 'Add') as 'Boss' | 'Add' | 'Trash',
+      type: (actor?.type === 'Boss' ? 'Boss' : 'Add') as
+        | 'Boss'
+        | 'Add'
+        | 'Trash',
     }))
 
   const cacheControl =
@@ -92,7 +106,7 @@ fightsRoutes.get('/:id', async (c) => {
     200,
     {
       'Cache-Control': cacheControl,
-    }
+    },
   )
 })
 

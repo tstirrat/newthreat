@@ -5,7 +5,6 @@
  * Uses no-op cache for development (to allow immediate code changes).
  * Uses in-memory cache for test environments.
  */
-
 import type { Bindings } from '../types/bindings'
 
 export interface CacheService {
@@ -93,7 +92,10 @@ let memoryCache: CacheService | null = null
 /**
  * Factory to create appropriate cache based on environment
  */
-export function createCache(env: Bindings, namespace: 'wcl' | 'augmented'): CacheService {
+export function createCache(
+  env: Bindings,
+  namespace: 'wcl' | 'augmented',
+): CacheService {
   // Use no-op cache for augmented data in development for immediate code change testing
   if (env.ENVIRONMENT === 'development' && namespace === 'augmented') {
     console.warn('[Cache] Using No-Op cache for augmented data')

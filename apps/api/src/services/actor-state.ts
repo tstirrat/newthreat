@@ -5,7 +5,6 @@
  * single state object for each actor in a fight. Created and managed by
  * FightState.
  */
-
 import type { GearItem } from '@wcl-threat/wcl-types'
 
 import { AuraTracker } from './aura-tracker'

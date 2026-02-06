@@ -4,14 +4,13 @@
  * Provides factory functions to create WCL events with sensible defaults.
  * Reduces boilerplate in test files.
  */
-
 import type {
-  DamageEvent,
-  HealEvent,
-  EnergizeEvent,
   ApplyBuffEvent,
-  RemoveBuffEvent,
   CombatantInfoAura,
+  DamageEvent,
+  EnergizeEvent,
+  HealEvent,
+  RemoveBuffEvent,
 } from '@wcl-threat/wcl-types'
 
 /**
@@ -24,7 +23,9 @@ import type {
  * - amount: 100
  * - Basic ability (id: 1)
  */
-export function createDamageEvent(overrides: Partial<DamageEvent> = {}): DamageEvent {
+export function createDamageEvent(
+  overrides: Partial<DamageEvent> = {},
+): DamageEvent {
   return {
     timestamp: 1000,
     type: 'damage',
@@ -85,7 +86,9 @@ export function createHealEvent(overrides: Partial<HealEvent> = {}): HealEvent {
  * - waste: 0
  * - Basic ability (id: 1)
  */
-export function createEnergizeEvent(overrides: Partial<EnergizeEvent> = {}): EnergizeEvent {
+export function createEnergizeEvent(
+  overrides: Partial<EnergizeEvent> = {},
+): EnergizeEvent {
   return {
     timestamp: 1000,
     type: 'energize',
@@ -110,7 +113,9 @@ export function createEnergizeEvent(overrides: Partial<EnergizeEvent> = {}): Ene
  * - targetID: 1 (self)
  * - Basic buff ability (id: 1)
  */
-export function createApplyBuffEvent(overrides: Partial<ApplyBuffEvent> = {}): ApplyBuffEvent {
+export function createApplyBuffEvent(
+  overrides: Partial<ApplyBuffEvent> = {},
+): ApplyBuffEvent {
   return {
     timestamp: 1000,
     type: 'applybuff',
@@ -132,7 +137,9 @@ export function createApplyBuffEvent(overrides: Partial<ApplyBuffEvent> = {}): A
  * - targetID: 1
  * - Basic buff ability (id: 1)
  */
-export function createRemoveBuffEvent(overrides: Partial<RemoveBuffEvent> = {}): RemoveBuffEvent {
+export function createRemoveBuffEvent(
+  overrides: Partial<RemoveBuffEvent> = {},
+): RemoveBuffEvent {
   return {
     timestamp: 2000,
     type: 'removebuff',
@@ -155,7 +162,7 @@ export function createRemoveBuffEvent(overrides: Partial<RemoveBuffEvent> = {}):
 export function createCombatantInfoAura(
   abilityId: number,
   name: string,
-  sourceId: number = 1
+  sourceId: number = 1,
 ): CombatantInfoAura {
   return {
     source: sourceId,

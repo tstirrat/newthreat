@@ -1,8 +1,7 @@
 /**
  * Tests for per-actor AuraTracker
  */
-
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { AuraTracker } from './aura-tracker'
 
@@ -110,9 +109,7 @@ describe('AuraTracker', () => {
     })
 
     it('allows non-exclusive auras alongside exclusive ones', () => {
-      const exclusiveSets = [
-        new Set([71, 2457, 2458]),
-      ]
+      const exclusiveSets = [new Set([71, 2457, 2458])]
       const tracker = new AuraTracker(exclusiveSets)
 
       tracker.addAura(71) // Defensive Stance (exclusive)
@@ -125,9 +122,7 @@ describe('AuraTracker', () => {
     })
 
     it('seeds auras respecting exclusivity', () => {
-      const exclusiveSets = [
-        new Set([71, 2457, 2458]),
-      ]
+      const exclusiveSets = [new Set([71, 2457, 2458])]
       const tracker = new AuraTracker(exclusiveSets)
 
       // When seeding multiple exclusive auras, last one wins

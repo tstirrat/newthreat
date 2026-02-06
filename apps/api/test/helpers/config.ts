@@ -4,11 +4,10 @@
  * Provides a minimal, self-contained threat configuration for unit tests.
  * Tests can override specific parts without dependencies on real game configs.
  */
-
 import type {
+  ActorContext,
   ThreatConfig,
   ThreatContext,
-  ActorContext,
 } from '@wcl-threat/threat-config'
 
 /**
@@ -40,7 +39,9 @@ import type {
  *   }
  * })
  */
-export function createMockThreatConfig(overrides?: Partial<ThreatConfig>): ThreatConfig {
+export function createMockThreatConfig(
+  overrides?: Partial<ThreatConfig>,
+): ThreatConfig {
   const defaultConfig: ThreatConfig = {
     version: 'test-1.0.0',
     gameVersion: 1,

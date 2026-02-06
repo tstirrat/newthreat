@@ -1,9 +1,14 @@
 /**
  * Tests for Cache Service
  */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createMemoryCache, createNoOpCache, createCache, CacheKeys } from './cache'
+import {
+  CacheKeys,
+  createCache,
+  createMemoryCache,
+  createNoOpCache,
+} from './cache'
 
 describe('createMemoryCache', () => {
   beforeEach(() => {
@@ -115,8 +120,6 @@ describe('createNoOpCache', () => {
   })
 })
 
-
-
 describe('createCache', () => {
   it('returns memory cache for test environment', () => {
     const env = { ENVIRONMENT: 'test' } as any
@@ -132,7 +135,7 @@ describe('createCache', () => {
   it('returns no-op cache for augmented data in development', async () => {
     const env = { ENVIRONMENT: 'development' } as any
     const cache = createCache(env, 'augmented')
-    
+
     await cache.set('test', 'value')
     expect(await cache.get('test')).toBeNull()
   })
@@ -140,7 +143,7 @@ describe('createCache', () => {
   it('returns memory cache for wcl data in development', async () => {
     const env = { ENVIRONMENT: 'development' } as any
     const cache = createCache(env, 'wcl')
-    
+
     await cache.set('test', 'value')
     expect(await cache.get('test')).toBe('value')
   })
@@ -165,7 +168,7 @@ describe('CacheKeys', () => {
 
   it('generates correct augmented events key', () => {
     expect(CacheKeys.augmentedEvents('ABC123', 5, 'v1.2.0')).toBe(
-      'augmented:ABC123:5:v1.2.0'
+      'augmented:ABC123:5:v1.2.0',
     )
   })
 })

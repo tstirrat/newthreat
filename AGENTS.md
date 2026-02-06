@@ -78,30 +78,36 @@ pnpm --filter @wcl-threat/api lint        # Lint API only
 ### Imports
 
 Order imports in groups separated by blank lines:
+
 1. External packages (`hono`, `vitest`)
 2. Workspace packages (`@wcl-threat/wcl-types`, `@wcl-threat/threat-config`)
 3. Relative imports (`./types/bindings`, `../middleware/error`)
 
 Use `import type` for type-only imports. Use inline `type` keyword for mixed imports:
+
 ```typescript
+import {
+  type ThreatConfig,
+  getActiveModifiers,
+} from '@wcl-threat/threat-config'
+
 import type { Bindings, Variables } from './types/bindings'
-import { type ThreatConfig, getActiveModifiers } from '@wcl-threat/threat-config'
 ```
 
 Use relative paths for local imports (the `@/*` alias exists but is not used in practice).
 
 ### Naming Conventions
 
-| Element             | Convention    | Examples                                    |
-|---------------------|---------------|---------------------------------------------|
-| Files/directories   | kebab-case    | `mock-fetch.ts`, `threat-config/`           |
-| Functions           | camelCase     | `calculateThreat`, `createCache`            |
-| Classes             | PascalCase    | `AppError`, `WCLClient`, `AuraTracker`      |
-| Interfaces/Types    | PascalCase    | `ThreatConfig`, `CacheService`, `WCLEvent`  |
-| Constants (strings) | UPPER_CASE    | `WCL_API_URL`, `REPORT_CODE_REGEX`          |
-| Constants (objects) | camelCase     | `baseThreat`, `exclusiveAuras`              |
-| Enum-like keys      | PascalCase    | `ErrorCodes.INVALID_REPORT_CODE`, `Spells.ShieldSlam` |
-| Test files          | `.test.ts`    | `threat.test.ts`, `warrior.test.ts`         |
+| Element             | Convention | Examples                                              |
+| ------------------- | ---------- | ----------------------------------------------------- |
+| Files/directories   | kebab-case | `mock-fetch.ts`, `threat-config/`                     |
+| Functions           | camelCase  | `calculateThreat`, `createCache`                      |
+| Classes             | PascalCase | `AppError`, `WCLClient`, `AuraTracker`                |
+| Interfaces/Types    | PascalCase | `ThreatConfig`, `CacheService`, `WCLEvent`            |
+| Constants (strings) | UPPER_CASE | `WCL_API_URL`, `REPORT_CODE_REGEX`                    |
+| Constants (objects) | camelCase  | `baseThreat`, `exclusiveAuras`                        |
+| Enum-like keys      | PascalCase | `ErrorCodes.INVALID_REPORT_CODE`, `Spells.ShieldSlam` |
+| Test files          | `.test.ts` | `threat.test.ts`, `warrior.test.ts`                   |
 
 No `I` prefix on interfaces. Use `interface` for object shapes/contracts, `type` for
 unions, aliases, and function types.
@@ -118,6 +124,7 @@ unions, aliases, and function types.
 ### Error Handling
 
 Errors are thrown (not returned). Use the `AppError` class with factory functions:
+
 ```typescript
 throw invalidReportCode(code)
 throw fightNotFound(reportCode, fightId)
@@ -148,12 +155,16 @@ const validEnemies = allEnemies
 const actorsInFight = []
 for (const actor of actors) {
   if (fightActorIds.includes(actor.id)) {
-    actorsInFight.push({ ...actor, class: actor.type === 'Player' ? actor.subType : null })
+    actorsInFight.push({
+      ...actor,
+      class: actor.type === 'Player' ? actor.subType : null,
+    })
   }
 }
 ```
 
 Use helper functions for complex filter/map conditions:
+
 ```typescript
 const isHostileNPC = (npc: FightNPC) => npc.id !== ENVIRONMENT_TARGET_ID
 const enrichWithName = (npc: FightNPC, actorMap: Map<number, Actor>) => ({
@@ -192,6 +203,7 @@ type narrowing.
 flow through Hono context (`c.env`, `c.set()`/`c.get()`).
 
 **Test patterns:**
+
 - BDD style: `describe`/`it`/`expect` (globals enabled)
 - `beforeEach`/`afterEach` for setup/teardown
 - Test descriptions are lowercase, starting with verbs

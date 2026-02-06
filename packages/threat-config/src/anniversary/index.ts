@@ -3,19 +3,18 @@
  *
  * This is the main entry point for Anniversary Edition (gameVersion: 1) threat config.
  */
-
+import { validateAbilities, validateAuraModifiers } from '../shared/utils'
 import type { ThreatConfig, ThreatContext, ThreatModifier } from '../types'
-import { validateAuraModifiers, validateAbilities } from '../shared/utils'
-import { baseThreat } from './general'
-import { warriorConfig } from './classes/warrior'
-import { paladinConfig } from './classes/paladin'
 import { druidConfig } from './classes/druid'
-import { priestConfig } from './classes/priest'
-import { rogueConfig } from './classes/rogue'
 import { hunterConfig } from './classes/hunter'
 import { mageConfig } from './classes/mage'
-import { warlockConfig } from './classes/warlock'
+import { paladinConfig } from './classes/paladin'
+import { priestConfig } from './classes/priest'
+import { rogueConfig } from './classes/rogue'
 import { shamanConfig } from './classes/shaman'
+import { warlockConfig } from './classes/warlock'
+import { warriorConfig } from './classes/warrior'
+import { baseThreat } from './general'
 import { naxxAbilities } from './naxx'
 import { onyxiaAbilities } from './ony'
 
@@ -33,7 +32,9 @@ const fixateBuffs = new Set<number>([])
 // Class-specific aggro loss buffs are in class configs
 const aggroLossBuffs = new Set<number>([
   23023, // Razorgore Conflagrate
-  23310, 23311, 23312, // Chromaggus Time Lapse
+  23310,
+  23311,
+  23312, // Chromaggus Time Lapse
   22289, // Brood Power: Green
   20604, // Lucifron Dominate Mind
   24327, // Hakkar's Cause Insanity
@@ -50,7 +51,10 @@ const invulnerabilityBuffs = new Set<number>([
 ])
 
 // Global aura modifiers (items, consumables, cross-class buffs)
-const globalAuraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
+const globalAuraModifiers: Record<
+  number,
+  (ctx: ThreatContext) => ThreatModifier
+> = {
   // Fetish of the Sand Reaver - 0.3x threat
   26400: () => ({
     source: 'gear',
@@ -92,4 +96,3 @@ export const anniversaryConfig: ThreatConfig = {
 // Validate for duplicate spell IDs (dev-time warning)
 validateAuraModifiers(anniversaryConfig)
 validateAbilities(anniversaryConfig)
-

@@ -5,23 +5,25 @@
  * aura tracking, and threat calculation for raw WCL events. Pure function - no side effects
  * except internal state management during processing.
  */
-
-import type { WCLEvent } from '@wcl-threat/wcl-types'
 import type {
-  ThreatConfig,
-  AugmentedEvent,
   Actor,
+  ActorContext,
+  AugmentedEvent,
+  ClassThreatConfig,
   Enemy,
-  ThreatCalculation,
   TargetThreatValue,
-  ThreatResult,
+  ThreatCalculation,
+  ThreatConfig,
   ThreatContext,
   ThreatModifier,
-  ClassThreatConfig,
+  ThreatResult,
   WowClass,
-  ActorContext,
 } from '@wcl-threat/threat-config'
-import { getActiveModifiers, getTotalMultiplier } from '@wcl-threat/threat-config'
+import {
+  getActiveModifiers,
+  getTotalMultiplier,
+} from '@wcl-threat/threat-config'
+import type { WCLEvent } from '@wcl-threat/wcl-types'
 
 import { FightState } from './fight-state'
 
@@ -100,7 +102,9 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
       // Update threat tracker with threat
       if (calculation.isSplit) {
         // Filter out environment targets from split threat
-        const validEnemies = enemies.filter((e) => e.id !== ENVIRONMENT_TARGET_ID)
+        const validEnemies = enemies.filter(
+          (e) => e.id !== ENVIRONMENT_TARGET_ID,
+        )
         const splitThreat = calculation.modifiedThreat / validEnemies.length
 
         let values: TargetThreatValue[] = []
@@ -116,14 +120,25 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
         }
         augmentedEvents.push(buildAugmentedEvent(event, calculation, values))
       } else {
-        fightState.addThreat(event.sourceID, event.targetID, calculation.modifiedThreat)
+        fightState.addThreat(
+          event.sourceID,
+          event.targetID,
+          calculation.modifiedThreat,
+        )
         const enemy = enemies.find((e) => e.id === event.targetID)
-        const values: TargetThreatValue[] =  enemy ? [{
-          id: enemy.id,
-          instance: enemy.instance,
-          amount: calculation.modifiedThreat,
-          cumulative: fightState.getThreat(event.sourceID, event.targetID),
-        }] : []
+        const values: TargetThreatValue[] = enemy
+          ? [
+              {
+                id: enemy.id,
+                instance: enemy.instance,
+                amount: calculation.modifiedThreat,
+                cumulative: fightState.getThreat(
+                  event.sourceID,
+                  event.targetID,
+                ),
+              },
+            ]
+          : []
         augmentedEvents.push(buildAugmentedEvent(event, calculation, values))
       }
 
@@ -136,10 +151,13 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
 
       // Process threat modifications (boss abilities that modify threat)
       if (calculation.special?.type === 'modifyThreat') {
-        const currentThreat = fightState.getThreat(event.targetID, event.sourceID)
+        const currentThreat = fightState.getThreat(
+          event.targetID,
+          event.sourceID,
+        )
         const newThreat = calculateThreatModification(
           currentThreat,
-          calculation.special.multiplier
+          calculation.special.multiplier,
         )
         fightState.setThreat(event.targetID, event.sourceID, newThreat)
       }
@@ -243,7 +261,7 @@ export interface CalculateThreatOptions {
 export function calculateModifiedThreat(
   event: WCLEvent,
   options: CalculateThreatOptions,
-  config: ThreatConfig
+  config: ThreatConfig,
 ): ThreatCalculation {
   const amount = getEventAmount(event)
 
@@ -287,7 +305,7 @@ export function calculateModifiedThreat(
  */
 export function calculateThreatModification(
   currentThreat: number,
-  multiplier: number
+  multiplier: number,
 ): number {
   return Math.max(0, currentThreat * multiplier)
 }
@@ -325,7 +343,7 @@ function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
       ...(config.abilities ?? {}),
       ...(classConfig?.abilities ?? {}),
     }
-    
+
     const abilityFormula = mergedAbilities[event.abilityGameID]
     if (abilityFormula) {
       return abilityFormula(ctx)
@@ -355,7 +373,7 @@ function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
  */
 function getClassConfig(
   wowClass: WowClass | null,
-  config: ThreatConfig
+  config: ThreatConfig,
 ): ClassThreatConfig | null {
   if (!wowClass) return null
   return config.classes[wowClass] ?? null
@@ -366,7 +384,7 @@ function getClassConfig(
  */
 function getClassModifiers(
   wowClass: WowClass | null,
-  config: ThreatConfig
+  config: ThreatConfig,
 ): ThreatModifier[] {
   const classConfig = getClassConfig(wowClass, config)
   if (!classConfig?.baseThreatFactor || classConfig.baseThreatFactor === 1) {
@@ -377,11 +395,13 @@ function getClassModifiers(
     ? wowClass.charAt(0).toUpperCase() + wowClass.slice(1)
     : 'Class'
 
-  return [{
-    source: 'class',
-    name: className,
-    value: classConfig.baseThreatFactor,
-  }]
+  return [
+    {
+      source: 'class',
+      name: className,
+      value: classConfig.baseThreatFactor,
+    },
+  ]
 }
 
 /**
@@ -392,10 +412,13 @@ function getClassModifiers(
  */
 function getAuraModifiers(
   ctx: ThreatContext,
-  config: ThreatConfig
+  config: ThreatConfig,
 ): ThreatModifier[] {
   // Merge all aura modifiers into a single structure
-  const mergedAuraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
+  const mergedAuraModifiers: Record<
+    number,
+    (ctx: ThreatContext) => ThreatModifier
+  > = {
     ...config.auraModifiers,
   }
 

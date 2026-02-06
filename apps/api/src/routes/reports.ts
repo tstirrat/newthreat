@@ -3,17 +3,20 @@
  *
  * GET /reports/:code - Get report metadata
  */
-
 import { Hono } from 'hono'
-import type { Bindings, Variables } from '../types/bindings'
-import { WCLClient } from '../services/wcl'
+
 import { invalidReportCode, reportNotFound } from '../middleware/error'
+import { WCLClient } from '../services/wcl'
+import type { Bindings, Variables } from '../types/bindings'
 import { fightsRoutes } from './fights'
 
 // Report code format: alphanumeric + hyphens, typically 16 chars
 const REPORT_CODE_REGEX = /^[a-zA-Z0-9-]+$/
 
-export const reportRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+export const reportRoutes = new Hono<{
+  Bindings: Bindings
+  Variables: Variables
+}>()
 
 /**
  * GET /reports/:code
@@ -39,7 +42,9 @@ reportRoutes.get('/:code', async (c) => {
 
   // Categorize actors
   const players = masterData.actors.filter((a) => a.type === 'Player')
-  const enemies = masterData.actors.filter((a) => a.type === 'NPC' || a.type === 'Boss')
+  const enemies = masterData.actors.filter(
+    (a) => a.type === 'NPC' || a.type === 'Boss',
+  )
   const pets = masterData.actors.filter((a) => a.type === 'Pet')
 
   const cacheControl =
@@ -66,7 +71,7 @@ reportRoutes.get('/:code', async (c) => {
     200,
     {
       'Cache-Control': cacheControl,
-    }
+    },
   )
 })
 

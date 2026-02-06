@@ -3,18 +3,30 @@
  *
  * GET /reports/:code/fights/:id/events - Get events with threat calculations
  */
-
-import { Hono } from 'hono'
-import type { Bindings, Variables } from '../types/bindings'
-import type { AugmentedEvent, Enemy, Actor, WowClass } from '@wcl-threat/threat-config'
-import type { WCLEvent } from '@wcl-threat/wcl-types'
+import type {
+  Actor,
+  AugmentedEvent,
+  Enemy,
+  WowClass,
+} from '@wcl-threat/threat-config'
 import { getConfig } from '@wcl-threat/threat-config'
-import { WCLClient } from '../services/wcl'
-import { CacheKeys, createCache } from '../services/cache'
-import { invalidFightId, reportNotFound, fightNotFound } from '../middleware/error'
-import { processEvents } from '../services/threat-engine'
+import type { WCLEvent } from '@wcl-threat/wcl-types'
+import { Hono } from 'hono'
 
-export const eventsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+import {
+  fightNotFound,
+  invalidFightId,
+  reportNotFound,
+} from '../middleware/error'
+import { CacheKeys, createCache } from '../services/cache'
+import { processEvents } from '../services/threat-engine'
+import { WCLClient } from '../services/wcl'
+import type { Bindings, Variables } from '../types/bindings'
+
+export const eventsRoutes = new Hono<{
+  Bindings: Bindings
+  Variables: Variables
+}>()
 
 /**
  * GET /reports/:code/fights/:id/events
@@ -72,17 +84,25 @@ eventsRoutes.get('/', async (c) => {
   const rawEvents = (await wcl.getEvents(code, fightId)) as WCLEvent[]
 
   // Build a lookup from all report actors (for name/class resolution)
-  const allActors = new Map(
-    report.masterData.actors.map((a) => [a.id, a])
-  )
+  const allActors = new Map(report.masterData.actors.map((a) => [a.id, a]))
 
   // Helper to create an actor entry
-  const createActorEntry = (id: number, actor: (typeof report.masterData.actors)[0] | undefined, isPlayer: boolean): [number, Actor] => {
-    return [id, {
+  const createActorEntry = (
+    id: number,
+    actor: (typeof report.masterData.actors)[0] | undefined,
+    isPlayer: boolean,
+  ): [number, Actor] => {
+    return [
       id,
-      name: actor?.name ?? 'Unknown',
-      class: isPlayer && actor?.type === 'Player' ? (actor.subType.toLowerCase() as WowClass) : null,
-    }]
+      {
+        id,
+        name: actor?.name ?? 'Unknown',
+        class:
+          isPlayer && actor?.type === 'Player'
+            ? (actor.subType.toLowerCase() as WowClass)
+            : null,
+      },
+    ]
   }
 
   // Build fight-scoped actor map from friendly participants and enemies
@@ -96,7 +116,10 @@ eventsRoutes.get('/', async (c) => {
     .filter(([, actor]) => actor !== undefined)
     .map(([id, actor]) => createActorEntry(id, actor, false))
 
-  const enemyActorEntries = [...(fight.enemyNPCs ?? []), ...(fight.enemyPets ?? [])]
+  const enemyActorEntries = [
+    ...(fight.enemyNPCs ?? []),
+    ...(fight.enemyPets ?? []),
+  ]
     .map((npc) => [npc.id, allActors.get(npc.id)] as const)
     .filter(([, actor]) => actor !== undefined)
     .map(([id, actor]) => createActorEntry(id, actor, false))
@@ -169,5 +192,3 @@ interface AugmentedEventsResponse {
     duration: number
   }
 }
-
-

@@ -3,9 +3,12 @@
  *
  * Base threat calculations and general mechanics for Anniversary Edition.
  */
-
-import type { ThreatContext, ThreatFormulaResult, BaseThreatConfig } from '../types'
 import { calculateThreat } from '../shared/formulas'
+import type {
+  BaseThreatConfig,
+  ThreatContext,
+  ThreatFormulaResult,
+} from '../types'
 
 /**
  * Base threat configurations for Anniversary Edition

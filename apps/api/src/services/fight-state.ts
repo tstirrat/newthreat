@@ -5,9 +5,8 @@
  * the appropriate actor's trackers and coordinates cross-tracker concerns
  * (e.g. gear implications producing synthetic auras).
  */
-
-import type { WCLEvent, GearItem } from '@wcl-threat/wcl-types'
-import type { ThreatConfig, Actor, WowClass } from '@wcl-threat/threat-config'
+import type { Actor, ThreatConfig, WowClass } from '@wcl-threat/threat-config'
+import type { GearItem, WCLEvent } from '@wcl-threat/wcl-types'
 
 import { ActorState } from './actor-state'
 import { PositionTracker } from './position-tracker'
@@ -43,7 +42,12 @@ export class FightState {
   /** Process a WCL event and update relevant actor state */
   processEvent(event: WCLEvent, config: ThreatConfig): void {
     // Update positions if available
-    if ('x' in event && 'y' in event && typeof event.x === 'number' && typeof event.y === 'number') {
+    if (
+      'x' in event &&
+      'y' in event &&
+      typeof event.x === 'number' &&
+      typeof event.y === 'number'
+    ) {
       this.positionTracker.updatePosition(event.sourceID, event.x, event.y)
     }
 
@@ -90,9 +94,7 @@ export class FightState {
 
     // Seed initial auras from combatant info
     if (event.auras) {
-      actorState.auraTracker.seedAuras(
-        event.auras.map((a) => a.abilityGameID),
-      )
+      actorState.auraTracker.seedAuras(event.auras.map((a) => a.abilityGameID))
     }
 
     // Store gear

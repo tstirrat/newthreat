@@ -1,8 +1,7 @@
 /**
  * Tests for per-actor GearTracker
  */
-
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { GearTracker } from './gear-tracker'
 

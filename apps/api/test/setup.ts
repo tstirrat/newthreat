@@ -3,7 +3,6 @@
  *
  * Common test utilities and mock factories.
  */
-
 import { vi } from 'vitest'
 
 // Mock WCL API responses

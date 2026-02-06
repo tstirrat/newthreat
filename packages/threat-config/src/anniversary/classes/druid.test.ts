@@ -1,13 +1,15 @@
 /**
  * Tests for Druid Threat Configuration
  */
+import { describe, expect, it } from 'vitest'
 
-import { describe, it, expect } from 'vitest'
 import type { ThreatContext } from '../../types'
-import { druidConfig, Spells, exclusiveAuras } from './druid'
+import { Spells, druidConfig, exclusiveAuras } from './druid'
 
 // Mock ThreatContext factory
-function createMockContext(overrides: Partial<ThreatContext> = {}): ThreatContext {
+function createMockContext(
+  overrides: Partial<ThreatContext> = {},
+): ThreatContext {
   return {
     event: { type: 'damage' } as ThreatContext['event'],
     amount: 100,

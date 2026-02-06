@@ -3,8 +3,8 @@
  *
  * Provides structured error responses and logging.
  */
-
 import type { Context, ErrorHandler } from 'hono'
+
 import type { Bindings, Variables } from '../types/bindings'
 
 export interface ApiError {
@@ -21,7 +21,7 @@ export class AppError extends Error {
     public readonly code: string,
     message: string,
     public readonly statusCode: number = 500,
-    public readonly details?: Record<string, unknown>
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message)
     this.name = 'AppError'
@@ -46,7 +46,7 @@ export function invalidReportCode(code: string): AppError {
   return new AppError(
     ErrorCodes.INVALID_REPORT_CODE,
     `Invalid report code format: ${code}`,
-    400
+    400,
   )
 }
 
@@ -54,7 +54,7 @@ export function invalidFightId(id: string): AppError {
   return new AppError(
     ErrorCodes.INVALID_FIGHT_ID,
     `Fight ID must be a number: ${id}`,
-    400
+    400,
   )
 }
 
@@ -62,7 +62,7 @@ export function reportNotFound(code: string): AppError {
   return new AppError(
     ErrorCodes.REPORT_NOT_FOUND,
     `Report not found: ${code}`,
-    404
+    404,
   )
 }
 
@@ -70,11 +70,14 @@ export function fightNotFound(reportCode: string, fightId: number): AppError {
   return new AppError(
     ErrorCodes.FIGHT_NOT_FOUND,
     `Fight ${fightId} not found in report ${reportCode}`,
-    404
+    404,
   )
 }
 
-export function wclApiError(message: string, details?: Record<string, unknown>): AppError {
+export function wclApiError(
+  message: string,
+  details?: Record<string, unknown>,
+): AppError {
   return new AppError(ErrorCodes.WCL_API_ERROR, message, 502, details)
 }
 
@@ -82,7 +85,7 @@ export function wclRateLimited(): AppError {
   return new AppError(
     ErrorCodes.WCL_RATE_LIMITED,
     'WCL API rate limit exceeded. Please try again later.',
-    429
+    429,
   )
 }
 
@@ -93,10 +96,10 @@ export function unauthorized(message = 'Unauthorized'): AppError {
 /**
  * Global error handler
  */
-export const errorHandler: ErrorHandler<{ Bindings: Bindings; Variables: Variables }> = (
-  err,
-  c
-) => {
+export const errorHandler: ErrorHandler<{
+  Bindings: Bindings
+  Variables: Variables
+}> = (err, c) => {
   const requestId = c.get('requestId') || 'unknown'
 
   // Log the error

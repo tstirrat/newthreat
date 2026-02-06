@@ -3,9 +3,8 @@
  *
  * Mages have talent-based threat reduction. Ice Block grants invulnerability.
  */
-
-import type { ClassThreatConfig } from '../../types'
 import { noThreat } from '../../shared/formulas'
+import type { ClassThreatConfig } from '../../types'
 
 // ============================================================================
 // Spell IDs

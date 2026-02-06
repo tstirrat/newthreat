@@ -3,8 +3,8 @@
  *
  * Validates API key from Authorization header.
  */
-
 import type { MiddlewareHandler } from 'hono'
+
 import type { Bindings, Variables } from '../types/bindings'
 import { unauthorized } from './error'
 
@@ -32,7 +32,9 @@ export const authMiddleware: MiddlewareHandler<{
   const [scheme, token] = authHeader.split(' ')
 
   if (scheme !== 'Bearer' || !token) {
-    throw unauthorized('Invalid Authorization header format. Expected: Bearer <api_key>')
+    throw unauthorized(
+      'Invalid Authorization header format. Expected: Bearer <api_key>',
+    )
   }
 
   // TODO: Validate the token against your authentication system

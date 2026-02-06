@@ -3,9 +3,8 @@
  *
  * Feign Death drops threat. Distracting Shot generates fixed threat.
  */
-
-import type { ClassThreatConfig } from '../../types'
 import { calculateThreat, modifyThreat } from '../../shared/formulas'
+import type { ClassThreatConfig } from '../../types'
 
 // ============================================================================
 // Spell IDs

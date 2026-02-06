@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+
+import type { ActorContext, ThreatContext } from '../types'
 import { hatefulStrike } from './naxx'
-import type { ThreatContext, ActorContext } from '../types'
 
 describe('Hateful Strike', () => {
   const PATCHWERK_ID = 16028
@@ -8,7 +9,7 @@ describe('Hateful Strike', () => {
 
   function createMockActorContext(
     topActors: Array<{ actorId: number; threat: number }>,
-    distances: Map<string, number>
+    distances: Map<string, number>,
   ): ActorContext {
     return {
       getPosition: () => ({ x: 0, y: 0 }),
@@ -65,9 +66,15 @@ describe('Hateful Strike', () => {
 
     if (result.special?.type === 'customThreat') {
       expect(result.special.modifications).toHaveLength(4)
-      expect(result.special.modifications.map(m => m.actorId)).toEqual([1, 2, 3, 4])
-      expect(result.special.modifications.every(m => m.enemyId === PATCHWERK_ID)).toBe(true)
-      expect(result.special.modifications.every(m => m.amount === 1000)).toBe(true)
+      expect(result.special.modifications.map((m) => m.actorId)).toEqual([
+        1, 2, 3, 4,
+      ])
+      expect(
+        result.special.modifications.every((m) => m.enemyId === PATCHWERK_ID),
+      ).toBe(true)
+      expect(result.special.modifications.every((m) => m.amount === 1000)).toBe(
+        true,
+      )
     }
   })
 
@@ -89,18 +96,18 @@ describe('Hateful Strike', () => {
 
     if (result.special?.type === 'customThreat') {
       expect(result.special.modifications).toHaveLength(2)
-      expect(result.special.modifications.map(m => m.actorId)).toEqual([1, 2])
+      expect(result.special.modifications.map((m) => m.actorId)).toEqual([1, 2])
     }
   })
 
   it('should filter out actors beyond melee range', () => {
     const topActors = [
       { actorId: 1, threat: 1000 }, // In range
-      { actorId: 2, threat: 900 },  // Out of range
-      { actorId: 3, threat: 800 },  // In range
-      { actorId: 4, threat: 700 },  // Out of range
-      { actorId: 5, threat: 600 },  // In range
-      { actorId: 6, threat: 500 },  // In range
+      { actorId: 2, threat: 900 }, // Out of range
+      { actorId: 3, threat: 800 }, // In range
+      { actorId: 4, threat: 700 }, // Out of range
+      { actorId: 5, threat: 600 }, // In range
+      { actorId: 6, threat: 500 }, // In range
     ]
 
     const distances = new Map([
@@ -120,7 +127,9 @@ describe('Hateful Strike', () => {
     if (result.special?.type === 'customThreat') {
       expect(result.special.modifications).toHaveLength(4)
       // Should be actors 1, 3, 5, 6 (in melee range, sorted by threat)
-      expect(result.special.modifications.map(m => m.actorId)).toEqual([1, 3, 5, 6])
+      expect(result.special.modifications.map((m) => m.actorId)).toEqual([
+        1, 3, 5, 6,
+      ])
     }
   })
 
@@ -145,7 +154,7 @@ describe('Hateful Strike', () => {
     if (result.special?.type === 'customThreat') {
       // Should only include actors 1 and 3 (with valid distances)
       expect(result.special.modifications).toHaveLength(2)
-      expect(result.special.modifications.map(m => m.actorId)).toEqual([1, 3])
+      expect(result.special.modifications.map((m) => m.actorId)).toEqual([1, 3])
     }
   })
 

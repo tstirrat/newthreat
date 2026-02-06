@@ -3,9 +3,8 @@
  *
  * Earth Shock has 2x threat. Tranquil Air Totem reduces party threat.
  */
-
-import type { ClassThreatConfig, ThreatContext } from '../../types'
 import { calculateThreat } from '../../shared/formulas'
+import type { ClassThreatConfig, ThreatContext } from '../../types'
 
 // ============================================================================
 // Spell IDs

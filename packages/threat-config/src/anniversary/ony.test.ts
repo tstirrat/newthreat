@@ -1,13 +1,15 @@
 /**
  * Onyxia Boss Abilities Tests
  */
+import { describe, expect, it } from 'vitest'
 
-import { describe, it, expect } from 'vitest'
 import type { ThreatContext } from '../types'
-import { knockAway, Spells } from './ony'
+import { Spells, knockAway } from './ony'
 
 // Mock ThreatContext factory
-function createMockContext(overrides: Partial<ThreatContext> = {}): ThreatContext {
+function createMockContext(
+  overrides: Partial<ThreatContext> = {},
+): ThreatContext {
   return {
     event: { type: 'cast' } as ThreatContext['event'],
     amount: 0,

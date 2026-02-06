@@ -1,12 +1,12 @@
 /**
  * Integration Tests for Reports API
  */
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import app from '../index'
+import mockReportData from '../../test/fixtures/wcl-responses/anniversary-report.json'
 import { mockFetch, restoreFetch } from '../../test/helpers/mock-fetch'
 import { createMockBindings } from '../../test/setup'
-import mockReportData from '../../test/fixtures/wcl-responses/anniversary-report.json'
+import app from '../index'
 
 // Extract the actual report object from the nested fixture
 const reportData = mockReportData.data.reportData.report
@@ -26,7 +26,7 @@ describe('Reports API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.status).toBe(200)
@@ -46,7 +46,7 @@ describe('Reports API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/!!!invalid!!!',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.status).toBe(400)
@@ -62,7 +62,7 @@ describe('Reports API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/NOTFOUND123',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       // WCL returns GraphQL error, which we translate to 502
@@ -76,7 +76,7 @@ describe('Reports API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.headers.get('Cache-Control')).toContain('immutable')
@@ -89,7 +89,7 @@ describe('Health endpoint', () => {
     const res = await app.request(
       'http://localhost/health',
       {},
-      createMockBindings()
+      createMockBindings(),
     )
 
     expect(res.status).toBe(200)

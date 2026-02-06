@@ -51,7 +51,7 @@ export class ThreatTracker {
    */
   getTopActorsByThreat(
     enemyId: number,
-    count: number
+    count: number,
   ): Array<{ actorId: number; threat: number }> {
     const actors: Array<{ actorId: number; threat: number }> = []
 

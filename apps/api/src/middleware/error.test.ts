@@ -1,23 +1,25 @@
 /**
  * Tests for Error Handling
  */
+import { describe, expect, it, vi } from 'vitest'
 
-import { describe, it, expect, vi } from 'vitest'
 import {
   AppError,
   ErrorCodes,
-  invalidReportCode,
-  invalidFightId,
-  reportNotFound,
   fightNotFound,
+  invalidFightId,
+  invalidReportCode,
+  reportNotFound,
+  unauthorized,
   wclApiError,
   wclRateLimited,
-  unauthorized,
 } from './error'
 
 describe('AppError', () => {
   it('creates error with all properties', () => {
-    const error = new AppError('TEST_CODE', 'Test message', 400, { key: 'value' })
+    const error = new AppError('TEST_CODE', 'Test message', 400, {
+      key: 'value',
+    })
 
     expect(error.code).toBe('TEST_CODE')
     expect(error.message).toBe('Test message')

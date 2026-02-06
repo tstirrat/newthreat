@@ -3,9 +3,8 @@
  *
  * Spell IDs and threat values are based on Classic/Anniversary Edition mechanics.
  */
-
-import type { ClassThreatConfig, ThreatContext, GearItem } from '../../types'
 import { calculateThreat, tauntTarget } from '../../shared/formulas'
+import type { ClassThreatConfig, GearItem, ThreatContext } from '../../types'
 
 // ============================================================================
 // Spell IDs
@@ -65,7 +64,11 @@ export const SetIds = {
 
 /** Exclusive aura sets - engine auto-removes others when one is applied */
 export const exclusiveAuras: Set<number>[] = [
-  new Set([Spells.DefensiveStance, Spells.BerserkerStance, Spells.BattleStance]),
+  new Set([
+    Spells.DefensiveStance,
+    Spells.BerserkerStance,
+    Spells.BattleStance,
+  ]),
 ]
 
 export const warriorConfig: ClassThreatConfig = {
@@ -156,7 +159,11 @@ export const warriorConfig: ClassThreatConfig = {
     [Spells.Thunderclap]: calculateThreat({ modifier: 1, bonus: 175 }),
 
     // Battle Shout: 70 threat split among enemies
-    [Spells.BattleShout]: calculateThreat({ modifier: 0, bonus: 70, split: true }),
+    [Spells.BattleShout]: calculateThreat({
+      modifier: 0,
+      bonus: 70,
+      split: true,
+    }),
 
     // Demo Shout: 56 threat per target hit
     [Spells.DemoShout]: calculateThreat({ modifier: 0, bonus: 56 }),

@@ -4,13 +4,16 @@
  * Verifies event dispatching to per-actor trackers, combatant info processing,
  * and gear implications coordination.
  */
+import type {
+  Actor,
+  ThreatConfig,
+  ThreatContext,
+} from '@wcl-threat/threat-config'
+import type { GearItem, WCLEvent } from '@wcl-threat/wcl-types'
+import { describe, expect, it } from 'vitest'
 
-import { describe, it, expect } from 'vitest'
-import type { WCLEvent, GearItem } from '@wcl-threat/wcl-types'
-import type { ThreatConfig, Actor, ThreatContext } from '@wcl-threat/threat-config'
-
-import { FightState } from './fight-state'
 import { createMockThreatConfig } from '../../test/helpers/config'
+import { FightState } from './fight-state'
 
 // ============================================================================
 // Test Helpers & Mock Config
@@ -54,7 +57,11 @@ const testConfig = createMockThreatConfig({
     warrior: {
       baseThreatFactor: 1.0,
       exclusiveAuras: [
-        new Set([TEST_SPELLS.DEFENSIVE_STANCE, TEST_SPELLS.BATTLE_STANCE, TEST_SPELLS.BERSERKER_STANCE]),
+        new Set([
+          TEST_SPELLS.DEFENSIVE_STANCE,
+          TEST_SPELLS.BATTLE_STANCE,
+          TEST_SPELLS.BERSERKER_STANCE,
+        ]),
       ],
       auraModifiers: {},
       abilities: {},
@@ -76,7 +83,11 @@ const testConfig = createMockThreatConfig({
     druid: {
       baseThreatFactor: 1.0,
       exclusiveAuras: [
-        new Set([TEST_SPELLS.BEAR_FORM, TEST_SPELLS.CAT_FORM, TEST_SPELLS.DIRE_BEAR_FORM]),
+        new Set([
+          TEST_SPELLS.BEAR_FORM,
+          TEST_SPELLS.CAT_FORM,
+          TEST_SPELLS.DIRE_BEAR_FORM,
+        ]),
       ],
       auraModifiers: {},
       abilities: {},
@@ -133,7 +144,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 1,
           targetIsFriendly: true,
-          ability: { guid: 71, name: 'Defensive Stance', type: 1, abilityIcon: '' },
+          ability: {
+            guid: 71,
+            name: 'Defensive Stance',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -153,7 +169,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 1,
           targetIsFriendly: true,
-          ability: { guid: 71, name: 'Defensive Stance', type: 1, abilityIcon: '' },
+          ability: {
+            guid: 71,
+            name: 'Defensive Stance',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -166,7 +187,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 1,
           targetIsFriendly: true,
-          ability: { guid: 71, name: 'Defensive Stance', type: 1, abilityIcon: '' },
+          ability: {
+            guid: 71,
+            name: 'Defensive Stance',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -185,7 +211,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 25,
           targetIsFriendly: false,
-          ability: { guid: 12345, name: 'Sunder Armor', type: 1, abilityIcon: '' },
+          ability: {
+            guid: 12345,
+            name: 'Sunder Armor',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -204,7 +235,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 25,
           targetIsFriendly: false,
-          ability: { guid: 12345, name: 'Sunder Armor', type: 1, abilityIcon: '' },
+          ability: {
+            guid: 12345,
+            name: 'Sunder Armor',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -217,7 +253,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 25,
           targetIsFriendly: false,
-          ability: { guid: 12345, name: 'Sunder Armor', type: 1, abilityIcon: '' },
+          ability: {
+            guid: 12345,
+            name: 'Sunder Armor',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -266,8 +307,20 @@ describe('FightState', () => {
           targetID: 1,
           targetIsFriendly: true,
           auras: [
-            { source: 1, ability: 71, stacks: 1, icon: '', name: 'Defensive Stance' },
-            { source: 2, ability: 25780, stacks: 1, icon: '', name: 'Blessing of Might' },
+            {
+              source: 1,
+              ability: 71,
+              stacks: 1,
+              icon: '',
+              name: 'Defensive Stance',
+            },
+            {
+              source: 2,
+              ability: 25780,
+              stacks: 1,
+              icon: '',
+              name: 'Blessing of Might',
+            },
           ],
         } as WCLEvent,
         testConfig,
@@ -337,10 +390,7 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 1,
           targetIsFriendly: true,
-          gear: [
-            { id: 19019, setID: 498 },
-            { id: 18814 },
-          ],
+          gear: [{ id: 19019, setID: 498 }, { id: 18814 }],
         } as WCLEvent,
         config,
       )
@@ -415,7 +465,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 1,
           targetIsFriendly: true,
-          ability: { guid: 71, name: 'Defensive Stance', type: 1, abilityIcon: '' },
+          ability: {
+            guid: 71,
+            name: 'Defensive Stance',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -440,7 +495,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 1,
           targetIsFriendly: true,
-          ability: { guid: TEST_SPELLS.BLESSING_OF_MIGHT, name: 'Blessing of Might', type: 1, abilityIcon: '' },
+          ability: {
+            guid: TEST_SPELLS.BLESSING_OF_MIGHT,
+            name: 'Blessing of Might',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -456,13 +516,20 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 1,
           targetIsFriendly: true,
-          ability: { guid: TEST_SPELLS.BLESSING_OF_SALVATION, name: 'Blessing of Salvation', type: 1, abilityIcon: '' },
+          ability: {
+            guid: TEST_SPELLS.BLESSING_OF_SALVATION,
+            name: 'Blessing of Salvation',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
 
       expect(state.getAuras(1).has(TEST_SPELLS.BLESSING_OF_MIGHT)).toBe(false)
-      expect(state.getAuras(1).has(TEST_SPELLS.BLESSING_OF_SALVATION)).toBe(true)
+      expect(state.getAuras(1).has(TEST_SPELLS.BLESSING_OF_SALVATION)).toBe(
+        true,
+      )
     })
 
     it('applies druid form exclusivity to druids', () => {
@@ -483,7 +550,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 3,
           targetIsFriendly: true,
-          ability: { guid: TEST_SPELLS.BEAR_FORM, name: 'Bear Form', type: 1, abilityIcon: '' },
+          ability: {
+            guid: TEST_SPELLS.BEAR_FORM,
+            name: 'Bear Form',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )
@@ -499,7 +571,12 @@ describe('FightState', () => {
           sourceIsFriendly: true,
           targetID: 3,
           targetIsFriendly: true,
-          ability: { guid: TEST_SPELLS.CAT_FORM, name: 'Cat Form', type: 1, abilityIcon: '' },
+          ability: {
+            guid: TEST_SPELLS.CAT_FORM,
+            name: 'Cat Form',
+            type: 1,
+            abilityIcon: '',
+          },
         } as WCLEvent,
         testConfig,
       )

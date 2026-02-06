@@ -3,9 +3,13 @@
  *
  * Spell IDs and threat values are based on Classic/Anniversary Edition mechanics.
  */
-
+import {
+  calculateThreat,
+  noThreat,
+  tauntTarget,
+  threatOnDebuff,
+} from '../../shared/formulas'
 import type { ClassThreatConfig, ThreatContext } from '../../types'
-import { calculateThreat, tauntTarget, threatOnDebuff, noThreat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -95,7 +99,12 @@ const Mods = {
 
 /** Exclusive aura sets - engine auto-removes others when one is applied */
 export const exclusiveAuras: Set<number>[] = [
-  new Set([Spells.BearForm, Spells.DireBearForm, Spells.CatForm, Spells.MoonkinForm]),
+  new Set([
+    Spells.BearForm,
+    Spells.DireBearForm,
+    Spells.CatForm,
+    Spells.MoonkinForm,
+  ]),
 ]
 
 export const druidConfig: ClassThreatConfig = {

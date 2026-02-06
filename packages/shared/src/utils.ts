@@ -6,7 +6,9 @@
  * Generates a unique request ID for logging/tracing
  */
 export function generateRequestId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 9)}`
+  return `${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .substring(2, 9)}`
 }
 
 /**
@@ -41,7 +43,7 @@ export function formatDuration(ms: number): string {
  */
 export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null
 

@@ -1,12 +1,12 @@
 /**
  * Integration Tests for Fights API
  */
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import app from '../index'
+import mockReportData from '../../test/fixtures/wcl-responses/anniversary-report.json'
 import { mockFetch, restoreFetch } from '../../test/helpers/mock-fetch'
 import { createMockBindings } from '../../test/setup'
-import mockReportData from '../../test/fixtures/wcl-responses/anniversary-report.json'
+import app from '../index'
 
 // Extract the actual report object from the fixture
 const reportData = mockReportData.data.reportData.report
@@ -25,7 +25,7 @@ describe('Fights API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.status).toBe(200)
@@ -42,7 +42,7 @@ describe('Fights API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/abc',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.status).toBe(400)
@@ -55,7 +55,7 @@ describe('Fights API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/999',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       expect(res.status).toBe(404)
@@ -68,20 +68,22 @@ describe('Fights API', () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       const data = await res.json()
       expect(data.actors).toBeDefined()
       expect(data.enemies).toBeDefined()
-      expect(data.enemies.some((e: { name: string }) => e.name === 'Patchwerk')).toBe(true)
+      expect(
+        data.enemies.some((e: { name: string }) => e.name === 'Patchwerk'),
+      ).toBe(true)
     })
 
     it('returns wipe fight correctly', async () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/3',
         {},
-        createMockBindings()
+        createMockBindings(),
       )
 
       const data = await res.json()

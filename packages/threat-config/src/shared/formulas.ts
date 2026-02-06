@@ -4,7 +4,6 @@
  * These helper functions create threat formula functions that can be used
  * in class configurations.
  */
-
 import type { ThreatContext, ThreatFormulaResult } from '../types'
 
 export type FormulaFn = (ctx: ThreatContext) => ThreatFormulaResult
@@ -26,7 +25,7 @@ export interface CalculateThreatOptions {
 /**
  * Consolidated threat formula: (amount × modifier) + bonus
  * Replaces flat(), modAmount(), modAmountFlat(), defaultFormula(), threatOnBuff(), modHeal()
- * 
+ *
  * @example
  * calculateThreat() // amt (default damage)
  * calculateThreat({ modifier: 2 }) // amt * 2
@@ -34,12 +33,14 @@ export interface CalculateThreatOptions {
  * calculateThreat({ modifier: 2, bonus: 150 }) // (amt * 2) + 150
  * calculateThreat({ modifier: 0.5, split: true }) // amt * 0.5 (split among enemies)
  */
-export function calculateThreat(options: CalculateThreatOptions = {}): FormulaFn {
+export function calculateThreat(
+  options: CalculateThreatOptions = {},
+): FormulaFn {
   const { modifier = 1, bonus = 0, split = false } = options
 
   return (ctx) => {
     const value = ctx.amount * modifier + bonus
-    
+
     // Generate formula string
     let formula: string
     if (modifier === 0 && bonus !== 0) {
@@ -70,8 +71,6 @@ export function calculateThreat(options: CalculateThreatOptions = {}): FormulaFn
   }
 }
 
-
-
 export interface TauntOptions {
   /** Add damage amount to threat (e.g., Mocking Blow) */
   addDamage?: boolean
@@ -84,7 +83,7 @@ export interface TauntOptions {
 export function tauntTarget(
   bonusThreat: number,
   fixateDuration: number,
-  options?: TauntOptions
+  options?: TauntOptions,
 ): FormulaFn {
   return (ctx) => {
     const bonus = options?.addDamage ? ctx.amount + bonusThreat : bonusThreat
@@ -157,7 +156,7 @@ export function threatOnDebuff(value: number): FormulaFn {
  */
 export function threatOnBuff(
   value: number,
-  options?: FormulaOptions
+  options?: FormulaOptions,
 ): FormulaFn {
   return () => ({
     formula: `${value}`,
@@ -191,4 +190,3 @@ export function castCanMiss(value: number): FormulaFn {
     splitAmongEnemies: false,
   })
 }
-

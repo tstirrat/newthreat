@@ -3,9 +3,8 @@
  *
  * Spell IDs and threat values are based on Classic/Anniversary Edition mechanics.
  */
-
-import type { ClassThreatConfig, ThreatContext, SpellSchool } from '../../types'
 import { calculateThreat } from '../../shared/formulas'
+import type { ClassThreatConfig, SpellSchool, ThreatContext } from '../../types'
 
 // ============================================================================
 // Spell IDs
@@ -113,14 +112,46 @@ export const paladinConfig: ClassThreatConfig = {
     [Spells.Exorcism]: calculateThreat({ modifier: 1 }),
 
     // Blessings: 60 threat split among enemies
-    [Spells.BlessingOfKings]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
-    [Spells.BlessingOfSalvation]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
-    [Spells.BlessingOfMight]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
-    [Spells.BlessingOfWisdom]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
-    [Spells.BlessingOfSanctuary]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
-    [Spells.BlessingOfLight]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
-    [Spells.GreaterBlessingOfKings]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
-    [Spells.GreaterBlessingOfSalvation]: calculateThreat({ modifier: 0, bonus: 60, split: true }),
+    [Spells.BlessingOfKings]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
+    [Spells.BlessingOfSalvation]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
+    [Spells.BlessingOfMight]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
+    [Spells.BlessingOfWisdom]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
+    [Spells.BlessingOfSanctuary]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
+    [Spells.BlessingOfLight]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
+    [Spells.GreaterBlessingOfKings]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
+    [Spells.GreaterBlessingOfSalvation]: calculateThreat({
+      modifier: 0,
+      bonus: 60,
+      split: true,
+    }),
   },
 
   invulnerabilityBuffs: new Set([

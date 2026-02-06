@@ -5,7 +5,6 @@
  * events are received. Gear data is used to detect gear-based threat modifiers
  * via the gearImplications config hook.
  */
-
 import type { GearItem } from '@wcl-threat/wcl-types'
 
 /** Track equipped gear for a single actor */
