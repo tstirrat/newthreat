@@ -242,7 +242,7 @@ export interface ThreatCalculation {
 
 export interface ThreatResult {
   /** Threat applied to each enemy */
-  values: TargetThreatValue[]
+  changes?: TargetThreatValue[]
   /** Calculation breakdown for debugging/tooltips */
   calculation: ThreatCalculation
 }

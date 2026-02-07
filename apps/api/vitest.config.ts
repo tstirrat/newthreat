@@ -6,6 +6,7 @@ export default defineWorkersConfig({
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     poolOptions: {
       workers: {
+        singleWorker: true,
         wrangler: { configPath: './wrangler.toml' },
         miniflare: {
           kvNamespaces: ['WCL_CACHE', 'AUGMENTED_CACHE'],

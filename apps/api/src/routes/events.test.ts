@@ -117,7 +117,7 @@ describe('Events API', () => {
       expect(damageEvent).toBeDefined()
       expect(damageEvent!.threat).toBeDefined()
       expect(damageEvent!.threat.calculation).toBeDefined()
-      expect(damageEvent!.threat.values).toBeDefined()
+      expect(damageEvent!.threat.changes).toBeDefined()
     })
 
     it('includes threat data for heal events', async () => {
@@ -186,12 +186,12 @@ describe('Events API', () => {
 
       expect(healEvent).toBeDefined()
       expect(healEvent!.threat.calculation.isSplit).toBe(true)
-      expect(healEvent!.threat.values).toBeDefined()
+      expect(healEvent!.threat.changes).toBeDefined()
 
       // Fight 1 (Patchwerk) should only have threat split to Patchwerk (id 25),
       // NOT Grobbulus (id 26) which is in fight 2
-      expect(healEvent!.threat.values).toHaveLength(1)
-      expect(healEvent!.threat.values[0]?.id).toBe(25)
+      expect(healEvent!.threat.changes).toHaveLength(1)
+      expect(healEvent!.threat.changes[0]?.id).toBe(25)
     })
   })
 })
