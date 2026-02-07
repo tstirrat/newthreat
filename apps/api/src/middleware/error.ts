@@ -33,6 +33,7 @@ export const ErrorCodes = {
   INVALID_REPORT_CODE: 'INVALID_REPORT_CODE',
   INVALID_FIGHT_ID: 'INVALID_FIGHT_ID',
   INVALID_GAME_VERSION: 'INVALID_GAME_VERSION',
+  INVALID_CONFIG_VERSION: 'INVALID_CONFIG_VERSION',
   REPORT_NOT_FOUND: 'REPORT_NOT_FOUND',
   FIGHT_NOT_FOUND: 'FIGHT_NOT_FOUND',
   WCL_API_ERROR: 'WCL_API_ERROR',
@@ -55,6 +56,21 @@ export function invalidFightId(id: string): AppError {
     ErrorCodes.INVALID_FIGHT_ID,
     `Fight ID must be a number: ${id}`,
     400,
+  )
+}
+
+export function invalidConfigVersion(
+  requestedVersion: string,
+  supportedVersion: string,
+): AppError {
+  return new AppError(
+    ErrorCodes.INVALID_CONFIG_VERSION,
+    `Unsupported configVersion "${requestedVersion}". Supported version is "${supportedVersion}"`,
+    400,
+    {
+      requestedVersion,
+      supportedVersion,
+    },
   )
 }
 

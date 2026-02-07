@@ -6,12 +6,13 @@
 import type {
   ReportActor as WCLReportActor,
   ReportFight as WCLReportFight,
-  Zone as WCLZone,
 } from '@wcl-threat/wcl-types'
 import { Hono } from 'hono'
 
 import { invalidReportCode, reportNotFound } from '../middleware/error'
 import { WCLClient } from '../services/wcl'
+import { toReportActorSummary, toReportFightSummary } from '../types/api-transformers'
+import type { ReportResponse } from '../types/api'
 import type { Bindings, Variables } from '../types/bindings'
 import { fightsRoutes } from './fights'
 
@@ -23,17 +24,7 @@ export const reportRoutes = new Hono<{
   Variables: Variables
 }>()
 
-export interface ReportResponse {
-  code: string
-  title: string
-  owner: string
-  startTime: number
-  endTime: number
-  gameVersion: number
-  zone: WCLZone
-  fights: WCLReportFight[]
-  actors: WCLReportActor[]
-}
+export type { ReportResponse } from '../types/api'
 
 /**
  * GET /reports/:code
@@ -71,8 +62,12 @@ reportRoutes.get('/:code', async (c) => {
       endTime: report.endTime,
       gameVersion: masterData.gameVersion,
       zone: report.zone,
-      fights: report.fights,
-      actors: masterData.actors,
+      fights: report.fights.map((fight: WCLReportFight) =>
+        toReportFightSummary(fight),
+      ),
+      actors: masterData.actors.map((actor: WCLReportActor) =>
+        toReportActorSummary(actor),
+      ),
     },
     200,
     {

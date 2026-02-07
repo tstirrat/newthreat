@@ -4,7 +4,13 @@
  * These types define the structure of threat calculation configurations
  * for different game versions.
  */
-import type { GearItem, WCLEvent } from '@wcl-threat/wcl-types'
+import type {
+  EventType,
+  GearItem,
+  HitType,
+  ResourceType,
+  WCLEvent,
+} from '@wcl-threat/wcl-types'
 
 export type { GearItem }
 
@@ -298,7 +304,7 @@ export interface ThreatResult {
 export interface AugmentedEvent {
   /** Original WCL event data */
   timestamp: number
-  type: string
+  type: EventType
   sourceID: number
   sourceIsFriendly: boolean
   targetID: number
@@ -314,8 +320,13 @@ export interface AugmentedEvent {
   mitigated?: number
   overkill?: number
   overheal?: number
-  hitType?: string
+  hitType?: HitType
   tick?: boolean
+  resourceChange?: number
+  resourceChangeType?: ResourceType
+  waste?: number
+  stacks?: number
+  killerID?: number
 
   /** Augmented threat data */
   threat: ThreatResult

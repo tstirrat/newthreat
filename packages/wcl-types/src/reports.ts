@@ -11,10 +11,11 @@ export interface Zone {
 export interface ReportFightNPC {
   id: number
   gameID: number
-  name: string
+  /** Present when requested in GraphQL selection set */
+  name?: string
   instanceCount: number // Multiple of same enemy
   groupCount: number
-  petOwner?: number
+  petOwner?: number | null
 }
 
 export interface PhaseMetadata {
@@ -69,11 +70,13 @@ export type PlayerClass =
 export type ReportActor = {
   /** report id */
   id: number
-  /** Game id */
-  gameID: number
-  icon: string
+  /** Game id. Optional because some queries do not request it. */
+  gameID?: number
+  /** Optional because some queries do not request it. */
+  icon?: string
   name: string
-  server: string
+  /** Optional because some queries do not request it. */
+  server?: string
 } & (ReportActorPlayer | ReportActorNPC | ReportActorPet)
 
 export interface ReportActorNPC {

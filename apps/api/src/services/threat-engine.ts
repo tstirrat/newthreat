@@ -340,6 +340,21 @@ function buildAugmentedEvent(
   if ('tick' in event) {
     base.tick = event.tick
   }
+  if ('resourceChange' in event) {
+    base.resourceChange = event.resourceChange
+  }
+  if ('resourceChangeType' in event) {
+    base.resourceChangeType = event.resourceChangeType
+  }
+  if ('waste' in event) {
+    base.waste = event.waste
+  }
+  if ('stacks' in event) {
+    base.stacks = event.stacks
+  }
+  if ('killerID' in event) {
+    base.killerID = event.killerID
+  }
 
   return base
 }

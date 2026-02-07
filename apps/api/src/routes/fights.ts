@@ -13,6 +13,8 @@ import {
   reportNotFound,
 } from '../middleware/error'
 import { WCLClient } from '../services/wcl'
+import { toReportActorSummary } from '../types/api-transformers'
+import type { FightsResponse } from '../types/api'
 import type { Bindings, Variables } from '../types/bindings'
 import { eventsRoutes } from './events'
 
@@ -21,17 +23,7 @@ export const fightsRoutes = new Hono<{
   Variables: Variables
 }>()
 
-export interface FightsResponse {
-  id: number
-  reportCode: string
-  name: string
-  startTime: number
-  endTime: number
-  kill: boolean
-  difficulty: number | null
-  enemies: ReportActor[]
-  actors: ReportActor[]
-}
+export type { FightsResponse } from '../types/api'
 
 /**
  * GET /reports/:code/fights/:id
@@ -77,11 +69,13 @@ fightsRoutes.get('/:id', async (c) => {
     .map((id) => reportActors.get(id))
     .filter(exists)
     .concat(petActors)
+    .map((actor: ReportActor) => toReportActorSummary(actor))
 
   // Build enemies from fight-level enemyNPCs + enemyPets
   const enemies = [...(fight.enemyNPCs ?? []), ...(fight.enemyPets ?? [])]
     .map((npc) => reportActors.get(npc.id))
     .filter(exists)
+    .map((enemy: ReportActor) => toReportActorSummary(enemy))
 
   const cacheControl =
     c.env.ENVIRONMENT === 'development'

@@ -1,0 +1,80 @@
+/**
+ * API Contract Types
+ *
+ * Frontend-facing response contracts for the public HTTP API.
+ */
+import type { AugmentedEvent } from '@wcl-threat/threat-config'
+import type { PlayerClass, Zone } from '@wcl-threat/wcl-types'
+
+export type ReportActorType = 'Player' | 'NPC' | 'Pet'
+export type ReportActorSubType = PlayerClass | 'Boss' | 'NPC'
+
+export interface ReportActorSummary {
+  id: number
+  name: string
+  type: ReportActorType
+  subType?: ReportActorSubType
+  petOwner?: number | null
+}
+
+export interface ReportFightParticipant {
+  id: number
+  gameID: number
+  name?: string
+  instanceCount: number
+  groupCount: number
+  petOwner: number | null
+}
+
+export interface ReportFightSummary {
+  id: number
+  name: string
+  startTime: number
+  endTime: number
+  kill: boolean
+  difficulty: number | null
+  bossPercentage: number | null
+  fightPercentage: number | null
+  enemyNPCs: ReportFightParticipant[]
+  enemyPets: ReportFightParticipant[]
+  friendlyPlayers: number[]
+  friendlyPets: ReportFightParticipant[]
+}
+
+export interface ReportResponse {
+  code: string
+  title: string
+  owner: string
+  startTime: number
+  endTime: number
+  gameVersion: number
+  zone: Zone
+  fights: ReportFightSummary[]
+  actors: ReportActorSummary[]
+}
+
+export interface FightsResponse {
+  id: number
+  reportCode: string
+  name: string
+  startTime: number
+  endTime: number
+  kill: boolean
+  difficulty: number | null
+  enemies: ReportActorSummary[]
+  actors: ReportActorSummary[]
+}
+
+export interface AugmentedEventsResponse {
+  reportCode: string
+  fightId: number
+  fightName: string
+  gameVersion: number
+  configVersion: string
+  events: AugmentedEvent[]
+  summary: {
+    totalEvents: number
+    eventCounts: Record<string, number>
+    duration: number
+  }
+}

@@ -172,6 +172,19 @@ describe('Events API', () => {
       expect(data.error.code).toBe('FIGHT_NOT_FOUND')
     })
 
+    it('returns 400 for unsupported config version', async () => {
+      const res = await app.request(
+        'http://localhost/v1/reports/ABC123xyz/fights/1/events?configVersion=not-a-real-version',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(400)
+
+      const data: ApiError = await res.json()
+      expect(data.error.code).toBe('INVALID_CONFIG_VERSION')
+    })
+
     it('only splits heal threat among enemies in the current fight', async () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',

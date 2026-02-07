@@ -5,7 +5,6 @@
  */
 import type {
   Actor,
-  AugmentedEvent,
   Enemy,
   WowClass,
 } from '@wcl-threat/threat-config'
@@ -15,12 +14,14 @@ import { Hono } from 'hono'
 
 import {
   fightNotFound,
+  invalidConfigVersion,
   invalidFightId,
   reportNotFound,
 } from '../middleware/error'
 import { CacheKeys, createCache } from '../services/cache'
 import { processEvents } from '../services/threat-engine'
 import { WCLClient } from '../services/wcl'
+import type { AugmentedEventsResponse } from '../types/api'
 import type { Bindings, Variables } from '../types/bindings'
 
 export const eventsRoutes = new Hono<{
@@ -30,7 +31,7 @@ export const eventsRoutes = new Hono<{
 
 /**
  * GET /reports/:code/fights/:id/events
- * Returns all events with threat calculations
+ * Returns threat-augmented events for supported combat event types
  */
 eventsRoutes.get('/', async (c) => {
   const code = c.req.param('code')!
@@ -59,7 +60,10 @@ eventsRoutes.get('/', async (c) => {
 
   const gameVersion = report.masterData.gameVersion
   const config = getConfig(gameVersion)
-  const configVersion = configVersionParam ?? config.version
+  if (configVersionParam && configVersionParam !== config.version) {
+    throw invalidConfigVersion(configVersionParam, config.version)
+  }
+  const configVersion = config.version
 
   // Check augmented cache
   const augmentedCache = createCache(c.env, 'augmented')
@@ -179,16 +183,4 @@ eventsRoutes.get('/', async (c) => {
   })
 })
 
-export interface AugmentedEventsResponse {
-  reportCode: string
-  fightId: number
-  fightName: string
-  gameVersion: number
-  configVersion: string
-  events: AugmentedEvent[]
-  summary: {
-    totalEvents: number
-    eventCounts: Record<string, number>
-    duration: number
-  }
-}
+export type { AugmentedEventsResponse } from '../types/api'
