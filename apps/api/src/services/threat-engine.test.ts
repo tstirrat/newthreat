@@ -204,6 +204,115 @@ describe('processEvents', () => {
       expect(result.eventCounts.applybuff).toBe(1)
     })
   })
+
+  describe('death and alive state interactions', () => {
+    it('excludes dead enemies from split threat', () => {
+      const actorMap = new Map<number, Actor>([[priestActor.id, priestActor]])
+
+      const deathEvent: WCLEvent = {
+        timestamp: 1500,
+        type: 'death',
+        sourceID: priestActor.id,
+        sourceIsFriendly: true,
+        targetID: addEnemy.id,
+        targetIsFriendly: false,
+      }
+
+      const events: WCLEvent[] = [
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: priestActor.id,
+          targetID: priestActor.id,
+          amount: 1000,
+        }),
+        deathEvent,
+        createHealEvent({
+          timestamp: 2000,
+          sourceID: priestActor.id,
+          targetID: priestActor.id,
+          amount: 1000,
+        }),
+      ]
+
+      const result = processEvents({
+        rawEvents: events,
+        actorMap,
+        enemies,
+        config: mockConfig,
+      })
+
+      const firstHeal = result.augmentedEvents[0]
+      expect(firstHeal?.threat.changes).toHaveLength(2)
+
+      const secondHeal = result.augmentedEvents[2]
+      expect(secondHeal?.threat.changes).toHaveLength(1)
+      expect(secondHeal?.threat.changes?.[0]).toMatchObject({
+        sourceId: priestActor.id,
+        targetId: bossEnemy.id,
+        operator: 'add',
+        amount: 500,
+      })
+    })
+
+    it('wipes player threat on death using set operations to zero', () => {
+      const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+      const deathEvent: WCLEvent = {
+        timestamp: 3000,
+        type: 'death',
+        sourceID: bossEnemy.id,
+        sourceIsFriendly: false,
+        targetID: warriorActor.id,
+        targetIsFriendly: true,
+      }
+
+      const events: WCLEvent[] = [
+        createDamageEvent({
+          timestamp: 1000,
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          amount: 400,
+        }),
+        createDamageEvent({
+          timestamp: 2000,
+          sourceID: warriorActor.id,
+          targetID: addEnemy.id,
+          amount: 200,
+        }),
+        deathEvent,
+      ]
+
+      const result = processEvents({
+        rawEvents: events,
+        actorMap,
+        enemies,
+        config: mockConfig,
+      })
+
+      const deathAugmented = result.augmentedEvents[2]
+      const deathChanges = deathAugmented?.threat.changes ?? []
+
+      expect(deathChanges).toHaveLength(2)
+      expect(deathChanges).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: warriorActor.id,
+            targetId: bossEnemy.id,
+            operator: 'set',
+            amount: 0,
+            total: 0,
+          }),
+          expect.objectContaining({
+            sourceId: warriorActor.id,
+            targetId: addEnemy.id,
+            operator: 'set',
+            amount: 0,
+            total: 0,
+          }),
+        ]),
+      )
+    })
+  })
 })
 
 // ============================================================================

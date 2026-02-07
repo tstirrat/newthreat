@@ -59,6 +59,11 @@ function createMisdirectionHandler(
       ctx.uninstall()
     }
 
+    // Don't redirect to dead targets, but still consume a charge
+    if (!ctx.actors.isActorAlive(targetId)) {
+      return { action: 'passthrough' }
+    }
+
     // Redirect threat to the target
     return {
       action: 'augment',

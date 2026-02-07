@@ -14,6 +14,7 @@ const mockActorContext: ActorContext = {
   getActorsInRange: () => [],
   getThreat: () => 0,
   getTopActorsByThreat: () => [],
+  isActorAlive: () => true,
 }
 
 describe('EffectTracker', () => {

@@ -1,10 +1,9 @@
 /**
  * Tests for Hunter Threat Configuration
  */
-import type { WCLEvent } from '@wcl-threat/wcl-types'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ThreatContext } from '../../types'
+import type { EffectHandlerContext, ThreatContext } from '../../types'
 import { Spells, hunterConfig } from './hunter'
 
 // Mock ThreatContext factory
@@ -29,6 +28,7 @@ function createMockContext(
       getActorsInRange: () => [],
       getThreat: () => 0,
       getTopActorsByThreat: () => [],
+      isActorAlive: () => true,
     },
     ...overrides,
   }
@@ -85,7 +85,7 @@ describe('Hunter Config', () => {
         }
 
         const handler = result.special.handler
-        const mockContext = {
+        const mockContext: EffectHandlerContext = {
           timestamp: 2000,
           installedAt: 1000,
           actors: ctx.actors,
@@ -94,7 +94,10 @@ describe('Hunter Config', () => {
 
         // Handler should pass through heal events
         const healEvent = { type: 'heal', sourceID: 1, targetID: 2 }
-        const healResult = handler(healEvent as any, mockContext as any)
+        const healResult = handler(
+          healEvent as ThreatContext['event'],
+          mockContext,
+        )
         expect(healResult).toEqual({ action: 'passthrough' })
       })
 
@@ -116,7 +119,7 @@ describe('Hunter Config', () => {
         }
 
         const handler = result.special.handler
-        const mockContext = {
+        const mockContext: EffectHandlerContext = {
           timestamp: 2000,
           installedAt: 1000,
           actors: ctx.actors,
@@ -125,11 +128,99 @@ describe('Hunter Config', () => {
 
         // Handler should redirect damage from hunter (ID 1) to target ally (ID 10)
         const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
-        const damageResult = handler(damageEvent as any, mockContext as any)
+        const damageResult = handler(
+          damageEvent as ThreatContext['event'],
+          mockContext,
+        )
         expect(damageResult).toEqual({
           action: 'augment',
           threatRecipientOverride: targetAllyId,
         })
+      })
+
+      it('does not redirect when target ally is dead', () => {
+        const formula = hunterConfig.abilities[Spells.Misdirection]
+        const targetAllyId = 10
+
+        const ctx = createMockContext({
+          event: {
+            type: 'cast',
+            sourceID: 1,
+            targetID: targetAllyId,
+          } as ThreatContext['event'],
+          actors: {
+            getPosition: () => null,
+            getDistance: () => null,
+            getActorsInRange: () => [],
+            getThreat: () => 0,
+            getTopActorsByThreat: () => [],
+            isActorAlive: (actorId: number) => actorId !== targetAllyId,
+          },
+        })
+
+        const result = formula!(ctx)
+        if (result.special?.type !== 'installHandler') {
+          throw new Error('Expected installHandler special type')
+        }
+
+        const handler = result.special.handler
+        const mockContext: EffectHandlerContext = {
+          timestamp: 2000,
+          installedAt: 1000,
+          actors: ctx.actors,
+          uninstall: vi.fn(),
+        }
+
+        const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
+        const damageResult = handler(
+          damageEvent as ThreatContext['event'],
+          mockContext,
+        )
+        expect(damageResult).toEqual({ action: 'passthrough' })
+      })
+
+      it('consumes charges even when target ally is dead', () => {
+        const formula = hunterConfig.abilities[Spells.Misdirection]
+        const targetAllyId = 10
+
+        const ctx = createMockContext({
+          event: {
+            type: 'cast',
+            sourceID: 1,
+            targetID: targetAllyId,
+          } as ThreatContext['event'],
+          actors: {
+            getPosition: () => null,
+            getDistance: () => null,
+            getActorsInRange: () => [],
+            getThreat: () => 0,
+            getTopActorsByThreat: () => [],
+            isActorAlive: () => false,
+          },
+        })
+
+        const result = formula!(ctx)
+        if (result.special?.type !== 'installHandler') {
+          throw new Error('Expected installHandler special type')
+        }
+
+        const handler = result.special.handler
+        const uninstallMock = vi.fn()
+        const mockContext: EffectHandlerContext = {
+          timestamp: 2000,
+          installedAt: 1000,
+          actors: ctx.actors,
+          uninstall: uninstallMock,
+        }
+
+        const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
+
+        handler(damageEvent as ThreatContext['event'], mockContext)
+        handler(damageEvent as ThreatContext['event'], mockContext)
+        expect(uninstallMock).not.toHaveBeenCalled()
+
+        handler(damageEvent as ThreatContext['event'], mockContext)
+        expect(uninstallMock).toHaveBeenCalledTimes(1)
       })
 
       it('handler does not redirect damage from other sources', () => {
@@ -152,7 +243,7 @@ describe('Hunter Config', () => {
         }
 
         const handler = result.special.handler
-        const mockContext = {
+        const mockContext: EffectHandlerContext = {
           timestamp: 2000,
           installedAt: 1000,
           actors: ctx.actors,
@@ -165,7 +256,10 @@ describe('Hunter Config', () => {
           sourceID: otherSourceId,
           targetID: 2,
         }
-        const result2 = handler(otherSourceDamage as any, mockContext as any)
+        const result2 = handler(
+          otherSourceDamage as ThreatContext['event'],
+          mockContext,
+        )
         expect(result2).toEqual({ action: 'passthrough' })
         expect(mockContext.uninstall).not.toHaveBeenCalled()
       })
@@ -190,7 +284,7 @@ describe('Hunter Config', () => {
 
         const handler = result.special.handler
         const uninstallMock = vi.fn()
-        const mockContext = {
+        const mockContext: EffectHandlerContext = {
           timestamp: 2000,
           installedAt: 1000,
           actors: ctx.actors,
@@ -209,27 +303,27 @@ describe('Hunter Config', () => {
         }
 
         // Other source damage (1st event from another source)
-        handler(otherDamage as any, mockContext as any)
+        handler(otherDamage as ThreatContext['event'], mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Hunter damage (1st event from hunter)
-        handler(hunterDamage as any, mockContext as any)
+        handler(hunterDamage as ThreatContext['event'], mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Other source damage (2nd event from another source)
-        handler(otherDamage as any, mockContext as any)
+        handler(otherDamage as ThreatContext['event'], mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Hunter damage (2nd event from hunter)
-        handler(hunterDamage as any, mockContext as any)
+        handler(hunterDamage as ThreatContext['event'], mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Other source damage (3rd event from another source)
-        handler(otherDamage as any, mockContext as any)
+        handler(otherDamage as ThreatContext['event'], mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Hunter damage (3rd event from hunter - should uninstall)
-        handler(hunterDamage as any, mockContext as any)
+        handler(hunterDamage as ThreatContext['event'], mockContext)
         expect(uninstallMock).toHaveBeenCalled()
       })
 
@@ -250,7 +344,7 @@ describe('Hunter Config', () => {
 
         const handler = result.special.handler
         const uninstallMock = vi.fn()
-        const mockContext = {
+        const mockContext: EffectHandlerContext = {
           timestamp: 2000,
           installedAt: 1000,
           actors: ctx.actors,
@@ -260,15 +354,15 @@ describe('Hunter Config', () => {
         const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
 
         // First charge
-        handler(damageEvent as any, mockContext as any)
+        handler(damageEvent as ThreatContext['event'], mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Second charge
-        handler(damageEvent as any, mockContext as any)
+        handler(damageEvent as ThreatContext['event'], mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Third charge - should uninstall
-        handler(damageEvent as any, mockContext as any)
+        handler(damageEvent as ThreatContext['event'], mockContext)
         expect(uninstallMock).toHaveBeenCalled()
       })
 
@@ -291,7 +385,7 @@ describe('Hunter Config', () => {
         const uninstallMock = vi.fn()
 
         // Within 30 seconds
-        const withinWindowContext = {
+        const withinWindowContext: EffectHandlerContext = {
           timestamp: 20000,
           installedAt: 1000,
           actors: ctx.actors,
@@ -300,8 +394,8 @@ describe('Hunter Config', () => {
 
         const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
         const withinResult = handler(
-          damageEvent as any,
-          withinWindowContext as any,
+          damageEvent as ThreatContext['event'],
+          withinWindowContext,
         )
         expect(withinResult).toEqual({
           action: 'augment',
@@ -310,7 +404,7 @@ describe('Hunter Config', () => {
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // After 30 seconds
-        const afterWindowContext = {
+        const afterWindowContext: EffectHandlerContext = {
           timestamp: 32000,
           installedAt: 1000,
           actors: ctx.actors,
@@ -318,8 +412,8 @@ describe('Hunter Config', () => {
         }
 
         const afterResult = handler(
-          damageEvent as any,
-          afterWindowContext as any,
+          damageEvent as ThreatContext['event'],
+          afterWindowContext,
         )
         expect(afterResult).toEqual({ action: 'passthrough' })
         expect(uninstallMock).toHaveBeenCalled()

@@ -79,4 +79,27 @@ export class ThreatTracker {
     }
     return result
   }
+
+  /**
+   * Clear all threat for an actor against all enemies
+   * Used when a player dies (threat wipe)
+   * @returns Map of enemyId -> previousThreat for all cleared entries
+   */
+  clearAllThreatForActor(actorId: number): Map<number, number> {
+    const actorThreat = this.threat.get(actorId)
+    if (!actorThreat) {
+      return new Map()
+    }
+
+    const clearedThreat = new Map<number, number>()
+    for (const [enemyId, threat] of actorThreat) {
+      if (threat > 0) {
+        clearedThreat.set(enemyId, threat)
+      }
+    }
+
+    // Remove the actor entirely from threat tracking
+    this.threat.delete(actorId)
+    return clearedThreat
+  }
 }

@@ -20,6 +20,7 @@ export class FightState {
   private allExclusiveAuras: Set<number>[]
   private positionTracker = new PositionTracker()
   private threatTracker = new ThreatTracker()
+  private deadActors = new Set<number>()
 
   constructor(actorMap: Map<number, Actor>, config: ThreatConfig) {
     this.actorMap = actorMap
@@ -66,6 +67,12 @@ export class FightState {
         this.getOrCreateActorState(event.targetID).auraTracker.removeAura(
           event.abilityGameID,
         )
+        break
+      case 'death':
+        this.deadActors.add(event.targetID)
+        break
+      case 'resurrect':
+        this.deadActors.delete(event.targetID)
         break
     }
   }
@@ -154,5 +161,18 @@ export class FightState {
 
   setThreat(actorId: number, enemyId: number, amount: number) {
     this.threatTracker.setThreat(actorId, enemyId, amount)
+  }
+
+  // Actor alive/dead tracking methods
+  isActorAlive(actorId: number): boolean {
+    return !this.deadActors.has(actorId)
+  }
+
+  /**
+   * Clear all threat for an actor against all enemies
+   * Returns a map of enemyId -> previousThreat for each enemy that had threat
+   */
+  clearAllThreatForActor(actorId: number): Map<number, number> {
+    return this.threatTracker.clearAllThreatForActor(actorId)
   }
 }

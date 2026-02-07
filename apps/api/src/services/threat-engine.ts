@@ -172,6 +172,16 @@ function applyThreat(
   const changes: ThreatChange[] = []
   const threatRecipient = threatRecipientOverride ?? event.sourceID
 
+  // Handle player death - wipe all threat for the dead player
+  if (event.type === 'death' && event.targetIsFriendly) {
+    return buildDeathThreatWipeChanges(fightState, event.targetID)
+  }
+
+  // Handle enemy death - just return empty changes (death is tracked in FightState)
+  if (event.type === 'death' && !event.targetIsFriendly) {
+    return changes
+  }
+
   if (calculation.special?.type === 'customThreat') {
     for (const mod of calculation.special.modifications) {
       fightState.addThreat(mod.actorId, mod.enemyId, mod.amount)
@@ -204,22 +214,24 @@ function applyThreat(
     })
   }
 
-  // split threat
+  // split threat among alive enemies only
   if (calculation.isSplit && calculation.modifiedThreat > 0) {
-    // Filter out environment targets from split threat
-    const splitThreat = calculation.modifiedThreat / enemies.length
+    // Filter to alive enemies only
+    const aliveEnemies = enemies.filter((e) => fightState.isActorAlive(e.id))
+    if (aliveEnemies.length > 0) {
+      const splitThreat = calculation.modifiedThreat / aliveEnemies.length
 
-    for (const enemy of enemies) {
-      // TODO: check enemies are alive
-      fightState.addThreat(threatRecipient, enemy.id, splitThreat)
-      changes.push({
-        sourceId: threatRecipient,
-        targetId: enemy.id,
-        targetInstance: enemy.instance,
-        operator: 'add',
-        amount: splitThreat,
-        total: fightState.getThreat(threatRecipient, enemy.id),
-      })
+      for (const enemy of aliveEnemies) {
+        fightState.addThreat(threatRecipient, enemy.id, splitThreat)
+        changes.push({
+          sourceId: threatRecipient,
+          targetId: enemy.id,
+          targetInstance: enemy.instance,
+          operator: 'add',
+          amount: splitThreat,
+          total: fightState.getThreat(threatRecipient, enemy.id),
+        })
+      }
     }
   } else if (calculation.modifiedThreat > 0) {
     // single target event
@@ -240,10 +252,31 @@ function applyThreat(
   return changes
 }
 
+/** Build set-to-zero threat changes for a dead player */
+function buildDeathThreatWipeChanges(
+  fightState: FightState,
+  deadPlayerId: number,
+): ThreatChange[] {
+  const clearedThreat = fightState.clearAllThreatForActor(deadPlayerId)
+
+  return Array.from(clearedThreat.keys()).map((enemyId) => ({
+    sourceId: deadPlayerId,
+    targetId: enemyId,
+    targetInstance: 0, // Player threat is tracked per-enemy, not per-instance
+    operator: 'set' as const,
+    amount: 0,
+    total: 0,
+  }))
+}
+
 /**
  * Determine if an event should have threat calculated
  */
 function shouldCalculateThreat(event: WCLEvent): boolean {
+  // Always process death events (for threat wipe tracking)
+  if (event.type === 'death') {
+    return true
+  }
   if (event.type === 'damage' && event.targetIsFriendly) {
     return false
   }

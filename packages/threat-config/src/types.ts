@@ -67,6 +67,8 @@ export interface ActorContext {
     enemyId: number,
     count: number,
   ) => Array<{ actorId: number; threat: number }>
+  /** Check if an actor is alive (false if dead or not tracked) */
+  isActorAlive: (actorId: number) => boolean
 }
 
 export interface ThreatContext {

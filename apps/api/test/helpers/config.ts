@@ -112,5 +112,6 @@ export function createMockActorContext(): ActorContext {
     getActorsInRange: () => [],
     getThreat: () => 0,
     getTopActorsByThreat: () => [],
+    isActorAlive: () => true,
   }
 }
