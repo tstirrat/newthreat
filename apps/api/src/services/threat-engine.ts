@@ -11,8 +11,8 @@ import type {
   AugmentedEvent,
   ClassThreatConfig,
   Enemy,
-  TargetThreatValue,
   ThreatCalculation,
+  ThreatChange,
   ThreatConfig,
   ThreatContext,
   ThreatModifier,
@@ -101,15 +101,15 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
 
       const validEnemies = enemies.filter((e) => e.id !== ENVIRONMENT_TARGET_ID)
 
-      applyThreat(fightState, calculation, event, validEnemies)
+      const changes = applyThreat(fightState, calculation, event, validEnemies)
 
-      const allocations = buildThreatAllocations(
-        event,
-        calculation,
-        validEnemies,
-        fightState,
+      augmentedEvents.push(
+        buildAugmentedEvent(
+          event,
+          calculation,
+          changes.length > 0 ? changes : undefined,
+        ),
       )
-      augmentedEvents.push(buildAugmentedEvent(event, calculation, allocations))
     }
   }
 
@@ -125,10 +125,20 @@ function applyThreat(
   calculation: ThreatCalculation,
   event: WCLEvent,
   enemies: Enemy[],
-) {
+): ThreatChange[] {
+  const changes: ThreatChange[] = []
+
   if (calculation.special?.type === 'customThreat') {
     for (const mod of calculation.special.modifications) {
       fightState.addThreat(mod.actorId, mod.enemyId, mod.amount)
+      changes.push({
+        sourceId: mod.actorId,
+        targetId: mod.enemyId,
+        targetInstance: 0, // TODO: Instance tracking
+        operator: 'add',
+        amount: mod.amount,
+        total: fightState.getThreat(mod.actorId, mod.enemyId),
+      })
     }
   }
 
@@ -140,6 +150,14 @@ function applyThreat(
       calculation.special.multiplier,
     )
     fightState.setThreat(event.targetID, event.sourceID, newThreat)
+    changes.push({
+      sourceId: event.targetID,
+      targetId: event.sourceID,
+      targetInstance: event.sourceInstance ?? 0,
+      operator: 'set',
+      amount: newThreat,
+      total: newThreat,
+    })
   }
 
   // split threat
@@ -150,63 +168,32 @@ function applyThreat(
     for (const enemy of enemies) {
       // TODO: check enemies are alive
       fightState.addThreat(event.sourceID, enemy.id, splitThreat)
+      changes.push({
+        sourceId: event.sourceID,
+        targetId: enemy.id,
+        targetInstance: enemy.instance,
+        operator: 'add',
+        amount: splitThreat,
+        total: fightState.getThreat(event.sourceID, enemy.id),
+      })
     }
-  } else {
+  } else if (calculation.modifiedThreat > 0) {
     // single target event
     fightState.addThreat(
       event.sourceID,
       event.targetID,
       calculation.modifiedThreat,
     )
+    changes.push({
+      sourceId: event.sourceID,
+      targetId: event.targetID,
+      targetInstance: event.targetInstance ?? 0,
+      operator: 'add',
+      amount: calculation.modifiedThreat,
+      total: fightState.getThreat(event.sourceID, event.targetID),
+    })
   }
-  return enemies
-}
-
-function buildThreatAllocations(
-  event: WCLEvent,
-  calculation: ThreatCalculation,
-  enemies: Enemy[],
-  fightState: FightState,
-): TargetThreatValue[] | undefined {
-  if (calculation.isSplit && calculation.modifiedThreat > 0) {
-    const splitThreat = calculation.modifiedThreat / enemies.length
-
-    return enemies.map((enemy) => ({
-      id: enemy.id,
-      instance: enemy.instance,
-      amount: splitThreat,
-      cumulative: fightState.getThreat(event.sourceID, enemy.id),
-    }))
-  }
-
-  if (calculation.modifiedThreat > 0) {
-    const enemy = enemies.find((e) => e.id === event.targetID)
-
-    return enemy
-      ? [
-          {
-            id: enemy.id,
-            instance: enemy.instance,
-            amount: calculation.modifiedThreat,
-            cumulative: fightState.getThreat(event.sourceID, enemy.id),
-          },
-        ]
-      : undefined
-  }
-
-  if (calculation.special?.type === 'modifyThreat') {
-    const enemy = enemies.find((e) => e.id === event.targetID)
-    return enemy
-      ? [
-          {
-            id: enemy.id,
-            instance: enemy.instance,
-            amount: 0,
-            cumulative: fightState.getThreat(event.sourceID, enemy.id),
-          },
-        ]
-      : undefined
-  }
+  return changes
 }
 
 /**
@@ -228,7 +215,7 @@ function shouldCalculateThreat(event: WCLEvent): boolean {
 function buildAugmentedEvent(
   event: WCLEvent,
   calculation: ThreatCalculation,
-  changes: TargetThreatValue[] | undefined,
+  changes: ThreatChange[] | undefined,
 ): AugmentedEvent {
   // Add cumulative threat values from fight state
   const threatWithCumulative: ThreatResult = {

@@ -216,11 +216,15 @@ export interface ThreatConfig {
 // Augmented Event Types (API Response)
 // ============================================================================
 
-export interface TargetThreatValue {
-  id: number
-  instance: number
+export type ThreatChangeOperator = 'add' | 'set'
+
+export interface ThreatChange {
+  sourceId: number
+  targetId: number
+  targetInstance: number
+  operator: ThreatChangeOperator
   amount: number
-  cumulative: number
+  total: number
 }
 
 export interface ThreatCalculation {
@@ -242,7 +246,7 @@ export interface ThreatCalculation {
 
 export interface ThreatResult {
   /** Threat applied to each enemy */
-  changes?: TargetThreatValue[]
+  changes?: ThreatChange[]
   /** Calculation breakdown for debugging/tooltips */
   calculation: ThreatCalculation
 }

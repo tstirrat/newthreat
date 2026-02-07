@@ -191,7 +191,7 @@ describe('Events API', () => {
       // Fight 1 (Patchwerk) should only have threat split to Patchwerk (id 25),
       // NOT Grobbulus (id 26) which is in fight 2
       expect(healEvent!.threat.changes).toHaveLength(1)
-      expect(healEvent!.threat.changes[0]?.id).toBe(25)
+      expect(healEvent!.threat.changes?.[0]?.targetId).toBe(25)
     })
   })
 })

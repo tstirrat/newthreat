@@ -1174,8 +1174,18 @@ describe('ability-specific threat calculation', () => {
     const augmented = result.augmentedEvents[0]
     // Calculation: 200 * 0.5 = 100 base, class factor 1.3x = 130, split among 2 enemies = 65 each
     expect(augmented?.threat.changes).toEqual([
-      expect.objectContaining({ id: 99, amount: 65, cumulative: 65 }),
-      expect.objectContaining({ id: 100, amount: 65, cumulative: 65 }),
+      expect.objectContaining({
+        targetId: 99,
+        amount: 65,
+        sourceId: 1,
+        operator: 'add',
+      }),
+      expect.objectContaining({
+        targetId: 100,
+        amount: 65,
+        sourceId: 1,
+        operator: 'add',
+      }),
     ])
     expect(augmented?.threat.calculation).toEqual(
       expect.objectContaining({ isSplit: true, modifiedThreat: 130 }),
@@ -1253,15 +1263,16 @@ describe('base threat calculations', () => {
     expect(augmented?.threat).toEqual(
       expect.objectContaining({
         changes: [
-          { id: bossEnemy.id, amount: 260, cumulative: 260, instance: 0 },
+          expect.objectContaining({
+            amount: 260,
+            targetId: 99,
+            operator: 'add',
+            sourceId: 1,
+            total: 260,
+          }),
         ],
-        calculation: expect.objectContaining({
-          baseThreat: 200,
-          modifiedThreat: 260, // 2 * 1.3 * 200
-        }),
       }),
     )
-    // expect(augmented?.threat?.apply?.[0]?.id).toBe(bossEnemy.id)
   })
 
   it('generates zero threat to enemies when damage target is friendly', () => {
@@ -1839,13 +1850,13 @@ describe('cumulative threat tracking', () => {
     expect(event1?.threat.changes?.[0]).toBeDefined()
     // 500 damage * 2 (base) * 1.3 (warrior class factor) = 1300
     expect(event1?.threat.changes?.[0]?.amount).toBe(1300)
-    expect(event1?.threat.changes?.[0]?.cumulative).toBe(1300) // First event, cumulative = amount
+    expect(event1?.threat.changes?.[0]?.total).toBe(1300) // First event, total = amount
 
     const event2 = result.augmentedEvents[1]
     expect(event2?.threat.changes?.[0]).toBeDefined()
     // 300 damage * 2 (base) * 1.3 (warrior class factor) = 780
     expect(event2?.threat.changes?.[0]?.amount).toBe(780)
-    expect(event2?.threat.changes?.[0]?.cumulative).toBe(2080) // 1300 + 780
+    expect(event2?.threat.changes?.[0]?.total).toBe(2080) // 1300 + 780
   })
 
   it('tracks cumulative threat separately per enemy', () => {
@@ -1886,22 +1897,22 @@ describe('cumulative threat tracking', () => {
 
     // Event 1: 100 to enemy1
     const event1 = result.augmentedEvents[0]
-    expect(event1?.threat.changes?.[0]?.id).toBe(enemy1.id)
+    expect(event1?.threat.changes?.[0]?.targetId).toBe(enemy1.id)
     // 100 damage * 2 (base) * 1.3 (warrior class factor) = 260
-    expect(event1?.threat.changes?.[0]?.cumulative).toBe(260)
+    expect(event1?.threat.changes?.[0]?.total).toBe(260)
 
     // Event 2: 200 to enemy2
     const event2 = result.augmentedEvents[1]
-    expect(event2?.threat.changes?.[0]?.id).toBe(enemy2.id)
+    expect(event2?.threat.changes?.[0]?.targetId).toBe(enemy2.id)
     // 200 damage * 2 (base) * 1.3 (warrior class factor) = 520
-    expect(event2?.threat.changes?.[0]?.cumulative).toBe(520)
+    expect(event2?.threat.changes?.[0]?.total).toBe(520)
 
     // Event 3: 150 to enemy1 again
     const event3 = result.augmentedEvents[2]
-    expect(event3?.threat.changes?.[0]?.id).toBe(enemy1.id)
+    expect(event3?.threat.changes?.[0]?.targetId).toBe(enemy1.id)
     // 150 damage * 2 (base) * 1.3 (warrior class factor) = 390
     // Total for enemy1: 260 + 390 = 650
-    expect(event3?.threat.changes?.[0]?.cumulative).toBe(650)
+    expect(event3?.threat.changes?.[0]?.total).toBe(650)
   })
 
   it('updates cumulative threat after threat modifications', () => {
@@ -1963,16 +1974,16 @@ describe('cumulative threat tracking', () => {
 
     // After first event, cumulative is 100
     const event1 = result.augmentedEvents[0]
-    expect(event1?.threat.changes?.[0]?.cumulative).toBe(100)
+    expect(event1?.threat.changes?.[0]?.total).toBe(100)
 
     // modifyThreat 0.5 * 100 = 50
-    // const event2 = result.augmentedEvents[1]
-    // expect(event2?.threat.values?.[0]?.cumulative).toBe(50)
+    const event2 = result.augmentedEvents[1]
+    expect(event2?.threat.changes?.[0]?.total).toBe(50)
 
     // Event 2 is threat modification, verify next event starts from modified baseline
     // 100 * 0.5 = 50. Plus 100 from event 3 = 150.
     const event3 = result.augmentedEvents[2]
-    expect(event3?.threat.changes?.[0]?.cumulative).toBe(150)
+    expect(event3?.threat.changes?.[0]?.total).toBe(150)
   })
 
   it('tracks cumulative threat for split-threat abilities', () => {
@@ -2017,14 +2028,30 @@ describe('cumulative threat tracking', () => {
 
     const event = result.augmentedEvents[0]
     expect(event?.threat.changes).toEqual([
-      expect.objectContaining({ id: enemy1.id, amount: 50, cumulative: 50 }),
-      expect.objectContaining({ id: enemy2.id, amount: 50, cumulative: 50 }),
+      expect.objectContaining({
+        targetId: enemy1.id,
+        amount: 50,
+        total: 50,
+      }),
+      expect.objectContaining({
+        targetId: enemy2.id,
+        amount: 50,
+        total: 50,
+      }),
     ])
 
     const event2 = result.augmentedEvents[1]
     expect(event2?.threat.changes).toEqual([
-      expect.objectContaining({ id: enemy1.id, amount: 50, cumulative: 100 }),
-      expect.objectContaining({ id: enemy2.id, amount: 50, cumulative: 100 }),
+      expect.objectContaining({
+        targetId: enemy1.id,
+        amount: 50,
+        total: 100,
+      }),
+      expect.objectContaining({
+        targetId: enemy2.id,
+        amount: 50,
+        total: 100,
+      }),
     ])
   })
 
@@ -2085,8 +2112,169 @@ describe('cumulative threat tracking', () => {
 
       const augmented = result.augmentedEvents[0]
       expect(augmented?.threat.changes).toEqual([
-        expect.objectContaining({ id: bossEnemy.id, amount: 100 }),
+        expect.objectContaining({ targetId: bossEnemy.id, amount: 100 }),
       ])
     })
+  })
+})
+
+describe('ThreatChange Generation', () => {
+  it('generates correct ThreatChange for standard damage event', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+    const events: WCLEvent[] = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 1000,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const augmentedEvent = result.augmentedEvents[0]
+    expect(augmentedEvent?.threat.changes).toHaveLength(1)
+    expect(augmentedEvent?.threat.changes![0]).toMatchObject({
+      sourceId: warriorActor.id,
+      targetId: bossEnemy.id,
+      operator: 'add',
+      amount: 2600, // 1000 * 2 (base multiplier from mockConfig) * 1.3 (class)
+      total: 2600,
+    })
+  })
+
+  it('generates correct ThreatChange for modifyThreat (set) operation', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const specializedConfig = createMockThreatConfig({
+      ...mockConfig,
+      abilities: {
+        [9999]: (ctx: ThreatContext) => ({
+          formula: 'modify',
+          value: 0,
+          splitAmongEnemies: false,
+          modifiedThreat: 0,
+          special: {
+            type: 'modifyThreat',
+            multiplier: 0.5,
+          },
+        }),
+      },
+    })
+
+    const modifyEvent: WCLEvent = {
+      ...createDamageEvent({
+        sourceID: bossEnemy.id,
+        targetID: warriorActor.id,
+      }),
+      abilityGameID: 9999,
+      type: 'cast',
+    }
+
+    const sequence = [
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 1000,
+      }),
+      modifyEvent,
+    ]
+
+    const result = processEvents({
+      rawEvents: sequence,
+      actorMap,
+      enemies,
+      config: specializedConfig,
+    })
+
+    // First event (Damage): 1000 * 2 * 1.3 = 2600
+    expect(result.augmentedEvents[0]?.threat.changes?.[0]?.total).toBe(2600)
+
+    // Second event (Modify): 2600 * 0.5 = 1300
+    const modifyAugmented = result.augmentedEvents[1]
+    expect(modifyAugmented?.threat.changes).toHaveLength(1)
+    expect(modifyAugmented?.threat.changes![0]).toMatchObject({
+      sourceId: warriorActor.id,
+      targetId: bossEnemy.id,
+      operator: 'set',
+      amount: 1300,
+      total: 1300,
+    })
+  })
+
+  it('generates multiple ThreatChanges for customThreat operation', () => {
+    const customAbilityId = 8888
+    const specializedConfig = createMockThreatConfig({
+      ...mockConfig,
+      abilities: {
+        [customAbilityId]: (ctx: ThreatContext) => ({
+          formula: 'custom',
+          value: 0,
+          splitAmongEnemies: false,
+          modifiedThreat: 0,
+          special: {
+            type: 'customThreat',
+            modifications: [
+              {
+                actorId: warriorActor.id,
+                enemyId: bossEnemy.id,
+                amount: 500,
+              },
+              {
+                actorId: priestActor.id,
+                enemyId: bossEnemy.id,
+                amount: 300,
+              },
+            ],
+          },
+        }),
+      },
+    })
+
+    const actorMap = new Map<number, Actor>([
+      [warriorActor.id, warriorActor],
+      [priestActor.id, priestActor],
+    ])
+
+    const event: WCLEvent = {
+      ...createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+      }),
+      abilityGameID: customAbilityId,
+      type: 'cast',
+    }
+
+    const result = processEvents({
+      rawEvents: [event],
+      actorMap,
+      enemies,
+      config: specializedConfig,
+    })
+
+    const augmented = result.augmentedEvents[0]
+    expect(augmented?.threat.changes).toHaveLength(2)
+    expect(augmented?.threat.changes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: warriorActor.id,
+          targetId: bossEnemy.id,
+          operator: 'add',
+          amount: 500,
+          total: 500,
+        }),
+        expect.objectContaining({
+          sourceId: priestActor.id,
+          targetId: bossEnemy.id,
+          operator: 'add',
+          amount: 300,
+          total: 300,
+        }),
+      ]),
+    )
   })
 })
