@@ -198,41 +198,66 @@ function applyThreat(
   }
 
   // split threat among alive enemies only
-  if (calculation.isSplit && calculation.modifiedThreat > 0) {
+  if (calculation.isSplit && calculation.modifiedThreat !== 0) {
     // Filter to alive enemies only
     const aliveEnemies = enemies.filter((e) => fightState.isActorAlive(e.id))
     if (aliveEnemies.length > 0) {
       const splitThreat = calculation.modifiedThreat / aliveEnemies.length
 
       for (const enemy of aliveEnemies) {
-        fightState.addThreat(threatRecipient, enemy.id, splitThreat)
-        changes.push({
-          sourceId: threatRecipient,
-          targetId: enemy.id,
-          targetInstance: enemy.instance,
-          operator: 'add',
-          amount: splitThreat,
-          total: fightState.getThreat(threatRecipient, enemy.id),
-        })
+        const change = applyThreatDelta(
+          fightState,
+          threatRecipient,
+          enemy.id,
+          enemy.instance,
+          splitThreat,
+        )
+        if (change) {
+          changes.push(change)
+        }
       }
     }
-  } else if (calculation.modifiedThreat > 0) {
+  } else if (calculation.modifiedThreat !== 0) {
     // single target event
-    fightState.addThreat(
+    const change = applyThreatDelta(
+      fightState,
       threatRecipient,
       event.targetID,
+      event.targetInstance ?? 0,
       calculation.modifiedThreat,
     )
-    changes.push({
-      sourceId: threatRecipient,
-      targetId: event.targetID,
-      targetInstance: event.targetInstance ?? 0,
-      operator: 'add',
-      amount: calculation.modifiedThreat,
-      total: fightState.getThreat(threatRecipient, event.targetID),
-    })
+    if (change) {
+      changes.push(change)
+    }
   }
   return changes
+}
+
+/** Apply additive threat change and return the effective delta after clamping */
+function applyThreatDelta(
+  fightState: FightState,
+  sourceId: number,
+  targetId: number,
+  targetInstance: number,
+  amount: number,
+): ThreatChange | undefined {
+  const before = fightState.getThreat(sourceId, targetId)
+  fightState.addThreat(sourceId, targetId, amount)
+  const total = fightState.getThreat(sourceId, targetId)
+  const appliedAmount = total - before
+
+  if (appliedAmount === 0) {
+    return undefined
+  }
+
+  return {
+    sourceId,
+    targetId,
+    targetInstance,
+    operator: 'add',
+    amount: appliedAmount,
+    total,
+  }
 }
 
 /** Apply explicit custom threat changes */

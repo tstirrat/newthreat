@@ -11,7 +11,7 @@ Legend:
 - [ ] **[P0][C3]** Wire runtime handling for `fixate`, `fixateEnd`, `aggroLoss`, `aggroLossEnd`, `invulnerable`, `invulnerableEnd`.
 - [ ] **[P0][C2]** Add runtime handling for `noThreatWindow` suppression (currently defined but not applied).
 - [ ] **[P0][C3]** Allow effect handlers to pass `augment.special` through to core threat application (today only `threatRecipientOverride` is used).
-- [ ] **[P0][C2]** Support negative threat deltas (Feint/Cower/Disengage-style) with floor-at-zero semantics.
+- [x] **[P0][C2]** Support negative threat deltas (Feint/Cower/Disengage-style) with floor-at-zero semantics.
 - [ ] **[P0][C3]** Add per-formula control for applying multipliers/coefs (Era has both coeff and no-coeff variants, e.g. `handler_castCanMissNoCoefficient`, `handler_resourcechange`).
 - [ ] **[P0][C3]** Implement true cast-can-miss two-phase behavior (add on cast, rollback on miss/immune/resist result), not static one-shot.
 - [ ] **[P0][C3]** Enforce school-specific modifiers in runtime (and pass spell school through context).

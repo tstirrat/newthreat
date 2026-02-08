@@ -22,7 +22,7 @@ export class ThreatTracker {
     }
     const actorThreat = this.threat.get(actorId)!
     const current = actorThreat.get(enemyId) ?? 0
-    actorThreat.set(enemyId, current + amount)
+    actorThreat.set(enemyId, Math.max(0, current + amount))
   }
 
   /**

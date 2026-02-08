@@ -119,4 +119,13 @@ describe('ThreatTracker', () => {
 
     expect(tracker.getThreat(1, 100)).toBe(700)
   })
+
+  it('should floor additive threat at 0', () => {
+    const tracker = new ThreatTracker()
+
+    tracker.addThreat(1, 100, 100)
+    tracker.addThreat(1, 100, -200)
+
+    expect(tracker.getThreat(1, 100)).toBe(0)
+  })
 })

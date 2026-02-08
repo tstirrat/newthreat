@@ -2709,6 +2709,127 @@ describe('Effect Handler Integration', () => {
   })
 
   describe('threatRecipientOverride', () => {
+    describe('negative threat deltas', () => {
+      const NEGATIVE_THREAT_SPELL = 99991
+
+      const negativeThreatConfig = createMockThreatConfig({
+        abilities: {
+          [NEGATIVE_THREAT_SPELL]: () => ({
+            formula: '-300',
+            value: -300,
+            splitAmongEnemies: false,
+          }),
+        },
+      })
+
+      it('reduces existing threat for the target enemy', () => {
+        const warriorActor: Actor = { id: 11, name: 'WarriorOne', class: 'warrior' }
+        const actorMap = new Map([[warriorActor.id, warriorActor]])
+
+        const events: WCLEvent[] = [
+          createDamageEvent({
+            timestamp: 1000,
+            sourceID: warriorActor.id,
+            targetID: bossEnemy.id,
+            amount: 500,
+          }),
+          createDamageEvent({
+            timestamp: 2000,
+            sourceID: warriorActor.id,
+            targetID: bossEnemy.id,
+            amount: 1,
+            abilityGameID: NEGATIVE_THREAT_SPELL,
+          }),
+        ]
+
+        const result = processEvents({
+          rawEvents: events,
+          actorMap,
+          enemies: [bossEnemy],
+          config: negativeThreatConfig,
+        })
+
+        const reductionEvent = result.augmentedEvents[1]
+        expect(reductionEvent?.threat.calculation.modifiedThreat).toBe(-300)
+        expect(reductionEvent?.threat.changes).toHaveLength(1)
+        expect(reductionEvent?.threat.changes?.[0]).toMatchObject({
+          sourceId: warriorActor.id,
+          targetId: bossEnemy.id,
+          operator: 'add',
+          amount: -300,
+          total: 200,
+        })
+      })
+
+      it('floors resulting threat at zero when reduction exceeds current threat', () => {
+        const warriorActor: Actor = { id: 12, name: 'WarriorTwo', class: 'warrior' }
+        const actorMap = new Map([[warriorActor.id, warriorActor]])
+
+        const events: WCLEvent[] = [
+          createDamageEvent({
+            timestamp: 1000,
+            sourceID: warriorActor.id,
+            targetID: bossEnemy.id,
+            amount: 200,
+          }),
+          createDamageEvent({
+            timestamp: 2000,
+            sourceID: warriorActor.id,
+            targetID: bossEnemy.id,
+            amount: 1,
+            abilityGameID: NEGATIVE_THREAT_SPELL,
+          }),
+        ]
+
+        const result = processEvents({
+          rawEvents: events,
+          actorMap,
+          enemies: [bossEnemy],
+          config: negativeThreatConfig,
+        })
+
+        const reductionEvent = result.augmentedEvents[1]
+        expect(reductionEvent?.threat.changes).toHaveLength(1)
+        expect(reductionEvent?.threat.changes?.[0]).toMatchObject({
+          sourceId: warriorActor.id,
+          targetId: bossEnemy.id,
+          operator: 'add',
+          amount: -200,
+          total: 0,
+        })
+      })
+
+      it('does not emit a change when reducing threat at zero', () => {
+        const warriorActor: Actor = {
+          id: 13,
+          name: 'WarriorThree',
+          class: 'warrior',
+        }
+        const actorMap = new Map([[warriorActor.id, warriorActor]])
+
+        const events: WCLEvent[] = [
+          createDamageEvent({
+            timestamp: 1000,
+            sourceID: warriorActor.id,
+            targetID: bossEnemy.id,
+            amount: 1,
+            abilityGameID: NEGATIVE_THREAT_SPELL,
+          }),
+        ]
+
+        const result = processEvents({
+          rawEvents: events,
+          actorMap,
+          enemies: [bossEnemy],
+          config: negativeThreatConfig,
+        })
+
+        const reductionEvent = result.augmentedEvents[0]
+        expect(reductionEvent?.threat.calculation.modifiedThreat).toBe(-300)
+        expect(reductionEvent?.threat.changes).toBeUndefined()
+      })
+    })
+
     it('redirects threat to a different actor', () => {
       const hunterActor: Actor = { id: 5, name: 'Hunter', class: 'hunter' }
       const tankActor: Actor = { id: 10, name: 'Tank', class: 'warrior' }
