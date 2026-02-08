@@ -613,6 +613,44 @@ describe('calculateModifiedThreat', () => {
       expect(result.amount).toBe(25)
       expect(result.baseThreat).toBe(125)
     })
+
+    it('ignores class base threat factor for resource generation', () => {
+      const event = createEnergizeEvent({ resourceChange: 30 })
+
+      const result = calculateModifiedThreat(
+        event,
+        createTestOptions({
+          sourceActor: { id: 1, name: 'RoguePlayer', class: 'rogue' },
+          targetActor: defaultActor,
+        }),
+        mockThreatConfig,
+      )
+
+      expect(result.baseThreat).toBe(150)
+      expect(result.modifiedThreat).toBe(150)
+      expect(result.modifiers).toEqual([])
+    })
+
+    it('ignores aura modifiers for resource generation', () => {
+      const event = createEnergizeEvent({ resourceChange: 30 })
+
+      const result = calculateModifiedThreat(
+        event,
+        createTestOptions({
+          sourceAuras: new Set([
+            SPELLS.DEFENSIVE_STANCE,
+            SPELLS.BLESSING_OF_SALVATION,
+          ]),
+          sourceActor: defaultActor,
+          targetActor: defaultActor,
+        }),
+        mockThreatConfig,
+      )
+
+      expect(result.baseThreat).toBe(150)
+      expect(result.modifiedThreat).toBe(150)
+      expect(result.modifiers).toEqual([])
+    })
   })
 
   describe('unknown event types', () => {

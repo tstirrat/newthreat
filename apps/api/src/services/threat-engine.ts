@@ -621,11 +621,14 @@ export function calculateModifiedThreat(
   // Get the threat formula result
   const formulaResult = getFormulaResult(ctx, config)
 
-  // Collect all modifiers (no longer from formula result)
-  const allModifiers: ThreatModifier[] = [
-    ...getClassModifiers(options.sourceActor.class, config),
-    ...getAuraModifiers(ctx, config),
-  ]
+  // Era parity: resource generation threat does not use player coefficients/modifiers.
+  const allModifiers: ThreatModifier[] =
+    event.type === 'energize'
+      ? []
+      : [
+          ...getClassModifiers(options.sourceActor.class, config),
+          ...getAuraModifiers(ctx, config),
+        ]
 
   // Calculate total multiplier
   const totalMultiplier = getTotalMultiplier(allModifiers)
