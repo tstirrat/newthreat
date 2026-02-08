@@ -30,6 +30,44 @@ export const eventsRoutes = new Hono<{
 }>()
 
 /**
+ * Parse a WCL ability type string into a numeric school bitmask.
+ * Examples:
+ * - '1' -> 1 (Physical)
+ * - '2' -> 2 (Holy)
+ * - '20' -> 20 (Fire + Frost)
+ * - null/invalid -> 0 (unknown)
+ */
+function parseAbilitySchoolMask(type: string | null): number {
+  if (!type) {
+    return 0
+  }
+
+  const mask = Number.parseInt(type, 10)
+  if (!Number.isFinite(mask)) {
+    return 0
+  }
+
+  return mask
+}
+
+function buildAbilitySchoolMap(
+  abilities: Array<{ gameID: number | null; type: string | null }> | undefined,
+): Map<number, number> {
+  const map = new Map<number, number>()
+
+  for (const ability of abilities ?? []) {
+    if (ability.gameID === null || !Number.isFinite(ability.gameID)) {
+      continue
+    }
+
+    const abilityId = Math.trunc(ability.gameID)
+    map.set(abilityId, parseAbilitySchoolMask(ability.type))
+  }
+
+  return map
+}
+
+/**
  * GET /reports/:code/fights/:id/events
  * Returns threat-augmented events for supported combat event types
  */
@@ -144,10 +182,13 @@ eventsRoutes.get('/', async (c) => {
     instance: 0,
   }))
 
+  const abilitySchoolMap = buildAbilitySchoolMap(report.masterData.abilities)
+
   // Process events and calculate threat using the threat engine
   const { augmentedEvents, eventCounts } = processEvents({
     rawEvents,
     actorMap,
+    abilitySchoolMap,
     enemies,
     config,
   })

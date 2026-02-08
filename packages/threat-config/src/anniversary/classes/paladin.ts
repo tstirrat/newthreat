@@ -4,7 +4,7 @@
  * Spell IDs and threat values are based on Classic/Anniversary Edition mechanics.
  */
 import { calculateThreat } from '../../shared/formulas'
-import type { ClassThreatConfig } from '../../types'
+import { SpellSchool, type ClassThreatConfig } from '../../types'
 
 // ============================================================================
 // Spell IDs
@@ -64,7 +64,7 @@ export const paladinConfig: ClassThreatConfig = {
       name: 'Righteous Fury',
 
       value: 1.6, // Base value, improved by talent
-      schools: new Set(['holy']),
+      schools: new Set([SpellSchool.Holy]),
     }),
 
     // Blessing of Salvation - 0.7x threat

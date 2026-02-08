@@ -94,6 +94,13 @@ export interface ReportActorPet {
   petOwner: number | null
 }
 
+export interface ReportAbility {
+  gameID: number | null
+  icon: string | null
+  name: string | null
+  type: string | null
+}
+
 /** WCL GraphQL response wrapper for report data */
 export interface WCLReportResponse {
   data: {
@@ -109,6 +116,7 @@ export interface WCLReportResponse {
         masterData: {
           gameVersion: number
           actors: ReportActor[]
+          abilities?: ReportAbility[]
         }
       }
     }

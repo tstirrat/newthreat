@@ -179,6 +179,12 @@ export class WCLClient {
                 subType
                 petOwner
               }
+              abilities {
+                gameID
+                icon
+                name
+                type
+              }
             }
           }
         }

@@ -5,13 +5,14 @@
  * threat. Uses mock configs to test behaviors surgically without dependencies on
  * real config evolution.
  */
-import type {
-  Actor,
-  EffectHandler,
-  Enemy,
-  ThreatConfig,
-  ThreatContext,
-  ThreatModifier,
+import {
+  SpellSchool,
+  type Actor,
+  type EffectHandler,
+  type Enemy,
+  type ThreatConfig,
+  type ThreatContext,
+  type ThreatModifier,
 } from '@wcl-threat/threat-config'
 import type { DamageEvent, GearItem, WCLEvent } from '@wcl-threat/wcl-types'
 import { describe, expect, it, vi } from 'vitest'
@@ -341,6 +342,7 @@ describe('calculateModifiedThreat', () => {
   interface TestCallOptions {
     sourceAuras?: Set<number>
     targetAuras?: Set<number>
+    spellSchoolMask?: number
     enemies?: Enemy[]
     sourceActor?: Actor
     targetActor?: Actor
@@ -354,6 +356,7 @@ describe('calculateModifiedThreat', () => {
     return {
       sourceAuras: overrides.sourceAuras ?? new Set(),
       targetAuras: overrides.targetAuras ?? new Set(),
+      spellSchoolMask: overrides.spellSchoolMask ?? 0,
       enemies: overrides.enemies ?? [defaultEnemy],
       sourceActor: overrides.sourceActor ?? defaultActor,
       targetActor: overrides.targetActor ?? {
@@ -403,7 +406,7 @@ describe('calculateModifiedThreat', () => {
             source: 'stance',
             name: 'Righteous Fury',
             value: 1.6,
-            schools: new Set(['holy'] as any[]),
+            schools: new Set([SpellSchool.Holy]),
           }),
         },
         abilities: {},
@@ -950,14 +953,55 @@ describe('calculateModifiedThreat', () => {
       })
 
       it('applies Righteous Fury to Paladin holy spells only', () => {
-        // Test a damage event with a holy spell
         const holyDamageEvent = createDamageEvent({
           amount: 1000,
           abilityGameID: SPELLS.SEAL_OF_RIGHTEOUSNESS,
         })
 
-        const result = calculateModifiedThreat(
+        const physicalDamageEvent = createDamageEvent({
+          amount: 1000,
+          abilityGameID: SPELLS.SEAL_OF_RIGHTEOUSNESS,
+        })
+
+        const holyResult = calculateModifiedThreat(
           holyDamageEvent,
+          createTestOptions({
+            sourceAuras: new Set([SPELLS.RIGHTEOUS_FURY]),
+            spellSchoolMask: SpellSchool.Holy,
+            sourceActor: { id: 1, name: 'PaladinPlayer', class: 'paladin' },
+          }),
+          mockThreatConfig,
+        )
+
+        // Righteous Fury should apply to holy spells
+        expect(holyResult.modifiers).toContainEqual(
+          expect.objectContaining({ name: 'Righteous Fury', value: 1.6 }),
+        )
+
+        const physicalResult = calculateModifiedThreat(
+          physicalDamageEvent,
+          createTestOptions({
+            sourceAuras: new Set([SPELLS.RIGHTEOUS_FURY]),
+            spellSchoolMask: SpellSchool.Physical,
+            sourceActor: { id: 1, name: 'PaladinPlayer', class: 'paladin' },
+          }),
+          mockThreatConfig,
+        )
+
+        // Righteous Fury should NOT apply to non-holy schools
+        expect(
+          physicalResult.modifiers.find((m) => m.name === 'Righteous Fury'),
+        ).toBeUndefined()
+      })
+
+      it('does not apply school-scoped modifiers when event school is unavailable', () => {
+        const eventWithoutSchool = createDamageEvent({
+          amount: 1000,
+          abilityGameID: SPELLS.SEAL_OF_RIGHTEOUSNESS,
+        })
+
+        const result = calculateModifiedThreat(
+          eventWithoutSchool,
           createTestOptions({
             sourceAuras: new Set([SPELLS.RIGHTEOUS_FURY]),
             sourceActor: { id: 1, name: 'PaladinPlayer', class: 'paladin' },
@@ -965,10 +1009,9 @@ describe('calculateModifiedThreat', () => {
           mockThreatConfig,
         )
 
-        // Righteous Fury should apply to holy spells
-        expect(result.modifiers).toContainEqual(
-          expect.objectContaining({ name: 'Righteous Fury', value: 1.6 }),
-        )
+        expect(
+          result.modifiers.find((m) => m.name === 'Righteous Fury'),
+        ).toBeUndefined()
       })
 
       it('applies Defiance talent to Warriors', () => {

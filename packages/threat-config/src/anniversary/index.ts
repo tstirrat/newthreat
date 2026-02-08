@@ -58,7 +58,7 @@ const globalAuraModifiers: Record<
 }
 
 export const anniversaryConfig: ThreatConfig = {
-  version: '1.1.0',
+  version: '1.2.0',
   gameVersion: 1,
 
   baseThreat,

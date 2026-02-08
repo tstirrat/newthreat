@@ -40,6 +40,16 @@ export function getActiveModifiers(
         }
       }
 
+      // If modifier is school-scoped, only apply when the current event school matches.
+      if (modifier.schools) {
+        const hasMatchingSchool = [...modifier.schools].some((school) =>
+          (ctx.spellSchoolMask & school) !== 0,
+        )
+        if (!hasMatchingSchool) {
+          continue
+        }
+      }
+
       modifiers.push(modifier)
     }
   }

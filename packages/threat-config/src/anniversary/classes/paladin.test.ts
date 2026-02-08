@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import type { ThreatContext } from '../../types'
+import { SpellSchool, type ThreatContext } from '../../types'
 import { Spells, paladinConfig } from './paladin'
 
 // Mock ThreatContext factory
@@ -13,6 +13,7 @@ function createMockContext(
   return {
     event: { type: 'damage' } as ThreatContext['event'],
     amount: 100,
+    spellSchoolMask: SpellSchool.Physical,
     sourceAuras: new Set(),
     targetAuras: new Set(),
     sourceActor: { id: 1, name: 'TestPaladin', class: 'paladin' },
@@ -40,7 +41,7 @@ describe('Paladin Config', () => {
       expect(modifier.name).toBe('Righteous Fury')
       expect(modifier.value).toBe(1.6)
       expect(modifier.schools).toBeDefined()
-      expect(modifier.schools?.has('holy')).toBe(true)
+      expect(modifier.schools?.has(SpellSchool.Holy)).toBe(true)
       expect(modifier.schools?.size).toBe(1)
     })
 

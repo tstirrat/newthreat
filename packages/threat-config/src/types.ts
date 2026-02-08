@@ -33,14 +33,15 @@ export type WowClass =
   | 'demonhunter'
   | 'evoker'
 
-export type SpellSchool =
-  | 'physical'
-  | 'holy'
-  | 'fire'
-  | 'nature'
-  | 'frost'
-  | 'shadow'
-  | 'arcane'
+export enum SpellSchool {
+  Physical = 1,
+  Holy = 2,
+  Fire = 4,
+  Nature = 8,
+  Frost = 16,
+  Shadow = 32,
+  Arcane = 64,
+}
 
 export type ModifierSource =
   | 'class' // Class-inherent modifier (e.g., Bear Form)
@@ -82,6 +83,8 @@ export interface ThreatContext {
   event: WCLEvent
   /** The primary amount (damage/heal/resource) */
   amount: number
+  /** WCL spell-school bitmask for the event ability (0 when school is unknown) */
+  spellSchoolMask: number
   /** Active auras on the source actor (spell IDs) */
   sourceAuras: Set<number>
   /** Active auras on the target actor (spell IDs) */

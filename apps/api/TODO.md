@@ -15,9 +15,9 @@ Legend:
 - [x] **[REQ-006][P0][C2]** Support negative threat deltas (Feint/Cower/Disengage-style) with floor-at-zero semantics.
 - [ ] **[REQ-007][P0][C3]** Add per-formula control for applying multipliers/coefs (Era has both coeff and no-coeff variants, e.g. `handler_castCanMissNoCoefficient`, `handler_resourcechange`).
 - [ ] **[REQ-008][P0][C3]** Implement true cast-can-miss two-phase behavior (add on cast, rollback on miss/immune/resist result), not static one-shot.
-- [ ] **[REQ-009][P0][C3]** Enforce school-specific modifiers in runtime (and pass spell school through context).
-- [ ] **[REQ-010][P0][C3]** Enforce school-scoped modifiers at runtime (`ThreatModifier.schools` exists but is not applied).
-- [ ] **[REQ-011][P0][C3]** Carry spell school in event/context so school-based talents (Mage/Priest/Paladin holy-only) can be evaluated correctly.
+- [x] **[REQ-009][P0][C3]** Enforce school-specific modifiers in runtime (and pass spell school through context).
+- [x] **[REQ-010][P0][C3]** Enforce school-scoped modifiers at runtime (`ThreatModifier.schools` exists but is not applied).
+- [x] **[REQ-011][P0][C3]** Carry spell school in event/context so school-based talents (Mage/Priest/Paladin holy-only) can be evaluated correctly.
 - [ ] **[REQ-012][P0][C5]** Expand custom handler surface to Era parity: pre/global handlers, handler-composition, and safe aura/threat state mutation from handlers.
 
 ## P0 - Event Ingestion and Formula Triggering

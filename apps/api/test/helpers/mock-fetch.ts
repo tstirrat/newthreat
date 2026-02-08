@@ -60,6 +60,12 @@ export interface MockWCLResponses {
         subType: string
         petOwner: number | null
       }>
+      abilities?: Array<{
+        gameID: number | null
+        icon: string | null
+        name: string | null
+        type: string | null
+      }>
     }
   }
   events?: unknown[]

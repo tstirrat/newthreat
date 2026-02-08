@@ -1,12 +1,13 @@
 import type { DamageEvent, EnergizeEvent } from '@wcl-threat/wcl-types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type {
-  AuraModifierFn,
-  ThreatConfig,
-  ThreatContext,
-  ThreatFormula,
-  WowClass,
+import {
+  SpellSchool,
+  type AuraModifierFn,
+  type ThreatConfig,
+  type ThreatContext,
+  type ThreatFormula,
+  type WowClass,
 } from '../types'
 import {
   getActiveModifiers,
@@ -21,6 +22,7 @@ function createMockContext(
   return {
     event: { type: 'damage', abilityGameID: 100 } as DamageEvent,
     amount: 100,
+    spellSchoolMask: SpellSchool.Physical,
     sourceAuras: new Set(),
     targetAuras: new Set(),
     sourceActor: { id: 1, name: 'TestPlayer', class: 'warrior' },
@@ -131,6 +133,64 @@ describe('getActiveModifiers', () => {
 
     const result = getActiveModifiers(ctx, modifiers)
     expect(result).toHaveLength(1)
+  })
+
+  it('filters modifiers by schools if present - matched', () => {
+    const ctx = createMockContext({
+      sourceAuras: new Set([10]),
+      spellSchoolMask: SpellSchool.Holy,
+    })
+
+    const modifiers = {
+      10: () => ({
+        name: 'Holy Mod',
+        value: 1.3,
+        source: 'buff' as const,
+        schools: new Set([SpellSchool.Holy]),
+      }),
+    }
+
+    const result = getActiveModifiers(ctx, modifiers)
+    expect(result).toHaveLength(1)
+    expect(result[0]?.name).toBe('Holy Mod')
+  })
+
+  it('filters modifiers by schools if present - not matched', () => {
+    const ctx = createMockContext({
+      sourceAuras: new Set([10]),
+      spellSchoolMask: SpellSchool.Physical,
+    })
+
+    const modifiers = {
+      10: () => ({
+        name: 'Holy Mod',
+        value: 1.3,
+        source: 'buff' as const,
+        schools: new Set([SpellSchool.Holy]),
+      }),
+    }
+
+    const result = getActiveModifiers(ctx, modifiers)
+    expect(result).toHaveLength(0)
+  })
+
+  it('excludes school-scoped modifiers when event school is unknown', () => {
+    const ctx = createMockContext({
+      sourceAuras: new Set([10]),
+      spellSchoolMask: 0,
+    })
+
+    const modifiers = {
+      10: () => ({
+        name: 'Holy Mod',
+        value: 1.3,
+        source: 'buff' as const,
+        schools: new Set([SpellSchool.Holy]),
+      }),
+    }
+
+    const result = getActiveModifiers(ctx, modifiers)
+    expect(result).toHaveLength(0)
   })
 })
 

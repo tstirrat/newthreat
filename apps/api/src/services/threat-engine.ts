@@ -41,6 +41,8 @@ export interface ProcessEventsInput {
   rawEvents: WCLEvent[]
   /** Map of actor IDs to actor metadata */
   actorMap: Map<number, Actor>
+  /** Ability school bitmasks indexed by ability ID */
+  abilitySchoolMap?: Map<number, number>
   /** List of all enemies in the fight */
   enemies: Enemy[]
   /** Threat configuration for the game version */
@@ -64,7 +66,7 @@ export interface ProcessEventsOutput {
  * 4. Build augmented events with threat data
  */
 export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
-  const { rawEvents, actorMap, enemies, config } = input
+  const { rawEvents, actorMap, abilitySchoolMap, enemies, config } = input
 
   const fightState = new FightState(actorMap, config)
   const effectTracker = new EffectTracker()
@@ -124,6 +126,7 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
       const threatOptions: CalculateThreatOptions = {
         sourceAuras: fightState.getAuras(event.sourceID),
         targetAuras: fightState.getAuras(event.targetID),
+        spellSchoolMask: getSpellSchoolMaskForEvent(event, abilitySchoolMap),
         enemies,
         sourceActor,
         targetActor,
@@ -392,6 +395,21 @@ function shouldCalculateThreat(event: WCLEvent): boolean {
   ].includes(event.type)
 }
 
+function getSpellSchoolMaskForEvent(
+  event: WCLEvent,
+  abilitySchoolMap?: Map<number, number>,
+): number {
+  if (!abilitySchoolMap || !('abilityGameID' in event)) {
+    return 0
+  }
+
+  if (event.abilityGameID === undefined) {
+    return 0
+  }
+
+  return abilitySchoolMap.get(event.abilityGameID) ?? 0
+}
+
 interface ThreatStateSpellSets {
   fixate: Set<number>
   aggroLoss: Set<number>
@@ -438,6 +456,10 @@ function buildStateSpecialFromAuraEvent(
   }
 
   const spellId = event.abilityGameID
+  if (spellId === undefined) {
+    return undefined
+  }
+
   const kind = getStateKind(spellId, stateSpellSets)
   if (!kind) {
     return undefined
@@ -590,6 +612,7 @@ function buildAugmentedEvent(
 export interface CalculateThreatOptions {
   sourceAuras: Set<number>
   targetAuras: Set<number>
+  spellSchoolMask?: number
   enemies: Enemy[] // Still needed for building threat values
   sourceActor: Actor
   targetActor: Actor
@@ -606,10 +629,12 @@ export function calculateModifiedThreat(
   config: ThreatConfig,
 ): ThreatCalculation {
   const amount = getEventAmount(event)
+  const spellSchoolMask = options.spellSchoolMask ?? 0
 
   const ctx: ThreatContext = {
     event,
     amount,
+    spellSchoolMask,
     sourceAuras: options.sourceAuras,
     targetAuras: options.targetAuras,
     sourceActor: options.sourceActor,
