@@ -7,9 +7,15 @@ export type EventType =
   | 'damage'
   | 'heal'
   | 'applybuff'
+  | 'refreshbuff'
+  | 'applybuffstack'
   | 'removebuff'
+  | 'removebuffstack'
   | 'applydebuff'
+  | 'refreshdebuff'
+  | 'applydebuffstack'
   | 'removedebuff'
+  | 'removedebuffstack'
   | 'energize'
   | 'cast'
   | 'begincast'
@@ -89,10 +95,31 @@ export interface ApplyBuffEvent extends BaseWCLEvent {
   stacks?: number
 }
 
+export interface RefreshBuffEvent extends BaseWCLEvent {
+  type: 'refreshbuff'
+  abilityGameID: number
+  absorb?: number
+  stacks?: number
+}
+
+export interface ApplyBuffStackEvent extends BaseWCLEvent {
+  type: 'applybuffstack'
+  abilityGameID: number
+  absorb?: number
+  stacks?: number
+}
+
 export interface RemoveBuffEvent extends BaseWCLEvent {
   type: 'removebuff'
   abilityGameID: number
   absorb?: number // Remaining absorb when removed
+  stacks?: number
+}
+
+export interface RemoveBuffStackEvent extends BaseWCLEvent {
+  type: 'removebuffstack'
+  abilityGameID: number
+  absorb?: number
   stacks?: number
 }
 
@@ -102,8 +129,26 @@ export interface ApplyDebuffEvent extends BaseWCLEvent {
   stacks?: number
 }
 
+export interface RefreshDebuffEvent extends BaseWCLEvent {
+  type: 'refreshdebuff'
+  abilityGameID: number
+  stacks?: number
+}
+
+export interface ApplyDebuffStackEvent extends BaseWCLEvent {
+  type: 'applydebuffstack'
+  abilityGameID: number
+  stacks?: number
+}
+
 export interface RemoveDebuffEvent extends BaseWCLEvent {
   type: 'removedebuff'
+  abilityGameID: number
+  stacks?: number
+}
+
+export interface RemoveDebuffStackEvent extends BaseWCLEvent {
+  type: 'removedebuffstack'
   abilityGameID: number
   stacks?: number
 }
@@ -182,9 +227,15 @@ export type WCLEvent =
   | DamageEvent
   | HealEvent
   | ApplyBuffEvent
+  | RefreshBuffEvent
+  | ApplyBuffStackEvent
   | RemoveBuffEvent
+  | RemoveBuffStackEvent
   | ApplyDebuffEvent
+  | RefreshDebuffEvent
+  | ApplyDebuffStackEvent
   | RemoveDebuffEvent
+  | RemoveDebuffStackEvent
   | EnergizeEvent
   | CastEvent
   | BeginCastEvent

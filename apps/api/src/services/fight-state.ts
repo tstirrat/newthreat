@@ -57,7 +57,11 @@ export class FightState {
         this.processCombatantInfo(event, config)
         break
       case 'applybuff':
+      case 'refreshbuff':
+      case 'applybuffstack':
       case 'applydebuff':
+      case 'refreshdebuff':
+      case 'applydebuffstack':
         this.getOrCreateActorState(event.targetID).auraTracker.addAura(
           event.abilityGameID,
         )
@@ -67,6 +71,14 @@ export class FightState {
         this.getOrCreateActorState(event.targetID).auraTracker.removeAura(
           event.abilityGameID,
         )
+        break
+      case 'removebuffstack':
+      case 'removedebuffstack':
+        if (event.stacks !== undefined && event.stacks <= 0) {
+          this.getOrCreateActorState(event.targetID).auraTracker.removeAura(
+            event.abilityGameID,
+          )
+        }
         break
       case 'death':
         this.deadActors.add(event.targetID)

@@ -6,13 +6,19 @@
  */
 import type {
   ApplyBuffEvent,
+  ApplyBuffStackEvent,
   ApplyDebuffEvent,
+  ApplyDebuffStackEvent,
   CombatantInfoAura,
   DamageEvent,
   EnergizeEvent,
   HealEvent,
+  RefreshBuffEvent,
+  RefreshDebuffEvent,
   RemoveBuffEvent,
+  RemoveBuffStackEvent,
   RemoveDebuffEvent,
+  RemoveDebuffStackEvent,
 } from '@wcl-threat/wcl-types'
 
 /**
@@ -155,6 +161,62 @@ export function createRemoveBuffEvent(
 }
 
 /**
+ * Create a refreshbuff event with default values
+ */
+export function createRefreshBuffEvent(
+  overrides: Partial<RefreshBuffEvent> = {},
+): RefreshBuffEvent {
+  return {
+    timestamp: 1500,
+    type: 'refreshbuff',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 1,
+    targetIsFriendly: true,
+    abilityGameID: 1,
+    ...overrides,
+  }
+}
+
+/**
+ * Create an applybuffstack event with default values
+ */
+export function createApplyBuffStackEvent(
+  overrides: Partial<ApplyBuffStackEvent> = {},
+): ApplyBuffStackEvent {
+  return {
+    timestamp: 1500,
+    type: 'applybuffstack',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 1,
+    targetIsFriendly: true,
+    abilityGameID: 1,
+    stacks: 2,
+    ...overrides,
+  }
+}
+
+/**
+ * Create a removebuffstack event with default values
+ */
+export function createRemoveBuffStackEvent(
+  overrides: Partial<RemoveBuffStackEvent> = {},
+): RemoveBuffStackEvent {
+  return {
+    timestamp: 1500,
+    type: 'removebuffstack',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 1,
+    targetIsFriendly: true,
+    abilityGameID: 1,
+    stacks: 0,
+    ...overrides,
+  }
+}
+
+/**
  * Create an applydebuff event with default values
  *
  * Defaults:
@@ -198,6 +260,62 @@ export function createRemoveDebuffEvent(
     targetID: 2,
     targetIsFriendly: false,
     abilityGameID: 1,
+    ...overrides,
+  }
+}
+
+/**
+ * Create a refreshdebuff event with default values
+ */
+export function createRefreshDebuffEvent(
+  overrides: Partial<RefreshDebuffEvent> = {},
+): RefreshDebuffEvent {
+  return {
+    timestamp: 1500,
+    type: 'refreshdebuff',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 2,
+    targetIsFriendly: false,
+    abilityGameID: 1,
+    ...overrides,
+  }
+}
+
+/**
+ * Create an applydebuffstack event with default values
+ */
+export function createApplyDebuffStackEvent(
+  overrides: Partial<ApplyDebuffStackEvent> = {},
+): ApplyDebuffStackEvent {
+  return {
+    timestamp: 1500,
+    type: 'applydebuffstack',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 2,
+    targetIsFriendly: false,
+    abilityGameID: 1,
+    stacks: 2,
+    ...overrides,
+  }
+}
+
+/**
+ * Create a removedebuffstack event with default values
+ */
+export function createRemoveDebuffStackEvent(
+  overrides: Partial<RemoveDebuffStackEvent> = {},
+): RemoveDebuffStackEvent {
+  return {
+    timestamp: 1500,
+    type: 'removedebuffstack',
+    sourceID: 1,
+    sourceIsFriendly: true,
+    targetID: 2,
+    targetIsFriendly: false,
+    abilityGameID: 1,
+    stacks: 0,
     ...overrides,
   }
 }

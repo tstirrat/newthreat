@@ -14,10 +14,16 @@ import { describe, expect, it } from 'vitest'
 
 import { createMockThreatConfig } from '../../test/helpers/config'
 import {
+  createApplyBuffStackEvent,
+  createApplyDebuffStackEvent,
   createApplyDebuffEvent,
   createCombatantInfoAura,
   createDamageEvent,
+  createRefreshBuffEvent,
+  createRefreshDebuffEvent,
+  createRemoveBuffStackEvent,
   createRemoveDebuffEvent,
+  createRemoveDebuffStackEvent,
 } from '../../test/helpers/events'
 import { createApplyBuffEvent, createRemoveBuffEvent } from '../../test/setup'
 import { FightState } from './fight-state'
@@ -204,6 +210,77 @@ describe('FightState', () => {
       expect(state.getAuras(25).has(12345)).toBe(true)
     })
 
+    it('routes refreshbuff to target actor aura tracker', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        createRefreshBuffEvent({
+          timestamp: 0,
+          sourceID: 2,
+          targetID: 1,
+          abilityGameID: 71,
+        }),
+        testConfig,
+      )
+
+      expect(state.getAuras(1).has(71)).toBe(true)
+      expect(state.getAuras(2).size).toBe(0)
+    })
+
+    it('routes applybuffstack to target actor aura tracker', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        createApplyBuffStackEvent({
+          timestamp: 0,
+          sourceID: 2,
+          targetID: 1,
+          abilityGameID: 71,
+          stacks: 2,
+        }),
+        testConfig,
+      )
+
+      expect(state.getAuras(1).has(71)).toBe(true)
+    })
+
+    it('routes refreshdebuff to target actor', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        createRefreshDebuffEvent({
+          timestamp: 0,
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 25,
+          targetIsFriendly: false,
+          abilityGameID: 12345,
+        }),
+        testConfig,
+      )
+
+      expect(state.getAuras(25).has(12345)).toBe(true)
+    })
+
+    it('routes applydebuffstack to target actor', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        createApplyDebuffStackEvent({
+          timestamp: 0,
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 25,
+          targetIsFriendly: false,
+          abilityGameID: 12345,
+          stacks: 2,
+        }),
+        testConfig,
+      )
+
+      expect(state.getAuras(25).has(12345)).toBe(true)
+    })
+
     it('routes removedebuff to target actor', () => {
       const state = new FightState(defaultActorMap, testConfig)
 
@@ -227,6 +304,83 @@ describe('FightState', () => {
           targetID: 25,
           targetIsFriendly: false,
           abilityGameID: 12345,
+        }),
+        testConfig,
+      )
+
+      expect(state.getAuras(25).has(12345)).toBe(false)
+    })
+
+    it('removes aura when removebuffstack reaches zero stacks', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        createApplyBuffEvent({
+          timestamp: 0,
+          targetID: 1,
+          abilityGameID: 71,
+        }),
+        testConfig,
+      )
+
+      state.processEvent(
+        createRemoveBuffStackEvent({
+          timestamp: 100,
+          targetID: 1,
+          abilityGameID: 71,
+          stacks: 0,
+        }),
+        testConfig,
+      )
+
+      expect(state.getAuras(1).has(71)).toBe(false)
+    })
+
+    it('keeps aura when removebuffstack still has remaining stacks', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        createApplyBuffEvent({
+          timestamp: 0,
+          targetID: 1,
+          abilityGameID: 71,
+        }),
+        testConfig,
+      )
+
+      state.processEvent(
+        createRemoveBuffStackEvent({
+          timestamp: 100,
+          targetID: 1,
+          abilityGameID: 71,
+          stacks: 2,
+        }),
+        testConfig,
+      )
+
+      expect(state.getAuras(1).has(71)).toBe(true)
+    })
+
+    it('removes aura when removedebuffstack reaches zero stacks', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        createApplyDebuffEvent({
+          timestamp: 0,
+          targetID: 25,
+          targetIsFriendly: false,
+          abilityGameID: 12345,
+        }),
+        testConfig,
+      )
+
+      state.processEvent(
+        createRemoveDebuffStackEvent({
+          timestamp: 100,
+          targetID: 25,
+          targetIsFriendly: false,
+          abilityGameID: 12345,
+          stacks: 0,
         }),
         testConfig,
       )

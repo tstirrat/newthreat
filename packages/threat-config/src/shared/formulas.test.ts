@@ -5,10 +5,13 @@ import { describe, expect, it } from 'vitest'
 
 import type { ThreatContext } from '../types'
 import {
+  castCanMiss,
   calculateThreat,
   modifyThreat,
   noThreat,
   tauntTarget,
+  threatOnBuff,
+  threatOnDebuff,
 } from './formulas'
 
 // Mock ThreatContext factory
@@ -312,6 +315,141 @@ describe('modifyThreat', () => {
       multiplier: 0,
       target: 'all',
     })
+  })
+})
+
+describe('threatOnDebuff', () => {
+  it('applies threat on applydebuff', () => {
+    const formula = threatOnDebuff(120)
+    const ctx = createMockContext({
+      event: { type: 'applydebuff' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('120')
+    expect(result.value).toBe(120)
+  })
+
+  it('applies threat on refresh and stack debuff phases', () => {
+    const formula = threatOnDebuff(120)
+
+    const refreshResult = formula(
+      createMockContext({
+        event: { type: 'refreshdebuff' } as ThreatContext['event'],
+      }),
+    )
+    const stackResult = formula(
+      createMockContext({
+        event: { type: 'applydebuffstack' } as ThreatContext['event'],
+      }),
+    )
+
+    expect(refreshResult.value).toBe(120)
+    expect(stackResult.value).toBe(120)
+  })
+
+  it('returns undefined for non-debuff phases', () => {
+    const formula = threatOnDebuff(120)
+    const ctx = createMockContext({
+      event: { type: 'cast' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result).toBeUndefined()
+  })
+})
+
+describe('threatOnBuff', () => {
+  it('applies threat on applybuff', () => {
+    const formula = threatOnBuff(70, { split: true })
+    const ctx = createMockContext({
+      event: { type: 'applybuff' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('70')
+    expect(result.value).toBe(70)
+    expect(result.splitAmongEnemies).toBe(true)
+  })
+
+  it('applies threat on refresh and stack buff phases', () => {
+    const formula = threatOnBuff(70)
+
+    const refreshResult = formula(
+      createMockContext({
+        event: { type: 'refreshbuff' } as ThreatContext['event'],
+      }),
+    )
+    const stackResult = formula(
+      createMockContext({
+        event: { type: 'applybuffstack' } as ThreatContext['event'],
+      }),
+    )
+
+    expect(refreshResult.value).toBe(70)
+    expect(stackResult.value).toBe(70)
+  })
+
+  it('returns undefined for non-buff phases', () => {
+    const formula = threatOnBuff(70)
+    const ctx = createMockContext({
+      event: { type: 'damage' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result).toBeUndefined()
+  })
+})
+
+describe('castCanMiss', () => {
+  it('applies flat threat on cast events', () => {
+    const formula = castCanMiss(301)
+    const ctx = createMockContext({
+      event: { type: 'cast' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('301 (cast)')
+    expect(result.value).toBe(301)
+  })
+
+  it('returns negative threat on miss damage events', () => {
+    const formula = castCanMiss(301)
+    const ctx = createMockContext({
+      event: { type: 'damage', hitType: 'miss' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result.formula).toBe('-301 (miss rollback)')
+    expect(result.value).toBe(-301)
+  })
+
+  it('returns undefined for non-miss damage events', () => {
+    const formula = castCanMiss(301)
+    const ctx = createMockContext({
+      event: { type: 'damage', hitType: 'hit' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result).toBeUndefined()
+  })
+
+  it('returns undefined for non-cast/non-damage phases', () => {
+    const formula = castCanMiss(301)
+    const ctx = createMockContext({
+      event: { type: 'applydebuff' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result).toBeUndefined()
   })
 })
 

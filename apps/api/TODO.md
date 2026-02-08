@@ -22,10 +22,10 @@ Legend:
 
 ## P0 - Event Ingestion and Formula Triggering
 
-- [ ] **[REQ-013][P0][C4]** Add full event-type coverage used by Era handlers (`refreshbuff`, `refreshdebuff`, stack variants, etc.) in types + processing.
-- [ ] **[REQ-014][P0][C3]** Process aura event types needed by Era mechanics: `refreshbuff`, `refreshdebuff`, stack variants (`applybuffstack`, `applydebuffstack`, etc.).
-- [ ] **[REQ-015][P0][C4]** Make ability formulas trigger on the same event phases as Era (`applybuff/debuff`, refresh, cast, damage), not only current threat-calculated types.
-- [ ] **[REQ-016][P0][C3]** Let formulas run on `applybuff`/`applydebuff`/refresh/stack events, not just `damage/heal/energize/cast`.
+- [x] **[REQ-013][P0][C4]** Add full event-type coverage used by Era handlers (`refreshbuff`, `refreshdebuff`, stack variants, etc.) in types + processing.
+- [x] **[REQ-014][P0][C3]** Process aura event types needed by Era mechanics: `refreshbuff`, `refreshdebuff`, stack variants (`applybuffstack`, `applydebuffstack`, etc.).
+- [x] **[REQ-015][P0][C4]** Make ability formulas trigger on the same event phases as Era (`applybuff/debuff`, refresh, cast, damage), not only current threat-calculated types.
+- [x] **[REQ-016][P0][C3]** Let formulas run on `applybuff`/`applydebuff`/refresh/stack events, not just `damage/heal/energize/cast`.
 
 ## P1 - State Model and Inference Parity
 

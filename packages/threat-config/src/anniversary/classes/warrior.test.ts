@@ -226,7 +226,9 @@ describe('abilities', () => {
       const formula = warriorConfig.abilities[Spells.BattleShout]
       expect(formula).toBeDefined()
 
-      const ctx = createMockContext()
+      const ctx = createMockContext({
+        event: { type: 'applybuff' } as ThreatContext['event'],
+      })
       const result = formula!(ctx)
 
       expect(result.formula).toBe('70')
@@ -240,7 +242,9 @@ describe('abilities', () => {
       const formula = warriorConfig.abilities[Spells.DemoShout]
       expect(formula).toBeDefined()
 
-      const ctx = createMockContext()
+      const ctx = createMockContext({
+        event: { type: 'applydebuff' } as ThreatContext['event'],
+      })
       const result = formula!(ctx)
 
       expect(result.formula).toBe('56')

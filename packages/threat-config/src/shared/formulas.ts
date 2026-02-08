@@ -4,13 +4,17 @@
  * These helper functions create threat formula functions that can be used
  * in class configurations.
  */
+import type { EventType, HitType } from '@wcl-threat/wcl-types'
+
 import type { ThreatContext, ThreatFormulaResult } from '../types'
 
-export type FormulaFn = (ctx: ThreatContext) => ThreatFormulaResult
+export type FormulaFn = (ctx: ThreatContext) => ThreatFormulaResult | undefined
 
 export interface FormulaOptions {
   /** Split threat among all enemies */
   split?: boolean
+  /** Event types that should trigger this formula */
+  eventTypes?: EventType[]
 }
 
 export interface CalculateThreatOptions {
@@ -20,6 +24,40 @@ export interface CalculateThreatOptions {
   bonus?: number
   /** Split threat among all enemies (default: false) */
   split?: boolean
+  /** Event types that should trigger this formula */
+  eventTypes?: EventType[]
+}
+
+const buffAuraEventTypes: EventType[] = [
+  'applybuff',
+  'refreshbuff',
+  'applybuffstack',
+]
+const debuffAuraEventTypes: EventType[] = [
+  'applydebuff',
+  'refreshdebuff',
+  'applydebuffstack',
+]
+const tauntAuraEventTypes: EventType[] = [
+  ...buffAuraEventTypes,
+  ...debuffAuraEventTypes,
+]
+const castCanMissRollbackHitTypes = new Set<HitType>([
+  'miss',
+  'dodge',
+  'parry',
+  'immune',
+  'resist',
+])
+
+function isEventTypeAllowed(
+  eventType: EventType,
+  allowedEventTypes?: EventType[],
+): boolean {
+  if (!allowedEventTypes || allowedEventTypes.length === 0) {
+    return true
+  }
+  return allowedEventTypes.includes(eventType)
 }
 
 /**
@@ -36,9 +74,13 @@ export interface CalculateThreatOptions {
 export function calculateThreat(
   options: CalculateThreatOptions = {},
 ): FormulaFn {
-  const { modifier = 1, bonus = 0, split = false } = options
+  const { modifier = 1, bonus = 0, split = false, eventTypes } = options
 
   return (ctx) => {
+    if (!isEventTypeAllowed(ctx.event.type, eventTypes)) {
+      return undefined
+    }
+
     const value = ctx.amount * modifier + bonus
 
     // Generate formula string
@@ -76,6 +118,8 @@ export interface TauntOptions {
   modifier?: number
   /** Flat bonus threat added after modifier (default: 0) */
   bonus?: number
+  /** Event types that should trigger this formula */
+  eventTypes?: EventType[]
 }
 
 export interface ModifyThreatOptions {
@@ -91,15 +135,15 @@ export interface ModifyThreatOptions {
  * Example: Taunt ({ bonus: 1 }), Mocking Blow ({ modifier: 1 })
  */
 export function tauntTarget(options: TauntOptions = {}): FormulaFn {
-  const { modifier = 0, bonus = 0 } = options
+  const {
+    modifier = 0,
+    bonus = 0,
+    eventTypes = tauntAuraEventTypes,
+  } = options
 
   return (ctx) => {
-    if (ctx.event.type !== 'applybuff' && ctx.event.type !== 'applydebuff') {
-      return {
-        formula: '0 (taunt on aura apply)',
-        value: 0,
-        splitAmongEnemies: false,
-      }
+    if (!isEventTypeAllowed(ctx.event.type, eventTypes)) {
+      return undefined
     }
 
     const bonusThreat = ctx.amount * modifier + bonus
@@ -185,11 +229,17 @@ export function noThreat(): FormulaFn {
  * Note: For abilities that miss, this should be paired with castCanMiss
  */
 export function threatOnDebuff(value: number): FormulaFn {
-  return () => ({
-    formula: `${value}`,
-    value,
-    splitAmongEnemies: false,
-  })
+  return (ctx) => {
+    if (!isEventTypeAllowed(ctx.event.type, debuffAuraEventTypes)) {
+      return undefined
+    }
+
+    return {
+      formula: `${value}`,
+      value,
+      splitAmongEnemies: false,
+    }
+  }
 }
 
 /**
@@ -200,11 +250,19 @@ export function threatOnBuff(
   value: number,
   options?: FormulaOptions,
 ): FormulaFn {
-  return () => ({
-    formula: `${value}`,
-    value,
-    splitAmongEnemies: options?.split ?? true,
-  })
+  const eventTypes = options?.eventTypes ?? buffAuraEventTypes
+
+  return (ctx) => {
+    if (!isEventTypeAllowed(ctx.event.type, eventTypes)) {
+      return undefined
+    }
+
+    return {
+      formula: `${value}`,
+      value,
+      splitAmongEnemies: options?.split ?? true,
+    }
+  }
 }
 
 /**
@@ -226,9 +284,29 @@ export function modHeal(multiplier: number): FormulaFn {
  * Example: Sunder Armor
  */
 export function castCanMiss(value: number): FormulaFn {
-  return () => ({
-    formula: `${value} (cast)`,
-    value,
-    splitAmongEnemies: false,
-  })
+  return (ctx) => {
+    if (ctx.event.type === 'cast') {
+      return {
+        formula: `${value} (cast)`,
+        value,
+        splitAmongEnemies: false,
+      }
+    }
+
+    if (
+      ctx.event.type === 'damage' &&
+      castCanMissRollbackHitTypes.has(ctx.event.hitType)
+    ) {
+      return {
+        formula: `-${value} (miss rollback)`,
+        value: -value,
+        splitAmongEnemies: false,
+      }
+    }
+
+    if (ctx.event.type !== 'damage') {
+      return undefined
+    }
+    return undefined
+  }
 }

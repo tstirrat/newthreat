@@ -31,6 +31,28 @@ import { EffectTracker } from './effect-tracker'
 import { FightState } from './fight-state'
 
 const ENVIRONMENT_TARGET_ID = -1
+const THREAT_EVENT_TYPES = new Set<WCLEvent['type']>([
+  'damage',
+  'heal',
+  'energize',
+  'cast',
+  'applybuff',
+  'refreshbuff',
+  'applybuffstack',
+  'removebuff',
+  'removebuffstack',
+  'applydebuff',
+  'refreshdebuff',
+  'applydebuffstack',
+  'removedebuff',
+  'removedebuffstack',
+])
+
+const NO_THREAT_FORMULA_RESULT = {
+  formula: '0',
+  value: 0,
+  splitAmongEnemies: false,
+} as const
 
 // ============================================================================
 // Event Processing
@@ -383,16 +405,7 @@ function shouldCalculateThreat(event: WCLEvent): boolean {
   if (event.targetID === ENVIRONMENT_TARGET_ID) {
     return false
   }
-  return [
-    'damage',
-    'heal',
-    'energize',
-    'cast',
-    'applybuff',
-    'removebuff',
-    'applydebuff',
-    'removedebuff',
-  ].includes(event.type)
+  return THREAT_EVENT_TYPES.has(event.type)
 }
 
 function getSpellSchoolMaskForEvent(
@@ -446,7 +459,10 @@ function buildStateSpecialFromAuraEvent(
   event: WCLEvent,
   stateSpellSets: ThreatStateSpellSets,
 ): Extract<ThreatSpecial, { type: 'state' }> | undefined {
-  if (!('abilityGameID' in event)) {
+  if (
+    !('abilityGameID' in event) ||
+    typeof event.abilityGameID !== 'number'
+  ) {
     return undefined
   }
 
@@ -491,10 +507,24 @@ function buildStateSpecialFromAuraEvent(
 }
 
 function getStatePhase(event: WCLEvent): 'start' | 'end' | undefined {
-  if (event.type === 'applybuff' || event.type === 'applydebuff') {
+  if (
+    event.type === 'applybuff' ||
+    event.type === 'refreshbuff' ||
+    event.type === 'applybuffstack' ||
+    event.type === 'applydebuff' ||
+    event.type === 'refreshdebuff' ||
+    event.type === 'applydebuffstack'
+  ) {
     return 'start'
   }
   if (event.type === 'removebuff' || event.type === 'removedebuff') {
+    return 'end'
+  }
+  if (
+    (event.type === 'removebuffstack' || event.type === 'removedebuffstack') &&
+    event.stacks !== undefined &&
+    event.stacks <= 0
+  ) {
     return 'end'
   }
   return undefined
@@ -707,7 +737,7 @@ function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
   const event = ctx.event
 
   // Merge abilities: global first, then class (class overrides global on duplicates)
-  if ('abilityGameID' in event && event.abilityGameID) {
+  if ('abilityGameID' in event && typeof event.abilityGameID === 'number') {
     const classConfig = getClassConfig(ctx.sourceActor.class, config)
     const mergedAbilities = {
       ...(config.abilities ?? {}),
@@ -716,25 +746,21 @@ function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
 
     const abilityFormula = mergedAbilities[event.abilityGameID]
     if (abilityFormula) {
-      return abilityFormula(ctx)
+      // Ability formulas override base formulas; undefined means this phase has no threat.
+      return abilityFormula(ctx) ?? NO_THREAT_FORMULA_RESULT
     }
   }
 
   // Fall back to base threat formulas by event type
   switch (event.type) {
     case 'damage':
-      return config.baseThreat.damage(ctx)
+      return config.baseThreat.damage(ctx) ?? NO_THREAT_FORMULA_RESULT
     case 'heal':
-      return config.baseThreat.heal(ctx)
+      return config.baseThreat.heal(ctx) ?? NO_THREAT_FORMULA_RESULT
     case 'energize':
-      return config.baseThreat.energize(ctx)
+      return config.baseThreat.energize(ctx) ?? NO_THREAT_FORMULA_RESULT
     default:
-      // Default: no threat
-      return {
-        formula: '0',
-        value: 0,
-        splitAmongEnemies: false,
-      }
+      return NO_THREAT_FORMULA_RESULT
   }
 }
 

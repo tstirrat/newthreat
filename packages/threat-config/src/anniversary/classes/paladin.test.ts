@@ -83,6 +83,22 @@ describe('Paladin Config', () => {
         expect(result.value).toBe(85) // 50 + 35
       })
     })
+
+    describe('Blessing of Kings', () => {
+      it('returns split threat on buff application', () => {
+        const formula = paladinConfig.abilities[Spells.BlessingOfKings]
+        expect(formula).toBeDefined()
+
+        const ctx = createMockContext({
+          event: { type: 'applybuff' } as ThreatContext['event'],
+        })
+        const result = formula!(ctx)
+
+        expect(result.formula).toBe('60')
+        expect(result.value).toBe(60)
+        expect(result.splitAmongEnemies).toBe(true)
+      })
+    })
   })
 
   describe('invulnerabilityBuffs', () => {

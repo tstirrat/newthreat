@@ -3,7 +3,12 @@
  *
  * Spell IDs and threat values are based on Classic/Anniversary Edition mechanics.
  */
-import { calculateThreat, tauntTarget } from '../../shared/formulas'
+import {
+  calculateThreat,
+  tauntTarget,
+  threatOnBuff,
+  threatOnDebuff,
+} from '../../shared/formulas'
 import type { ClassThreatConfig, GearItem } from '../../types'
 
 // ============================================================================
@@ -159,14 +164,10 @@ export const warriorConfig: ClassThreatConfig = {
     [Spells.Thunderclap]: calculateThreat({ modifier: 1, bonus: 175 }),
 
     // Battle Shout: 70 threat split among enemies
-    [Spells.BattleShout]: calculateThreat({
-      modifier: 0,
-      bonus: 70,
-      split: true,
-    }),
+    [Spells.BattleShout]: threatOnBuff(70, { split: true }),
 
     // Demo Shout: 56 threat per target hit
-    [Spells.DemoShout]: calculateThreat({ modifier: 0, bonus: 56 }),
+    [Spells.DemoShout]: threatOnDebuff(56),
 
     // Shield Bash: damage + 187 flat threat
     [Spells.ShieldBash]: calculateThreat({ modifier: 1, bonus: 187 }),

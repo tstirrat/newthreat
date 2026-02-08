@@ -5,14 +5,14 @@
  * threat. Uses mock configs to test behaviors surgically without dependencies on
  * real config evolution.
  */
-import {
-  SpellSchool,
-  type Actor,
-  type EffectHandler,
-  type Enemy,
-  type ThreatConfig,
-  type ThreatContext,
-  type ThreatModifier,
+import { castCanMiss } from '@wcl-threat/threat-config'
+import type {
+  Actor,
+  EffectHandler,
+  Enemy,
+  ThreatConfig,
+  ThreatContext,
+  ThreatModifier,
 } from '@wcl-threat/threat-config'
 import type { DamageEvent, GearItem, WCLEvent } from '@wcl-threat/wcl-types'
 import { describe, expect, it, vi } from 'vitest'
@@ -22,13 +22,17 @@ import {
   createMockThreatConfig,
 } from '../../test/helpers/config'
 import {
-  createApplyDebuffEvent,
   createApplyBuffEvent,
+  createApplyBuffStackEvent,
+  createApplyDebuffEvent,
+  createApplyDebuffStackEvent,
   createCombatantInfoAura,
   createDamageEvent,
   createEnergizeEvent,
   createHealEvent,
+  createRefreshBuffEvent,
   createRemoveBuffEvent,
+  createRemoveBuffStackEvent,
   createRemoveDebuffEvent,
 } from '../../test/helpers/events'
 import {
@@ -55,6 +59,7 @@ const SPELLS = {
   // Abilities
   MOCK_ABILITY_1: 1001,
   MOCK_ABILITY_2: 1002,
+  MOCK_CAST_CAN_MISS: 1003,
   // Auras
   MOCK_AURA_THREAT_UP: 2001,
   MOCK_AURA_THREAT_DOWN: 2002,
@@ -139,6 +144,7 @@ const mockConfig = createMockThreatConfig({
           value: ctx.amount * 0.5,
           splitAmongEnemies: true,
         }),
+        [SPELLS.MOCK_CAST_CAN_MISS]: castCanMiss(301),
       },
 
       gearImplications: (gear: GearItem[]) => {
@@ -193,6 +199,17 @@ describe('processEvents', () => {
           targetID: warriorActor.id,
           abilityGameID: SPELLS.DEFENSIVE_STANCE,
         }),
+        createRefreshBuffEvent({
+          targetID: warriorActor.id,
+          abilityGameID: SPELLS.DEFENSIVE_STANCE,
+        }),
+        createApplyDebuffStackEvent({
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          targetIsFriendly: false,
+          abilityGameID: SPELLS.MOCK_AURA_THREAT_DOWN,
+          stacks: 2,
+        }),
       ]
 
       const result = processEvents({
@@ -205,6 +222,8 @@ describe('processEvents', () => {
       expect(result.eventCounts.damage).toBe(2)
       expect(result.eventCounts.heal).toBe(1)
       expect(result.eventCounts.applybuff).toBe(1)
+      expect(result.eventCounts.refreshbuff).toBe(1)
+      expect(result.eventCounts.applydebuffstack).toBe(1)
     })
   })
 
@@ -1251,6 +1270,42 @@ describe('aura tracking', () => {
     expect(secondThreatUpModifier).toBeUndefined()
   })
 
+  it('tracks auras from refresh and stack aura events', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      createRefreshBuffEvent({
+        targetID: warriorActor.id,
+        abilityGameID: SPELLS.MOCK_AURA_THREAT_UP,
+      }),
+      createApplyBuffStackEvent({
+        targetID: warriorActor.id,
+        abilityGameID: SPELLS.MOCK_AURA_THREAT_DOWN,
+        stacks: 2,
+      }),
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const damageEvent = result.augmentedEvents.find((e) => e.type === 'damage')
+    expect(damageEvent?.threat.calculation.modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Test Threat Up', value: 1.5 }),
+        expect.objectContaining({ name: 'Test Threat Down', value: 0.5 }),
+      ]),
+    )
+  })
+
   it('emits phased state specials for invulnerability aura events', () => {
     const INVULN_SPELL = 642
     const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
@@ -1292,6 +1347,59 @@ describe('aura tracking', () => {
 
     const endSpecial = result.augmentedEvents[1]?.threat.calculation.special
     expect(endSpecial).toEqual({
+      type: 'state',
+      state: {
+        kind: 'invulnerable',
+        phase: 'end',
+        spellId: INVULN_SPELL,
+        actorId: warriorActor.id,
+      },
+    })
+  })
+
+  it('emits phased state specials for refresh and remove-stack aura events', () => {
+    const INVULN_SPELL = 642
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+    const config = createMockThreatConfig({
+      invulnerabilityBuffs: new Set([INVULN_SPELL]),
+    })
+
+    const result = processEvents({
+      rawEvents: [
+        createRefreshBuffEvent({
+          sourceID: warriorActor.id,
+          targetID: warriorActor.id,
+          abilityGameID: INVULN_SPELL,
+        }),
+        createRemoveBuffStackEvent({
+          sourceID: warriorActor.id,
+          targetID: warriorActor.id,
+          abilityGameID: INVULN_SPELL,
+          stacks: 0,
+        }),
+      ],
+      actorMap,
+      enemies,
+      config,
+    })
+
+    expect(result.augmentedEvents).toHaveLength(2)
+
+    const refreshSpecial = result.augmentedEvents[0]?.threat.calculation.special
+    expect(refreshSpecial).toEqual({
+      type: 'state',
+      state: {
+        kind: 'invulnerable',
+        phase: 'start',
+        spellId: INVULN_SPELL,
+        actorId: warriorActor.id,
+        name: `Spell ${INVULN_SPELL}`,
+      },
+    })
+
+    const removeStackSpecial =
+      result.augmentedEvents[1]?.threat.calculation.special
+    expect(removeStackSpecial).toEqual({
       type: 'state',
       state: {
         kind: 'invulnerable',
@@ -1497,6 +1605,148 @@ describe('ability-specific threat calculation', () => {
     // Custom formula: amount + 100 = 300
     expect(augmented?.threat.calculation.baseThreat).toBe(300)
     expect(augmented?.threat.calculation.formula).toBe('(custom) amt + 100')
+  })
+
+  it('runs ability formulas on refresh and stack aura phases', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const events: WCLEvent[] = [
+      createRefreshBuffEvent({
+        sourceID: warriorActor.id,
+        targetID: warriorActor.id,
+        abilityGameID: SPELLS.MOCK_ABILITY_1,
+      }),
+      createApplyDebuffStackEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        targetIsFriendly: false,
+        abilityGameID: SPELLS.MOCK_ABILITY_1,
+        stacks: 2,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    expect(result.augmentedEvents).toHaveLength(2)
+    expect(result.augmentedEvents[0]?.threat.calculation.baseThreat).toBe(100)
+    expect(result.augmentedEvents[1]?.threat.calculation.baseThreat).toBe(100)
+  })
+
+  it('runs ability formulas on cast phase events', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const castEvent: WCLEvent = {
+      timestamp: 1000,
+      type: 'cast',
+      sourceID: warriorActor.id,
+      sourceIsFriendly: true,
+      targetID: bossEnemy.id,
+      targetIsFriendly: false,
+      abilityGameID: SPELLS.MOCK_ABILITY_1,
+    }
+
+    const result = processEvents({
+      rawEvents: [castEvent],
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const augmented = result.augmentedEvents[0]
+    expect(augmented?.threat.calculation.baseThreat).toBe(100)
+    expect(augmented?.threat.calculation.formula).toBe('(custom) amt + 100')
+  })
+
+  it('rolls back castCanMiss threat on miss damage events', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const castEvent: WCLEvent = {
+      timestamp: 1000,
+      type: 'cast',
+      sourceID: warriorActor.id,
+      sourceIsFriendly: true,
+      targetID: bossEnemy.id,
+      targetIsFriendly: false,
+      abilityGameID: SPELLS.MOCK_CAST_CAN_MISS,
+    }
+
+    const missEvent = createDamageEvent({
+      timestamp: 1010,
+      sourceID: warriorActor.id,
+      targetID: bossEnemy.id,
+      targetIsFriendly: false,
+      abilityGameID: SPELLS.MOCK_CAST_CAN_MISS,
+      amount: 0,
+      hitType: 'miss',
+    })
+
+    const result = processEvents({
+      rawEvents: [castEvent, missEvent],
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    expect(result.augmentedEvents).toHaveLength(2)
+
+    const castAugmented = result.augmentedEvents[0]
+    expect(castAugmented?.threat.calculation.formula).toBe('301 (cast)')
+    expect(castAugmented?.threat.calculation.baseThreat).toBe(301)
+
+    const missAugmented = result.augmentedEvents[1]
+    expect(missAugmented?.threat.calculation.formula).toBe(
+      '-301 (miss rollback)',
+    )
+    expect(missAugmented?.threat.calculation.baseThreat).toBe(-301)
+    expect(missAugmented?.threat.changes?.[0]?.total).toBeCloseTo(0, 8)
+  })
+
+  it('treats undefined ability formula result as no threat and does not fall back', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+    const config = createMockThreatConfig({
+      baseThreat: {
+        damage: () => ({
+          formula: '(base) should not apply',
+          value: 999,
+          splitAmongEnemies: false,
+        }),
+        heal: mockConfig.baseThreat.heal,
+        energize: mockConfig.baseThreat.energize,
+      },
+      classes: {
+        warrior: {
+          baseThreatFactor: 1.0,
+          auraModifiers: {},
+          abilities: {
+            [SPELLS.MOCK_ABILITY_1]: () => undefined,
+          },
+        },
+      },
+    })
+
+    const result = processEvents({
+      rawEvents: [
+        createDamageEvent({
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          abilityGameID: SPELLS.MOCK_ABILITY_1,
+          amount: 250,
+        }),
+      ],
+      actorMap,
+      enemies,
+      config,
+    })
+
+    const augmented = result.augmentedEvents[0]
+    expect(augmented?.threat.calculation.baseThreat).toBe(0)
+    expect(augmented?.threat.calculation.formula).toBe('0')
+    expect(augmented?.threat.changes).toBeUndefined()
   })
 
   it('splits threat among enemies when configured', () => {
@@ -2960,7 +3210,11 @@ describe('Effect Handler Integration', () => {
       })
 
       it('reduces existing threat for the target enemy', () => {
-        const warriorActor: Actor = { id: 11, name: 'WarriorOne', class: 'warrior' }
+        const warriorActor: Actor = {
+          id: 11,
+          name: 'WarriorOne',
+          class: 'warrior',
+        }
         const actorMap = new Map([[warriorActor.id, warriorActor]])
 
         const events: WCLEvent[] = [
@@ -2999,7 +3253,11 @@ describe('Effect Handler Integration', () => {
       })
 
       it('floors resulting threat at zero when reduction exceeds current threat', () => {
-        const warriorActor: Actor = { id: 12, name: 'WarriorTwo', class: 'warrior' }
+        const warriorActor: Actor = {
+          id: 12,
+          name: 'WarriorTwo',
+          class: 'warrior',
+        }
         const actorMap = new Map([[warriorActor.id, warriorActor]])
 
         const events: WCLEvent[] = [

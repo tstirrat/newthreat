@@ -193,7 +193,7 @@ export interface ThreatFormulaResult {
 }
 
 /** Threat formula function signature */
-export type ThreatFormula = (ctx: ThreatContext) => ThreatFormulaResult
+export type ThreatFormula = (ctx: ThreatContext) => ThreatFormulaResult | undefined
 
 // ============================================================================
 // Configuration Structures
