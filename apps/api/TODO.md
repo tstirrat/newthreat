@@ -1,0 +1,28 @@
+# Threat Config Era Parity TODO
+
+- [ ] Add full event-type coverage used by Era handlers (`refreshbuff`, `refreshdebuff`, stack variants, etc.) in types + processing.
+- [ ] Make ability formulas trigger on the same event phases as Era (`applybuff/debuff`, refresh, cast, damage), not only current threat-calculated types.
+- [ ] Implement missing `ThreatSpecial` runtime behaviors (`taunt`, `fixate*`, `aggroLoss*`, `invulnerable*`, `noThreatWindow`) and wire config sets into output/state.
+- [ ] Support negative threat deltas (Feint/Cower/Disengage-style) with floor-at-zero semantics.
+- [ ] Enforce school-specific modifiers in runtime (and pass spell school through context).
+- [ ] Add Era-style `combatantImplications` + talent-rank pipeline (not just `gearImplications`).
+- [ ] Add cast-driven aura inference (`auraImplications`) for stance/form inference parity.
+- [ ] Expand custom handler surface to Era parity: pre/global handlers, handler-composition, and safe aura/threat state mutation from handlers.
+- [ ] Add target/instance-aware state needed for advanced raid mechanics (e.g., magnetic pull-style behavior).
+- [ ] After engine gaps above, port remaining class-level mechanics now marked TODO in Anniversary config (mage/priest/shaman/druid/warlock talent/handler gaps).
+- [ ] Implement `taunt` special semantics in the engine (set to top threat + bonus, not flat add), and gate it with `untauntableEnemies`.
+- [ ] Wire runtime handling for `fixate`, `fixateEnd`, `aggroLoss`, `aggroLossEnd`, `invulnerable`, `invulnerableEnd`.
+- [ ] Add runtime handling for `noThreatWindow` suppression (currently defined but not applied).
+- [ ] Allow effect handlers to pass `augment.special` through to core threat application (today only `threatRecipientOverride` is used).
+- [ ] Process aura event types needed by Era mechanics: `refreshbuff`, `refreshdebuff`, stack variants (`applybuffstack`, `applydebuffstack`, etc.).
+- [ ] Let formulas run on `applybuff`/`applydebuff`/refresh/stack events, not just `damage/heal/energize/cast`.
+- [ ] Add per-formula control for applying multipliers/coefs (Era has both coeff and no-coeff variants, e.g. `handler_castCanMissNoCoefficient`, `handler_resourcechange`).
+- [ ] Implement true cast-can-miss two-phase behavior (add on cast, rollback on miss/immune/resist result), not static one-shot.
+- [ ] Enforce school-scoped modifiers at runtime (`ThreatModifier.schools` exists but is not applied).
+- [ ] Carry spell school in event/context so school-based talents (Mage/Priest/Paladin holy-only) can be evaluated correctly.
+- [ ] Add class `combatantImplications` hooks (all/class) to infer synthetic auras/talent ranks from combatant info beyond gear-only logic.
+- [ ] Add `auraImplications` (cast -> inferred aura) for stance/form inference parity.
+- [ ] Add encounter-level preprocessor hook for synthetic/custom injected events (Era uses synthetic `-1` casts for Arlokk).
+- [ ] Support threat tracking by enemy instance (not only enemy ID) for parity with multi-instance mechanics.
+- [ ] Add optional split-threat policy controls (Era has split-heal toggle + special enemy exclusions).
+- [ ] Expand tests to cover runtime semantics above (currently no engine tests for taunt/fixate/aggro-loss/invuln/noThreatWindow).
