@@ -43,6 +43,7 @@ export function getSupportedGameVersions(): number[] {
 // Re-export types
 export * from './types'
 export * from './shared/formulas'
+export * from './shared/talents'
 export * from './shared/utils'
 
 // Re-export version configs for testing

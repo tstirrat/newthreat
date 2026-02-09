@@ -11,6 +11,7 @@ import {
   noThreat,
   tauntTarget,
   threatOnBuff,
+  threatOnDebuffOrDamage,
   threatOnDebuff,
 } from './formulas'
 
@@ -374,6 +375,46 @@ describe('modifyThreat', () => {
       multiplier: 0,
       target: 'all',
     })
+  })
+})
+
+describe('threatOnDebuffOrDamage', () => {
+  it('returns flat threat on debuff apply', () => {
+    const formula = threatOnDebuffOrDamage(120)
+    const ctx = createMockContext({
+      event: { type: 'applydebuff' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result?.formula).toBe('120')
+    expect(result?.value).toBe(120)
+    expect(result?.splitAmongEnemies).toBe(false)
+  })
+
+  it('returns normal damage threat on damage events', () => {
+    const formula = threatOnDebuffOrDamage(120)
+    const ctx = createMockContext({
+      event: { type: 'damage' } as ThreatContext['event'],
+      amount: 345,
+    })
+
+    const result = formula(ctx)
+
+    expect(result?.formula).toBe('amt')
+    expect(result?.value).toBe(345)
+    expect(result?.splitAmongEnemies).toBe(false)
+  })
+
+  it('returns undefined for unrelated events', () => {
+    const formula = threatOnDebuffOrDamage(120)
+    const ctx = createMockContext({
+      event: { type: 'cast' } as ThreatContext['event'],
+    })
+
+    const result = formula(ctx)
+
+    expect(result).toBeUndefined()
   })
 })
 

@@ -272,6 +272,32 @@ export function threatOnDebuff(value: number): FormulaFn {
 }
 
 /**
+ * Threat on debuff apply/refresh and normal threat on damage ticks.
+ * Used by aura spells that both apply a debuff and periodically deal damage.
+ */
+export function threatOnDebuffOrDamage(value: number): FormulaFn {
+  return (ctx) => {
+    if (ctx.event.type === 'applydebuff' || ctx.event.type === 'refreshdebuff') {
+      return {
+        formula: `${value}`,
+        value,
+        splitAmongEnemies: false,
+      }
+    }
+
+    if (ctx.event.type === 'damage') {
+      return {
+        formula: 'amt',
+        value: ctx.amount,
+        splitAmongEnemies: false,
+      }
+    }
+
+    return undefined
+  }
+}
+
+/**
  * Flat threat on buff application (e.g., Battle Shout)
  * Usually split among enemies
  */
@@ -331,9 +357,10 @@ export function threatOnCastRollbackOnMiss(
       ctx.event.type === 'damage' &&
       castRollbackHitTypes.has(ctx.event.hitType)
     ) {
+      const rollbackValue = -value
       return {
-        formula: `-${value} (miss rollback)`,
-        value: -value,
+        formula: `${rollbackValue} (miss rollback)`,
+        value: rollbackValue,
         splitAmongEnemies: false,
         applyPlayerMultipliers: options.applyPlayerMultipliers,
       }

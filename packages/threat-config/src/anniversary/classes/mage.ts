@@ -3,7 +3,9 @@
  *
  * Mages have talent-based threat reduction. Ice Block grants invulnerability.
  */
-import type { ClassThreatConfig } from '../../types'
+import type { ClassThreatConfig, TalentImplicationContext } from '../../types'
+import { SpellSchool } from '../../types'
+import { inferMappedTalentRank } from '../../shared/talents'
 
 // ============================================================================
 // Spell IDs
@@ -11,6 +13,15 @@ import type { ClassThreatConfig } from '../../types'
 
 export const Spells = {
   IceBlock: 11958,
+
+  // Talents (synthetic aura IDs inferred from combatantinfo)
+  ArcaneSubtletyRank1: 11210,
+  ArcaneSubtletyRank2: 12592,
+  BurningSoulRank1: 11083,
+  BurningSoulRank2: 12351,
+  FrostChannelingRank1: 11160,
+  FrostChannelingRank2: 12518,
+  FrostChannelingRank3: 12519,
 
   // Polymorph (various forms) - causes aggro loss
   PolymorphR1: 118,
@@ -25,12 +36,35 @@ export const Spells = {
 // Modifiers
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const Mods = {
   BurningSoul: 0.15, // 15% per rank (up to 30%)
   FrostChanneling: 0.1, // 10% per rank (up to 30%)
   ArcaneSubtlety: 0.2, // 20% per rank (up to 40%)
 }
+
+const ARCANE_SUBTLETY_AURA_BY_RANK = [
+  Spells.ArcaneSubtletyRank1,
+  Spells.ArcaneSubtletyRank2,
+] as const
+const BURNING_SOUL_AURA_BY_RANK = [
+  Spells.BurningSoulRank1,
+  Spells.BurningSoulRank2,
+] as const
+const FROST_CHANNELING_AURA_BY_RANK = [
+  Spells.FrostChannelingRank1,
+  Spells.FrostChannelingRank2,
+  Spells.FrostChannelingRank3,
+] as const
+
+const ARCANE_SUBTLETY_RANK_BY_TALENT_ID = new Map<number, number>(
+  ARCANE_SUBTLETY_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
+)
+const BURNING_SOUL_RANK_BY_TALENT_ID = new Map<number, number>(
+  BURNING_SOUL_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
+)
+const FROST_CHANNELING_RANK_BY_TALENT_ID = new Map<number, number>(
+  FROST_CHANNELING_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
+)
 
 // ============================================================================
 // Configuration
@@ -38,14 +72,90 @@ const Mods = {
 
 export const mageConfig: ClassThreatConfig = {
   auraModifiers: {
-    // TODO: [Arcane Subtlety] Talent - 20% per rank arcane threat reduction
-    // TODO: [Burning Soul] Talent - 15% per rank fire threat reduction
-    // TODO: [Frost Channeling] Talent - 10% per rank frost threat reduction
+    // Arcane Subtlety - Arcane spell threat reduction
+    [Spells.ArcaneSubtletyRank1]: () => ({
+      source: 'talent',
+      name: 'Arcane Subtlety (Rank 1)',
+      value: 1 - Mods.ArcaneSubtlety,
+      schools: new Set([SpellSchool.Arcane]),
+    }),
+    [Spells.ArcaneSubtletyRank2]: () => ({
+      source: 'talent',
+      name: 'Arcane Subtlety (Rank 2)',
+      value: 1 - Mods.ArcaneSubtlety * 2,
+      schools: new Set([SpellSchool.Arcane]),
+    }),
+
+    // Burning Soul - Fire spell threat reduction
+    [Spells.BurningSoulRank1]: () => ({
+      source: 'talent',
+      name: 'Burning Soul (Rank 1)',
+      value: 1 - Mods.BurningSoul,
+      schools: new Set([SpellSchool.Fire]),
+    }),
+    [Spells.BurningSoulRank2]: () => ({
+      source: 'talent',
+      name: 'Burning Soul (Rank 2)',
+      value: 1 - Mods.BurningSoul * 2,
+      schools: new Set([SpellSchool.Fire]),
+    }),
+
+    // Frost Channeling - Frost spell threat reduction
+    [Spells.FrostChannelingRank1]: () => ({
+      source: 'talent',
+      name: 'Frost Channeling (Rank 1)',
+      value: 1 - Mods.FrostChanneling,
+      schools: new Set([SpellSchool.Frost]),
+    }),
+    [Spells.FrostChannelingRank2]: () => ({
+      source: 'talent',
+      name: 'Frost Channeling (Rank 2)',
+      value: 1 - Mods.FrostChanneling * 2,
+      schools: new Set([SpellSchool.Frost]),
+    }),
+    [Spells.FrostChannelingRank3]: () => ({
+      source: 'talent',
+      name: 'Frost Channeling (Rank 3)',
+      value: 1 - Mods.FrostChanneling * 3,
+      schools: new Set([SpellSchool.Frost]),
+    }),
   },
 
   abilities: {
     // Ice Block is handled as invulnerability buff, not here
-    // TODO: [11958] Ice Block - mark as invulnerability buff
+  },
+
+  talentImplications: (ctx: TalentImplicationContext) => {
+    const syntheticAuras: number[] = []
+
+    const arcaneSubtletyRank = inferMappedTalentRank(
+      ctx.talentRanks,
+      ARCANE_SUBTLETY_RANK_BY_TALENT_ID,
+      ARCANE_SUBTLETY_AURA_BY_RANK.length,
+    )
+    if (arcaneSubtletyRank > 0) {
+      syntheticAuras.push(ARCANE_SUBTLETY_AURA_BY_RANK[arcaneSubtletyRank - 1]!)
+    }
+
+    const burningSoulRank = inferMappedTalentRank(
+      ctx.talentRanks,
+      BURNING_SOUL_RANK_BY_TALENT_ID,
+      BURNING_SOUL_AURA_BY_RANK.length,
+    )
+    if (burningSoulRank > 0) {
+      syntheticAuras.push(BURNING_SOUL_AURA_BY_RANK[burningSoulRank - 1]!)
+    }
+
+    const frostChannelingRank = inferMappedTalentRank(
+      ctx.talentRanks,
+      FROST_CHANNELING_RANK_BY_TALENT_ID,
+      FROST_CHANNELING_AURA_BY_RANK.length,
+    )
+    if (frostChannelingRank > 0) {
+      syntheticAuras.push(FROST_CHANNELING_AURA_BY_RANK[frostChannelingRank - 1]!)
+    }
+
+    return syntheticAuras
   },
 
   aggroLossBuffs: new Set([

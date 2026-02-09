@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import type { ThreatContext } from '../../types'
+import type { TalentImplicationContext, ThreatContext } from '../../types'
 import { Spells, druidConfig, exclusiveAuras } from './druid'
 
 // Mock ThreatContext factory
@@ -13,6 +13,7 @@ function createMockContext(
   return {
     event: { type: 'damage' } as ThreatContext['event'],
     amount: 100,
+    spellSchoolMask: 0,
     sourceAuras: new Set(),
     targetAuras: new Set(),
     sourceActor: { id: 1, name: 'TestDruid', class: 'druid' },
@@ -25,6 +26,8 @@ function createMockContext(
       getThreat: () => 0,
       getTopActorsByThreat: () => [],
       isActorAlive: () => true,
+      getCurrentTarget: () => null,
+      getLastTarget: () => null,
     },
     ...overrides,
   }
@@ -52,6 +55,30 @@ describe('Druid Config', () => {
       expect(modifier.name).toBe('Cat Form')
       expect(modifier.value).toBe(0.71)
       expect(modifier.source).toBe('class')
+    })
+
+    it('returns feral instinct additive modifier in bear form', () => {
+      const modifierFn = druidConfig.auraModifiers[Spells.FeralInstinctRank5]
+      expect(modifierFn).toBeDefined()
+
+      const modifier = modifierFn!(
+        createMockContext({ sourceAuras: new Set([Spells.BearForm]) }),
+      )
+
+      expect(modifier.name).toBe('Feral Instinct (Rank 5)')
+      expect(modifier.value).toBeCloseTo((1.3 + 0.15) / 1.3, 6)
+      expect(modifier.source).toBe('talent')
+    })
+
+    it('returns neutral feral instinct modifier outside bear form', () => {
+      const modifierFn = druidConfig.auraModifiers[Spells.FeralInstinctRank3]
+      expect(modifierFn).toBeDefined()
+
+      const modifier = modifierFn!(
+        createMockContext({ sourceAuras: new Set([Spells.CatForm]) }),
+      )
+
+      expect(modifier.value).toBe(1)
     })
   })
 
@@ -118,15 +145,28 @@ describe('Druid Config', () => {
     })
 
     describe('Cower', () => {
-      it('returns negative threat', () => {
+      it('applies negative threat on cast and rolls back on miss', () => {
         const formula = druidConfig.abilities[Spells.CowerR1]
         expect(formula).toBeDefined()
 
-        const ctx = createMockContext()
-        const result = formula!(ctx)
+        const castResult = formula!(
+          createMockContext({
+            event: { type: 'cast' } as ThreatContext['event'],
+          }),
+        )
+        const missResult = formula!(
+          createMockContext({
+            event: {
+              type: 'damage',
+              hitType: 'miss',
+            } as ThreatContext['event'],
+          }),
+        )
 
-        expect(result.formula).toBe('-240')
-        expect(result.value).toBe(-240)
+        expect(castResult?.formula).toBe('-240 (cast)')
+        expect(castResult?.value).toBe(-240)
+        expect(missResult?.formula).toBe('240 (miss rollback)')
+        expect(missResult?.value).toBe(240)
       })
     })
 
@@ -194,6 +234,48 @@ describe('Druid Config', () => {
 
       expect(direBearImplications).toBeDefined()
       expect(direBearImplications?.has(Spells.MaulR1)).toBe(true)
+    })
+  })
+
+  describe('talentImplications', () => {
+    function createTalentContext(
+      overrides: Partial<TalentImplicationContext> = {},
+    ): TalentImplicationContext {
+      return {
+        event: {
+          timestamp: 0,
+          type: 'combatantinfo',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 1,
+          targetIsFriendly: true,
+        },
+        sourceActor: { id: 1, name: 'TestDruid', class: 'druid' },
+        talentPoints: [0, 0, 0],
+        talentRanks: new Map(),
+        specId: null,
+        ...overrides,
+      }
+    }
+
+    it('infers Feral Instinct aura from ranked talent payload', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentRanks: new Map([[Spells.FeralInstinctRank4, 1]]),
+        }),
+      )
+
+      expect(result).toEqual([Spells.FeralInstinctRank4])
+    })
+
+    it('returns no synthetic aura when Feral Instinct is absent', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentRanks: new Map([[999999, 3]]),
+        }),
+      )
+
+      expect(result).toEqual([])
     })
   })
 })

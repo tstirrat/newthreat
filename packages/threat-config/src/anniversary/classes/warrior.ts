@@ -10,6 +10,7 @@ import {
   threatOnBuff,
   threatOnDebuff,
 } from '../../shared/formulas'
+import { clampRank, inferMappedTalentRank } from '../../shared/talents'
 import type {
   ClassThreatConfig,
   TalentImplicationContext,
@@ -81,25 +82,18 @@ const DEFIANCE_RANK_BY_TALENT_ID = new Map<number, number>(
   DEFIANCE_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
 )
 
-function clampRank(rank: number, maxRank: number): number {
-  return Math.max(0, Math.min(maxRank, Math.trunc(rank)))
-}
-
 function inferDefianceRank(ctx: TalentImplicationContext): number {
-  const fromTalentMap = [...ctx.talentRanks.entries()].reduce(
-    (highestRank, [talentId, rank]) => {
-      const directRank = DEFIANCE_RANK_BY_TALENT_ID.get(talentId)
-      const rankFromPayload = talentId === Spells.Defiance ? rank : 0
-      const inferredRank = Math.max(directRank ?? 0, rankFromPayload)
-      if (inferredRank > 0) {
-        return Math.max(highestRank, inferredRank)
-      }
-      return highestRank
-    },
-    0,
+  const fromRankSpellIds = inferMappedTalentRank(
+    ctx.talentRanks,
+    DEFIANCE_RANK_BY_TALENT_ID,
+    DEFIANCE_AURA_BY_RANK.length,
+  )
+  const fromDefianceAlias = clampRank(
+    ctx.talentRanks.get(Spells.Defiance) ?? 0,
+    DEFIANCE_AURA_BY_RANK.length,
   )
 
-  return clampRank(fromTalentMap, DEFIANCE_AURA_BY_RANK.length)
+  return Math.max(fromRankSpellIds, fromDefianceAlias)
 }
 
 function inferGearAuras(gear: GearItem[]): number[] {

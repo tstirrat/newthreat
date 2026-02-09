@@ -46,5 +46,5 @@ Legend:
 
 ## P2 - Config Completion and Validation
 
-- [ ] **[REQ-025][P2][C3]** After engine gaps above, port remaining class-level mechanics now marked TODO in Anniversary config (mage/priest/shaman/druid/warlock talent/handler gaps).
+- [x] **[REQ-025][P2][C3]** After engine gaps above, port remaining class-level mechanics now marked TODO in Anniversary config (mage/priest/shaman/druid/warlock talent/handler gaps).
 - [ ] **[REQ-026][P2][C3]** Expand tests to cover remaining runtime semantics above (notably aggro-loss state coverage).

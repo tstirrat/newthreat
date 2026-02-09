@@ -7,6 +7,7 @@ import {
   calculateThreat,
   noThreat,
   threatOnDebuff,
+  threatOnDebuffOrDamage,
 } from '../../shared/formulas'
 import type { ClassThreatConfig } from '../../types'
 
@@ -55,6 +56,12 @@ export const Spells = {
   // Banish
   BanishR1: 710,
   BanishR2: 18647,
+
+  // Siphon Life
+  SiphonLifeR1: 18265,
+  SiphonLifeR2: 18879,
+  SiphonLifeR3: 18880,
+  SiphonLifeR4: 18881,
 
   // Life Tap - zero threat
   LifeTapR1: 1454,
@@ -115,7 +122,7 @@ export const warlockConfig: ClassThreatConfig = {
     [Spells.CurseOfShadowR1]: threatOnDebuff(2 * 44),
     [Spells.CurseOfShadowR2]: threatOnDebuff(2 * 56),
     [Spells.CurseOfExhaustion]: noThreat(),
-    [Spells.CurseOfDoom]: threatOnDebuff(120),
+    [Spells.CurseOfDoom]: threatOnDebuffOrDamage(120),
     [Spells.AmCurse]: noThreat(),
 
     // Fear - threat on debuff
@@ -128,6 +135,12 @@ export const warlockConfig: ClassThreatConfig = {
     // Banish - threat on debuff
     [Spells.BanishR1]: threatOnDebuff(2 * 28),
     [Spells.BanishR2]: threatOnDebuff(2 * 48),
+
+    // Siphon Life - threat on debuff apply + periodic damage threat
+    [Spells.SiphonLifeR1]: threatOnDebuffOrDamage(2 * 30),
+    [Spells.SiphonLifeR2]: threatOnDebuffOrDamage(2 * 38),
+    [Spells.SiphonLifeR3]: threatOnDebuffOrDamage(2 * 48),
+    [Spells.SiphonLifeR4]: threatOnDebuffOrDamage(2 * 58),
 
     // Life Tap - zero threat
     [Spells.LifeTapR1]: noThreat(),
@@ -143,7 +156,5 @@ export const warlockConfig: ClassThreatConfig = {
     [Spells.DrainManaR2]: noThreat(),
     [Spells.DrainManaR3]: noThreat(),
     [Spells.DrainManaR4]: noThreat(),
-
-    // TODO: [18265] Siphon Life - threatOnDebuffOrDamage handler needed
   },
 }

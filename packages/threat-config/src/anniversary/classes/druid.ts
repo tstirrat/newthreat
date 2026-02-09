@@ -7,9 +7,11 @@ import {
   calculateThreat,
   noThreat,
   tauntTarget,
+  threatOnCastRollbackOnMiss,
   threatOnDebuff,
 } from '../../shared/formulas'
-import type { ClassThreatConfig, SpellId } from '../../types'
+import { inferMappedTalentRank } from '../../shared/talents'
+import type { ClassThreatConfig, SpellId, TalentImplicationContext } from '../../types'
 
 // ============================================================================
 // Spell IDs
@@ -79,6 +81,13 @@ export const Spells = {
   FrenziedRegenR2: 22895,
   FrenziedRegenR3: 22896,
   LeaderOfThePack: 24932,
+
+  // Talents (synthetic aura IDs inferred from combatantinfo)
+  FeralInstinctRank1: 16947,
+  FeralInstinctRank2: 16948,
+  FeralInstinctRank3: 16949,
+  FeralInstinctRank4: 16950,
+  FeralInstinctRank5: 16951,
 } as const
 
 // ============================================================================
@@ -91,6 +100,39 @@ const Mods = {
   FeralInstinct: 0.03, // Per talent point (additive with Bear Form)
   Maul: 1.75,
   Swipe: 1.75,
+}
+
+const FERAL_INSTINCT_AURA_BY_RANK = [
+  Spells.FeralInstinctRank1,
+  Spells.FeralInstinctRank2,
+  Spells.FeralInstinctRank3,
+  Spells.FeralInstinctRank4,
+  Spells.FeralInstinctRank5,
+] as const
+
+const FERAL_INSTINCT_RANK_BY_TALENT_ID = new Map<number, number>(
+  FERAL_INSTINCT_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
+)
+
+function inferFeralInstinctRank(ctx: TalentImplicationContext): number {
+  return inferMappedTalentRank(
+    ctx.talentRanks,
+    FERAL_INSTINCT_RANK_BY_TALENT_ID,
+    FERAL_INSTINCT_AURA_BY_RANK.length,
+  )
+}
+
+function hasBearForm(sourceAuras: Set<number>): boolean {
+  return (
+    sourceAuras.has(Spells.BearForm) || sourceAuras.has(Spells.DireBearForm)
+  )
+}
+
+function feralInstinctMultiplier(rank: number, sourceAuras: Set<number>): number {
+  if (!hasBearForm(sourceAuras)) {
+    return 1
+  }
+  return (Mods.DireBear + Mods.FeralInstinct * rank) / Mods.DireBear
 }
 
 const DIRE_BEAR_FORM_IMPLIED_ABILITIES: ReadonlySet<SpellId> = new Set([
@@ -181,8 +223,32 @@ export const druidConfig: ClassThreatConfig = {
       value: Mods.Cat,
     }),
 
-    // TODO: [Feral Instinct] Talent - can't detect from WCL combatantInfo
-    // Would add 0.03 per rank (up to 0.15) additively with Bear Form
+    // Feral Instinct - additive with Bear/Dire Bear Form threat
+    [Spells.FeralInstinctRank1]: (ctx) => ({
+      source: 'talent',
+      name: 'Feral Instinct (Rank 1)',
+      value: feralInstinctMultiplier(1, ctx.sourceAuras),
+    }),
+    [Spells.FeralInstinctRank2]: (ctx) => ({
+      source: 'talent',
+      name: 'Feral Instinct (Rank 2)',
+      value: feralInstinctMultiplier(2, ctx.sourceAuras),
+    }),
+    [Spells.FeralInstinctRank3]: (ctx) => ({
+      source: 'talent',
+      name: 'Feral Instinct (Rank 3)',
+      value: feralInstinctMultiplier(3, ctx.sourceAuras),
+    }),
+    [Spells.FeralInstinctRank4]: (ctx) => ({
+      source: 'talent',
+      name: 'Feral Instinct (Rank 4)',
+      value: feralInstinctMultiplier(4, ctx.sourceAuras),
+    }),
+    [Spells.FeralInstinctRank5]: (ctx) => ({
+      source: 'talent',
+      name: 'Feral Instinct (Rank 5)',
+      value: feralInstinctMultiplier(5, ctx.sourceAuras),
+    }),
   },
 
   abilities: {
@@ -218,16 +284,16 @@ export const druidConfig: ClassThreatConfig = {
     // Growl - taunt
     [Spells.Growl]: tauntTarget({ bonus: 0 }),
 
-    // Challenging Roar - taunt
-    [Spells.ChallengingRoar]: tauntTarget({ bonus: 0 }),
+    // Challenging Roar - fixate state only, no direct threat set
+    [Spells.ChallengingRoar]: noThreat(),
 
     // Bash - zero threat (needs verification)
     [Spells.Bash]: noThreat(),
 
-    // Cower - negative threat
-    [Spells.CowerR1]: calculateThreat({ modifier: 0, bonus: -240 }),
-    [Spells.CowerR2]: calculateThreat({ modifier: 0, bonus: -390 }),
-    [Spells.CowerR3]: calculateThreat({ modifier: 0, bonus: -600 }),
+    // Cower - threat reduction on cast, rollback on miss/immune/resist
+    [Spells.CowerR1]: threatOnCastRollbackOnMiss(-240),
+    [Spells.CowerR2]: threatOnCastRollbackOnMiss(-390),
+    [Spells.CowerR3]: threatOnCastRollbackOnMiss(-600),
 
     // Faerie Fire (all ranks) - flat 108 threat
     [Spells.FaerieFireFeralR1]: threatOnDebuff(108),
@@ -247,11 +313,15 @@ export const druidConfig: ClassThreatConfig = {
     [Spells.Clearcasting]: noThreat(),
     [Spells.Innervate]: noThreat(),
     [Spells.LeaderOfThePack]: noThreat(),
-
-    // TODO: [22842] Frenzied Regeneration heals - need modHeal formula
-    // TODO: [5229] Enrage - resourcechange handler
-    // TODO: [17057] Furor - resourcechange handler
   },
 
   fixateBuffs: new Set([Spells.Growl, Spells.ChallengingRoar]),
+
+  talentImplications: (ctx: TalentImplicationContext) => {
+    const feralInstinctRank = inferFeralInstinctRank(ctx)
+    if (feralInstinctRank === 0) {
+      return []
+    }
+    return [FERAL_INSTINCT_AURA_BY_RANK[feralInstinctRank - 1]!]
+  },
 }
