@@ -5,6 +5,7 @@ Legend:
 - `Priority`: `P0` critical engine parity, `P1` major parity gaps, `P2` polish/advanced mechanics
 - `Complexity`: `1` low, `2` medium-low, `3` medium, `4` high, `5` very high
 - `Requirement Code`: `REQ-###` unique ID for cross-reference
+- `Parity Source`: [Era spells.js](https://github.com/Voomlz/voomlz.github.io/blob/master/era/spells.js)
 
 ## P0 - Core Engine Semantics
 
@@ -19,7 +20,7 @@ Legend:
 - [x] **[REQ-009][P0][C3]** Enforce school-specific modifiers in runtime (and pass spell school through context).
 - [x] **[REQ-010][P0][C3]** Enforce school-scoped modifiers at runtime (`ThreatModifier.schools` exists but is not applied).
 - [x] **[REQ-011][P0][C3]** Carry spell school in event/context so school-based talents (Mage/Priest/Paladin holy-only) can be evaluated correctly.
-- [ ] **[REQ-012][P0][C5]** Expand custom handler surface to Era parity: pre/global handlers, handler-composition, and safe aura/threat state mutation from handlers.
+- [x] **[REQ-012][P0][C5]** Expand custom handler surface to Era parity: pre/global handlers, handler-composition, and safe aura/threat state mutation from handlers.
 
 ## P0 - Event Ingestion and Formula Triggering
 
