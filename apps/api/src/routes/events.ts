@@ -217,6 +217,7 @@ eventsRoutes.get('/', async (c) => {
     actorMap,
     abilitySchoolMap,
     enemies,
+    encounterId: fight.encounterID ?? null,
     config,
   })
 

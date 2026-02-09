@@ -39,7 +39,7 @@ Legend:
 
 ## P1 - Encounter and Behavior Parity
 
-- [ ] **[REQ-023][P1][C3]** Add encounter-level preprocessor hook for synthetic/custom injected events (Era uses synthetic `-1` casts for Arlokk).
+- [x] **[REQ-023][P1][C3]** Add encounter-level preprocessor hook for synthetic/custom injected events (Era uses synthetic `-1` casts for Arlokk).
 - [ ] **[REQ-024][P1][C2]** Add optional split-threat policy controls (Era has split-heal toggle + special enemy exclusions).
 
 ## P2 - Config Completion and Validation

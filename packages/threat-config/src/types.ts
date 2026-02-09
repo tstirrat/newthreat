@@ -36,6 +36,7 @@ export type WowClass =
 
 // TODO: Promote SpellId to a branded/tagged type for stronger compile-time safety.
 export type SpellId = number
+export type EncounterId = number & { readonly __brand: 'EncounterId' }
 
 export enum SpellSchool {
   Physical = 1,
@@ -116,7 +117,7 @@ export interface ThreatContext {
   /** The target actor of the event */
   targetActor: Actor
   /** Encounter ID if this is a boss fight */
-  encounterId: number | null
+  encounterId: EncounterId | null
   /** Access to actor positions and threat state */
   actors: ActorContext
 }
@@ -276,6 +277,29 @@ export interface ClassThreatConfig {
   invulnerabilityBuffs?: Set<number>
 }
 
+export interface EncounterPreprocessorContext {
+  encounterId: EncounterId
+  enemies: Enemy[]
+}
+
+export interface EncounterPreprocessorResult {
+  /** Attach an encounter-level special behavior to the current event */
+  special?: ThreatSpecial
+}
+
+export type EncounterPreprocessor = (
+  ctx: ThreatContext,
+) => EncounterPreprocessorResult | undefined
+
+export type EncounterPreprocessorFactory = (
+  ctx: EncounterPreprocessorContext,
+) => EncounterPreprocessor
+
+export interface EncounterThreatConfig {
+  /** Optional per-event preprocessing hook for this encounter */
+  preprocessor?: EncounterPreprocessorFactory
+}
+
 export interface ThreatConfig {
   /** Semantic version of this config */
   version: string
@@ -301,6 +325,8 @@ export interface ThreatConfig {
   invulnerabilityBuffs?: Set<number>
   /** Global ability overrides (boss mechanics, etc.) - checked before class abilities */
   abilities?: Record<number, ThreatFormula>
+  /** Encounter-scoped overrides and preprocessors keyed by encounter ID */
+  encounters?: Record<EncounterId, EncounterThreatConfig>
 }
 
 // ============================================================================

@@ -21,6 +21,7 @@ export interface MockWCLResponses {
     zone: { id: number; name: string }
     fights: Array<{
       id: number
+      encounterID?: number | null
       name: string
       startTime: number
       endTime: number

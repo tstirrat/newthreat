@@ -137,6 +137,7 @@ export class WCLClient {
             zone { id name }
             fights {
               id
+              encounterID
               name
               startTime
               endTime

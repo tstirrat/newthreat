@@ -5,7 +5,10 @@
  * threat. Uses mock configs to test behaviors surgically without dependencies on
  * real config evolution.
  */
-import { castCanMiss, SpellSchool } from '@wcl-threat/threat-config'
+import {
+  castCanMiss,
+  SpellSchool,
+} from '@wcl-threat/threat-config'
 import type {
   Actor,
   EffectHandler,
@@ -254,6 +257,110 @@ describe('processEvents', () => {
       expect(result.eventCounts.applybuff).toBe(1)
       expect(result.eventCounts.refreshbuff).toBe(1)
       expect(result.eventCounts.applydebuffstack).toBe(1)
+    })
+  })
+
+  describe('encounter preprocessors', () => {
+    it('applies a threat wipe special on first boss cast after long gaps', () => {
+      const CAST_GAP_MS = 30000
+      const encounterId = 1234
+
+      const createCastGapWipePreprocessor = () => {
+        const lastCastBySource = new Map<number, number>()
+
+        return (ctx: ThreatContext) => {
+          const event = ctx.event
+
+          if (event.type !== 'cast' || event.sourceIsFriendly) {
+            return undefined
+          }
+
+          const previousCast = lastCastBySource.get(event.sourceID)
+          lastCastBySource.set(event.sourceID, event.timestamp)
+
+          if (
+            previousCast === undefined ||
+            event.timestamp - previousCast <= CAST_GAP_MS
+          ) {
+            return undefined
+          }
+
+          return {
+            special: {
+              type: 'modifyThreat' as const,
+              multiplier: 0,
+              target: 'all' as const,
+            },
+          }
+        }
+      }
+
+      const config = createMockThreatConfig({
+        encounters: {
+          [encounterId]: {
+            preprocessor: createCastGapWipePreprocessor,
+          },
+        },
+      })
+
+      const actorMap = new Map<number, Actor>([
+        [warriorActor.id, warriorActor],
+        [bossEnemy.id, { id: bossEnemy.id, name: 'Boss', class: null }],
+      ])
+
+      const events: WCLEvent[] = [
+        createDamageEvent({
+          timestamp: 1000,
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          amount: 100,
+        }),
+        {
+          timestamp: 5000,
+          type: 'cast',
+          sourceID: bossEnemy.id,
+          sourceIsFriendly: false,
+          sourceInstance: 0,
+          targetID: warriorActor.id,
+          targetIsFriendly: true,
+          abilityGameID: 9001,
+        },
+        {
+          timestamp: 36050,
+          type: 'cast',
+          sourceID: bossEnemy.id,
+          sourceIsFriendly: false,
+          sourceInstance: 0,
+          targetID: warriorActor.id,
+          targetIsFriendly: true,
+          abilityGameID: 9002,
+        },
+      ]
+
+      const result = processEvents({
+        rawEvents: events,
+        actorMap,
+        enemies: [bossEnemy],
+        encounterId,
+        config,
+      })
+
+      expect(result.augmentedEvents).toHaveLength(3)
+      expect(result.eventCounts.cast).toBe(2)
+
+      const postGapCast = result.augmentedEvents[2]
+      expect(postGapCast?.type).toBe('cast')
+      expect(postGapCast?.abilityGameID).toBe(9002)
+      expect(postGapCast?.threat.changes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: warriorActor.id,
+            targetId: bossEnemy.id,
+            operator: 'set',
+            total: 0,
+          }),
+        ]),
+      )
     })
   })
 

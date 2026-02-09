@@ -10,6 +10,8 @@ import type {
   ActorContext,
   AugmentedEvent,
   ClassThreatConfig,
+  EncounterId,
+  EncounterThreatConfig,
   Enemy,
   ThreatSpecial,
   ThreatCalculation,
@@ -68,6 +70,8 @@ export interface ProcessEventsInput {
   abilitySchoolMap?: Map<number, number>
   /** List of all enemies in the fight */
   enemies: Enemy[]
+  /** Encounter ID for encounter-scoped behavior */
+  encounterId?: number | null
   /** Threat configuration for the game version */
   config: ThreatConfig
 }
@@ -89,13 +93,29 @@ export interface ProcessEventsOutput {
  * 4. Build augmented events with threat data
  */
 export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
-  const { rawEvents, actorMap, abilitySchoolMap, enemies, config } = input
+  const {
+    rawEvents,
+    actorMap,
+    abilitySchoolMap,
+    enemies,
+    encounterId: inputEncounterId,
+    config,
+  } = input
 
   const fightState = new FightState(actorMap, config)
   const effectTracker = new EffectTracker()
   const stateSpellSets = buildStateSpellSets(config)
   const augmentedEvents: AugmentedEvent[] = []
   const eventCounts: Record<string, number> = {}
+  const encounterId = toEncounterId(inputEncounterId)
+  const encounterConfig = getEncounterConfig(config, encounterId)
+  const encounterPreprocessor =
+    encounterId !== null
+      ? encounterConfig?.preprocessor?.({
+          encounterId,
+          enemies,
+        })
+      : undefined
 
   for (const event of rawEvents) {
     // Update fight state (auras, gear, combatant info)
@@ -153,11 +173,20 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
         enemies,
         sourceActor,
         targetActor,
-        encounterId: null,
+        encounterId,
         actors: fightState,
       }
 
-      const calculation = calculateModifiedThreat(event, threatOptions, config)
+      const threatContext = buildThreatContext(event, threatOptions)
+      const encounterSpecial = encounterPreprocessor?.(threatContext)?.special
+      const baseCalculation = calculateModifiedThreat(event, threatOptions, config)
+      const calculation: ThreatCalculation = encounterSpecial
+        ? {
+            ...baseCalculation,
+            // Encounter preprocessors are authoritative for encounter mechanics.
+            special: encounterSpecial,
+          }
+        : baseCalculation
       const stateSpecial = buildStateSpecialFromAuraEvent(event, stateSpellSets)
 
       // Handle installHandler special
@@ -678,7 +707,7 @@ export interface CalculateThreatOptions {
   enemies: Enemy[] // Still needed for building threat values
   sourceActor: Actor
   targetActor: Actor
-  encounterId: number | null
+  encounterId: EncounterId | null
   actors: ActorContext // NEW: Actor state accessors
 }
 
@@ -690,20 +719,7 @@ export function calculateModifiedThreat(
   options: CalculateThreatOptions,
   config: ThreatConfig,
 ): ThreatCalculation {
-  const amount = getEventAmount(event)
-  const spellSchoolMask = options.spellSchoolMask ?? 0
-
-  const ctx: ThreatContext = {
-    event,
-    amount,
-    spellSchoolMask,
-    sourceAuras: options.sourceAuras,
-    targetAuras: options.targetAuras,
-    sourceActor: options.sourceActor,
-    targetActor: options.targetActor,
-    encounterId: options.encounterId,
-    actors: options.actors, // NEW: Actor context
-  }
+  const ctx = buildThreatContext(event, options)
 
   // Get the threat formula result
   const formulaResult = getFormulaResult(ctx, config)
@@ -723,12 +739,32 @@ export function calculateModifiedThreat(
 
   return {
     formula: formulaResult.formula,
-    amount: amount,
+    amount: ctx.amount,
     baseThreat: formulaResult.value,
     modifiedThreat: modifiedThreat,
     isSplit: formulaResult.splitAmongEnemies,
     modifiers: allModifiers,
     special: formulaResult.special, // NEW: Include special behaviors
+  }
+}
+
+function buildThreatContext(
+  event: WCLEvent,
+  options: CalculateThreatOptions,
+): ThreatContext {
+  const amount = getEventAmount(event)
+  const spellSchoolMask = options.spellSchoolMask ?? 0
+
+  return {
+    event,
+    amount,
+    spellSchoolMask,
+    sourceAuras: options.sourceAuras,
+    targetAuras: options.targetAuras,
+    sourceActor: options.sourceActor,
+    targetActor: options.targetActor,
+    encounterId: options.encounterId,
+    actors: options.actors,
   }
 }
 
@@ -768,7 +804,8 @@ function getEventAmount(event: WCLEvent): number {
 function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
   const event = ctx.event
 
-  // Merge abilities: global first, then class (class overrides global on duplicates)
+  // Merge abilities: global first, then class.
+  // Class abilities override global abilities on duplicate spell IDs.
   if ('abilityGameID' in event && typeof event.abilityGameID === 'number') {
     const classConfig = getClassConfig(ctx.sourceActor.class, config)
     const mergedAbilities = {
@@ -805,6 +842,25 @@ function getClassConfig(
 ): ClassThreatConfig | null {
   if (!wowClass) return null
   return config.classes[wowClass] ?? null
+}
+
+function getEncounterConfig(
+  config: ThreatConfig,
+  encounterId: EncounterId | null,
+): EncounterThreatConfig | null {
+  if (encounterId === null) {
+    return null
+  }
+  return config.encounters?.[encounterId] ?? null
+}
+
+function toEncounterId(
+  encounterId: number | null | undefined,
+): EncounterId | null {
+  if (encounterId === null || encounterId === undefined) {
+    return null
+  }
+  return encounterId as EncounterId
 }
 
 /**

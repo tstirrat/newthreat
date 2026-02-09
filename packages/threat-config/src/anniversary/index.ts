@@ -17,6 +17,7 @@ import { warriorConfig } from './classes/warrior'
 import { baseThreat } from './general'
 import { naxxAbilities } from './naxx'
 import { onyxiaAbilities } from './ony'
+import { zgEncounters } from './zg'
 
 // Fixate buffs (taunt effects)
 // Class-specific fixates are in class configs
@@ -58,7 +59,7 @@ const globalAuraModifiers: Record<
 }
 
 export const anniversaryConfig: ThreatConfig = {
-  version: '1.2.0',
+  version: '1.3.0',
   gameVersion: 1,
 
   baseThreat,
@@ -84,6 +85,9 @@ export const anniversaryConfig: ThreatConfig = {
   fixateBuffs,
   aggroLossBuffs,
   invulnerabilityBuffs,
+  encounters: {
+    ...zgEncounters,
+  },
 }
 
 // Validate for duplicate spell IDs (dev-time warning)
