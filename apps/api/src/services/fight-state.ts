@@ -12,6 +12,149 @@ import { ActorState } from './actor-state'
 import { PositionTracker } from './position-tracker'
 import { ThreatTracker } from './threat-tracker'
 
+const TALENT_ID_KEYS = [
+  'spellID',
+  'spellId',
+  'abilityGameID',
+  'abilityId',
+  'gameID',
+  'gameId',
+  'guid',
+  'id',
+  'talentID',
+  'talentId',
+] as const
+
+const TALENT_RANK_KEYS = [
+  'rank',
+  'points',
+  'point',
+  'pointsSpent',
+  'pointSpent',
+  'value',
+] as const
+
+type UnknownRecord = Record<string, unknown>
+const MAX_TALENT_PARSE_DEPTH = 6
+
+function asRecord(value: unknown): UnknownRecord | null {
+  return typeof value === 'object' && value !== null
+    ? (value as UnknownRecord)
+    : null
+}
+
+function readNumber(record: UnknownRecord, keys: readonly string[]): number | null {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+  }
+  return null
+}
+
+function isFiniteNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) &&
+    value.every((item) => typeof item === 'number' && Number.isFinite(item))
+}
+
+function parseTalentPoints(
+  event: Extract<WCLEvent, { type: 'combatantinfo' }>,
+): number[] {
+  if (isFiniteNumberArray(event.talentPoints)) {
+    return event.talentPoints
+  }
+
+  if (isFiniteNumberArray(event.talents)) {
+    return event.talents
+  }
+
+  return []
+}
+
+function parseTalentRanks(
+  event: Extract<WCLEvent, { type: 'combatantinfo' }>,
+): Map<number, number> {
+  const talentRanks = new Map<number, number>()
+
+  function collectTalentRanks(value: unknown, depth: number): void {
+    if (value === null || value === undefined || depth > MAX_TALENT_PARSE_DEPTH) {
+      return
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        collectTalentRanks(item, depth + 1)
+      }
+      return
+    }
+
+    const record = asRecord(value)
+    if (!record) {
+      return
+    }
+
+    const talentId = readNumber(record, TALENT_ID_KEYS)
+    const rank = readNumber(record, TALENT_RANK_KEYS)
+    if (talentId !== null && rank !== null && rank > 0) {
+      const currentRank = talentRanks.get(talentId) ?? 0
+      if (rank > currentRank) {
+        talentRanks.set(talentId, rank)
+      }
+    }
+
+    for (const nested of Object.values(record)) {
+      collectTalentRanks(nested, depth + 1)
+    }
+  }
+
+  collectTalentRanks(event.talents, 0)
+  collectTalentRanks(event.talentTree, 0)
+
+  return talentRanks
+}
+
+function dedupeIds(ids: number[]): number[] {
+  if (ids.length <= 1) {
+    return ids
+  }
+
+  return [...new Set(ids)]
+}
+
+function getSpecId(
+  event: Extract<WCLEvent, { type: 'combatantinfo' }>,
+): number | null {
+  return event.specId ?? event.specID ?? null
+}
+
+/** Parse WCL combatant talent payloads into normalized tree points and optional rank map. */
+function buildTalentContext(
+  event: Extract<WCLEvent, { type: 'combatantinfo' }>,
+): { talentPoints: number[]; talentRanks: Map<number, number>; specId: number | null } {
+  return {
+    talentPoints: parseTalentPoints(event),
+    talentRanks: parseTalentRanks(event),
+    specId: getSpecId(event),
+  }
+}
+
+function mergeSyntheticAuras(parts: Array<number[] | undefined>): number[] {
+  const merged: number[] = []
+  for (const part of parts) {
+    if (!part || part.length === 0) {
+      continue
+    }
+    merged.push(...part)
+  }
+
+  if (merged.length === 0) {
+    return []
+  }
+
+  return dedupeIds(merged)
+}
+
 /** Top-level state container for a fight */
 export class FightState {
   private actors = new Map<number, ActorState>()
@@ -104,7 +247,10 @@ export class FightState {
     return this.actors.get(actorId)?.gear ?? []
   }
 
-  /** Process a combatantinfo event: seed auras, store gear, run gear implications */
+  /**
+   * Process a combatantinfo event:
+   * seed auras, store gear, and infer synthetic auras from implication hooks.
+   */
   private processCombatantInfo(
     event: Extract<WCLEvent, { type: 'combatantinfo' }>,
     config: ThreatConfig,
@@ -119,17 +265,30 @@ export class FightState {
     // Store gear
     if (event.gear) {
       actorState.gearTracker.setGear(event.gear)
+    }
 
-      // Run gear implications to inject synthetic auras
-      const actor = this.actorMap.get(event.sourceID)
-      const wowClass = actor?.class as WowClass | null
-      if (wowClass) {
-        const classConfig = config.classes[wowClass]
-        if (classConfig?.gearImplications) {
-          const syntheticAuras = classConfig.gearImplications(event.gear)
-          actorState.auraTracker.seedAuras(syntheticAuras)
-        }
-      }
+    const sourceActor = this.actorMap.get(event.sourceID) ?? null
+    const wowClass = sourceActor?.class as WowClass | null
+    const classConfig = wowClass ? config.classes[wowClass] : undefined
+    const gear = actorState.gearTracker.getGear()
+    const { talentPoints, talentRanks, specId } = buildTalentContext(event)
+
+    const talentImplicationContext = {
+      event,
+      sourceActor,
+      talentPoints,
+      talentRanks,
+      specId,
+    }
+
+    const syntheticAuras = mergeSyntheticAuras([
+      config.gearImplications?.(gear),
+      classConfig?.gearImplications?.(gear),
+      classConfig?.talentImplications?.(talentImplicationContext),
+    ])
+
+    if (syntheticAuras.length > 0) {
+      actorState.auraTracker.seedAuras(syntheticAuras)
     }
   }
 

@@ -5,7 +5,7 @@
  * threat. Uses mock configs to test behaviors surgically without dependencies on
  * real config evolution.
  */
-import { castCanMiss } from '@wcl-threat/threat-config'
+import { castCanMiss, SpellSchool } from '@wcl-threat/threat-config'
 import type {
   Actor,
   EffectHandler,
@@ -65,6 +65,7 @@ const SPELLS = {
   MOCK_AURA_THREAT_DOWN: 2002,
   // Set bonus
   SET_BONUS_AURA: 3001,
+  MOCK_DEFIANCE_RANK_5_AURA: 3002,
 } as const
 
 /**
@@ -128,6 +129,11 @@ const mockConfig = createMockThreatConfig({
           name: 'Set Bonus: 8pc Tier 1',
           value: 0.8,
         }),
+        [SPELLS.MOCK_DEFIANCE_RANK_5_AURA]: () => ({
+          source: 'talent',
+          name: 'Defiance (Rank 5)',
+          value: 1.15,
+        }),
       },
 
       abilities: {
@@ -155,6 +161,10 @@ const mockConfig = createMockThreatConfig({
         }
         return []
       },
+      talentImplications: ({ talentPoints }) =>
+        (talentPoints[2] ?? 0) >= 31
+          ? [SPELLS.MOCK_DEFIANCE_RANK_5_AURA]
+          : [],
 
       fixateBuffs: new Set(),
       aggroLossBuffs: new Set(),
@@ -1176,6 +1186,44 @@ describe('combatantinfo processing', () => {
     )
     expect(setBonusModifier).toBeDefined()
     expect(setBonusModifier?.value).toBe(0.8)
+  })
+
+  it('injects synthetic auras from combatant talent implications', () => {
+    const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
+
+    const combatantInfo: WCLEvent = {
+      timestamp: 1000,
+      type: 'combatantinfo',
+      sourceID: warriorActor.id,
+      sourceIsFriendly: true,
+      targetID: warriorActor.id,
+      targetIsFriendly: true,
+      talents: [14, 5, 31],
+    }
+
+    const events: WCLEvent[] = [
+      combatantInfo,
+      createDamageEvent({
+        sourceID: warriorActor.id,
+        targetID: bossEnemy.id,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const damageEvent = result.augmentedEvents.find((e) => e.type === 'damage')
+    const talentModifier = damageEvent?.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.source === 'talent',
+    )
+    expect(talentModifier).toBeDefined()
+    expect(talentModifier?.name).toBe('Defiance (Rank 5)')
+    expect(talentModifier?.value).toBe(1.15)
   })
 
   it('processes combatantinfo for unknown actor gracefully', () => {

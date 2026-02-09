@@ -2,10 +2,11 @@
  * Tests for FightState
  *
  * Verifies event dispatching to per-actor trackers, combatant info processing,
- * and gear implications coordination.
+ * and talent/gear implication coordination.
  */
 import type {
   Actor,
+  TalentImplicationsFn,
   ThreatConfig,
   ThreatContext,
 } from '@wcl-threat/threat-config'
@@ -45,6 +46,7 @@ const TEST_SPELLS = {
   CAT_FORM: 768,
   DIRE_BEAR_FORM: 9634,
   SYNTHETIC_AURA: 99999,
+  GLOBAL_COMBATANT_AURA: 99998,
 } as const
 
 /** Minimal test config with exclusive auras for testing */
@@ -137,6 +139,29 @@ function createConfigWithGearImplications(
       },
       // rogue from default is preserved
     },
+  })
+}
+
+function createConfigWithImplications({
+  globalGearImplications,
+  classTalentImplications,
+  classGearImplications,
+}: {
+  globalGearImplications?: (gear: GearItem[]) => number[]
+  classTalentImplications?: TalentImplicationsFn
+  classGearImplications?: (gear: GearItem[]) => number[]
+}): ThreatConfig {
+  return createMockThreatConfig({
+    classes: {
+      warrior: {
+        baseThreatFactor: 1.0,
+        auraModifiers: {},
+        abilities: {},
+        talentImplications: classTalentImplications,
+        gearImplications: classGearImplications,
+      },
+    },
+    gearImplications: globalGearImplications,
   })
 }
 
@@ -505,6 +530,65 @@ describe('FightState', () => {
       )
 
       expect(state.getAuras(1).has(SYNTHETIC_AURA_ID)).toBe(true)
+    })
+
+    it('runs global gear + class talent + class gear implication hooks together', () => {
+      const config = createConfigWithImplications({
+        globalGearImplications: (gear) =>
+          gear.some((item) => item.setID === 498)
+            ? [TEST_SPELLS.GLOBAL_COMBATANT_AURA]
+            : [],
+        classTalentImplications: ({ talentPoints }) =>
+          (talentPoints[2] ?? 0) >= 31
+            ? [TEST_SPELLS.SYNTHETIC_AURA]
+            : [],
+        classGearImplications: (gear) =>
+          gear.some((item) => item.setID === 498) ? [123456] : [],
+      })
+      const state = new FightState(defaultActorMap, config)
+
+      state.processEvent(
+        {
+          timestamp: 0,
+          type: 'combatantinfo',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 1,
+          targetIsFriendly: true,
+          gear: [{ id: 19019, setID: 498 }],
+          talents: [14, 5, 31],
+        } as WCLEvent,
+        config,
+      )
+
+      const auras = state.getAuras(1)
+      expect(auras.has(TEST_SPELLS.GLOBAL_COMBATANT_AURA)).toBe(true)
+      expect(auras.has(TEST_SPELLS.SYNTHETIC_AURA)).toBe(true)
+      expect(auras.has(123456)).toBe(true)
+    })
+
+    it('runs class talentImplications without gear using tree-point payloads', () => {
+      const TALENT_INFERRED_AURA = 88888
+      const config = createConfigWithImplications({
+        classTalentImplications: ({ talentPoints }) =>
+          (talentPoints[2] ?? 0) >= 31 ? [TALENT_INFERRED_AURA] : [],
+      })
+      const state = new FightState(defaultActorMap, config)
+
+      state.processEvent(
+        {
+          timestamp: 0,
+          type: 'combatantinfo',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 1,
+          targetIsFriendly: true,
+          talents: [14, 5, 31],
+        } as WCLEvent,
+        config,
+      )
+
+      expect(state.getAuras(1).has(TALENT_INFERRED_AURA)).toBe(true)
     })
 
     it('does not run gearImplications when class config has none', () => {

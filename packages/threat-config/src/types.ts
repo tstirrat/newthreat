@@ -5,6 +5,7 @@
  * for different game versions.
  */
 import type {
+  CombatantInfoEvent,
   EventType,
   GearItem,
   HitType,
@@ -206,6 +207,17 @@ export interface BaseThreatConfig {
 }
 
 export type AuraModifierFn = (ctx: ThreatContext) => ThreatModifier
+export interface TalentImplicationContext {
+  event: CombatantInfoEvent
+  sourceActor: Actor | null
+  talentPoints: number[]
+  talentRanks: ReadonlyMap<number, number>
+  specId: number | null
+}
+
+export type TalentImplicationsFn = (
+  ctx: TalentImplicationContext,
+) => number[]
 
 export interface ClassThreatConfig {
   /** Exclusive aura sets - engine auto-removes others when one is applied */
@@ -222,6 +234,9 @@ export interface ClassThreatConfig {
 
   /** Called when combatantInfo is received to detect gear-based modifiers */
   gearImplications?: (gear: GearItem[]) => number[]
+
+  /** Called when combatantInfo is received to detect talent-based synthetic auras */
+  talentImplications?: TalentImplicationsFn
 
   /** Buffs that indicate fixate (taunt) state */
   fixateBuffs?: Set<number>
@@ -246,6 +261,8 @@ export interface ThreatConfig {
    * auras the source actor has active.
    */
   auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier>
+  /** Called for all classes when combatantInfo is received to detect gear-based modifiers */
+  gearImplications?: (gear: GearItem[]) => number[]
   /** Buffs that indicate fixate (taunt) state */
   fixateBuffs?: Set<number>
   /** Buffs that indicate aggro loss state */

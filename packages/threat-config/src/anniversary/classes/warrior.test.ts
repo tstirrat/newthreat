@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import type { ThreatContext } from '../../types'
+import type { TalentImplicationContext, ThreatContext } from '../../types'
 import { SetIds, Spells, exclusiveAuras, warriorConfig } from './warrior'
 
 // Mock ThreatContext factory
@@ -164,6 +164,58 @@ describe('gearImplications', () => {
     const result = warriorConfig.gearImplications!(gear)
 
     expect(result).toHaveLength(0)
+  })
+})
+
+describe('talentImplications', () => {
+  function createTalentContext(
+    overrides: Partial<TalentImplicationContext> = {},
+  ): TalentImplicationContext {
+    return {
+      event: {
+        timestamp: 0,
+        type: 'combatantinfo',
+        sourceID: 1,
+        sourceIsFriendly: true,
+        targetID: 1,
+        targetIsFriendly: true,
+      },
+      sourceActor: { id: 1, name: 'TestWarrior', class: 'warrior' },
+      talentPoints: [0, 0, 0],
+      talentRanks: new Map(),
+      specId: null,
+      ...overrides,
+    }
+  }
+
+  it('infers Defiance aura from ranked talent payload', () => {
+    const result = warriorConfig.talentImplications!(
+      createTalentContext({
+        talentRanks: new Map([[Spells.Defiance, 5]]),
+      }),
+    )
+
+    expect(result).toEqual([Spells.DefianceRank5])
+  })
+
+  it('infers Defiance aura from direct rank spell IDs', () => {
+    const result = warriorConfig.talentImplications!(
+      createTalentContext({
+        talentRanks: new Map([[Spells.DefianceRank3, 1]]),
+      }),
+    )
+
+    expect(result).toEqual([Spells.DefianceRank3])
+  })
+
+  it('returns no synthetic aura when Defiance is absent', () => {
+    const result = warriorConfig.talentImplications!(
+      createTalentContext({
+        talentRanks: new Map([[999999, 3]]),
+      }),
+    )
+
+    expect(result).toEqual([])
   })
 })
 

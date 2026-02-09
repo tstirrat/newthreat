@@ -9,7 +9,11 @@ import {
   threatOnBuff,
   threatOnDebuff,
 } from '../../shared/formulas'
-import type { ClassThreatConfig, GearItem } from '../../types'
+import type {
+  ClassThreatConfig,
+  TalentImplicationContext,
+  GearItem,
+} from '../../types'
 
 // ============================================================================
 // Spell IDs
@@ -47,7 +51,7 @@ export const Spells = {
   T25_4pc: 23302, // AQ40 Conqueror 4pc
 
   // Talents (detected via auras)
-  Defiance: 12303, // Rank 5 (15%)
+  Defiance: 12303, // Legacy Defiance spell ID alias
   DefianceRank1: 12301,
   DefianceRank2: 12302,
   DefianceRank3: 12303,
@@ -62,6 +66,44 @@ export const Spells = {
 export const SetIds = {
   T1: 209, // Battlegear of Might (Warrior Tier 1)
 } as const
+
+const DEFIANCE_AURA_BY_RANK = [
+  Spells.DefianceRank1,
+  Spells.DefianceRank2,
+  Spells.DefianceRank3,
+  Spells.DefianceRank4,
+  Spells.DefianceRank5,
+] as const
+
+const DEFIANCE_RANK_BY_TALENT_ID = new Map<number, number>(
+  DEFIANCE_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
+)
+
+function clampRank(rank: number, maxRank: number): number {
+  return Math.max(0, Math.min(maxRank, Math.trunc(rank)))
+}
+
+function inferDefianceRank(ctx: TalentImplicationContext): number {
+  const fromTalentMap = [...ctx.talentRanks.entries()].reduce(
+    (highestRank, [talentId, rank]) => {
+      const directRank = DEFIANCE_RANK_BY_TALENT_ID.get(talentId)
+      const rankFromPayload = talentId === Spells.Defiance ? rank : 0
+      const inferredRank = Math.max(directRank ?? 0, rankFromPayload)
+      if (inferredRank > 0) {
+        return Math.max(highestRank, inferredRank)
+      }
+      return highestRank
+    },
+    0,
+  )
+
+  return clampRank(fromTalentMap, DEFIANCE_AURA_BY_RANK.length)
+}
+
+function inferGearAuras(gear: GearItem[]): number[] {
+  const t1Pieces = gear.filter((g) => g.setID === SetIds.T1).length
+  return t1Pieces >= 8 ? [Spells.T1_8pc] : []
+}
 
 // ============================================================================
 // Configuration
@@ -198,10 +240,13 @@ export const warriorConfig: ClassThreatConfig = {
     20559,
   ]),
 
-  gearImplications: (gear: GearItem[]) => {
-    const syntheticAuras: number[] = []
-    const t1Pieces = gear.filter((g) => g.setID === SetIds.T1).length
-    if (t1Pieces >= 8) syntheticAuras.push(Spells.T1_8pc)
-    return syntheticAuras
+  talentImplications: (ctx: TalentImplicationContext) => {
+    const defianceRank = inferDefianceRank(ctx)
+    if (defianceRank === 0) {
+      return []
+    }
+    return [DEFIANCE_AURA_BY_RANK[defianceRank - 1]!]
   },
+
+  gearImplications: inferGearAuras,
 }

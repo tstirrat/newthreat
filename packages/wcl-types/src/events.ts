@@ -218,8 +218,12 @@ export interface CombatantInfoEvent extends BaseWCLEvent {
   type: 'combatantinfo'
   gear?: GearItem[]
   auras?: CombatantInfoAura[]
-  talents?: unknown[]
+  talents?: unknown[] | number[]
+  talentPoints?: number[]
+  talentRows?: number[]
+  talentTree?: unknown[]
   specID?: number
+  specId?: number
 }
 
 /** Union type for WCL events */
