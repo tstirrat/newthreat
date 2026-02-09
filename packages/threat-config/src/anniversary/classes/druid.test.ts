@@ -135,7 +135,9 @@ describe('Druid Config', () => {
         const formula = druidConfig.abilities[Spells.FaerieFireFeralR1]
         expect(formula).toBeDefined()
 
-        const ctx = createMockContext()
+        const ctx = createMockContext({
+          event: { type: 'applydebuff' } as ThreatContext['event'],
+        })
         const result = formula!(ctx)
 
         expect(result.formula).toBe('108')
@@ -172,6 +174,26 @@ describe('Druid Config', () => {
       expect(exclusiveAuras[0]!.has(Spells.DireBearForm)).toBe(true)
       expect(exclusiveAuras[0]!.has(Spells.CatForm)).toBe(true)
       expect(exclusiveAuras[0]!.has(Spells.MoonkinForm)).toBe(true)
+    })
+  })
+
+  describe('auraImplications', () => {
+    it('maps rake casts to implied cat form', () => {
+      const catFormImplications = druidConfig.auraImplications?.get(
+        Spells.CatForm,
+      )
+
+      expect(catFormImplications).toBeDefined()
+      expect(catFormImplications?.has(Spells.Rake)).toBe(true)
+    })
+
+    it('maps maul casts to implied dire bear form', () => {
+      const direBearImplications = druidConfig.auraImplications?.get(
+        Spells.DireBearForm,
+      )
+
+      expect(direBearImplications).toBeDefined()
+      expect(direBearImplications?.has(Spells.MaulR1)).toBe(true)
     })
   })
 })

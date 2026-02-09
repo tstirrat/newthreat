@@ -9,7 +9,7 @@ import {
   tauntTarget,
   threatOnDebuff,
 } from '../../shared/formulas'
-import type { ClassThreatConfig } from '../../types'
+import type { ClassThreatConfig, SpellId } from '../../types'
 
 // ============================================================================
 // Spell IDs
@@ -93,6 +93,47 @@ const Mods = {
   Swipe: 1.75,
 }
 
+const DIRE_BEAR_FORM_IMPLIED_ABILITIES: ReadonlySet<SpellId> = new Set([
+  // Maul
+  Spells.MaulR1,
+  Spells.MaulR2,
+  Spells.MaulR3,
+  Spells.MaulR4,
+  Spells.MaulR5,
+  Spells.MaulR6,
+  Spells.MaulR7,
+  // Swipe
+  Spells.SwipeR1,
+  Spells.SwipeR2,
+  Spells.SwipeR3,
+  Spells.SwipeR4,
+  Spells.SwipeR5,
+  // Demoralizing Roar
+  Spells.DemoRoarR1,
+  Spells.DemoRoarR2,
+  Spells.DemoRoarR3,
+  Spells.DemoRoarR4,
+  Spells.DemoRoarR5,
+  Spells.Growl,
+  Spells.Enrage,
+  Spells.Furor,
+  Spells.Bash,
+])
+
+const CAT_FORM_IMPLIED_ABILITIES: ReadonlySet<SpellId> = new Set([
+  Spells.Claw,
+  Spells.Shred,
+  Spells.Rake,
+  Spells.FerociousBite,
+  Spells.Ravage,
+  Spells.Rip,
+  Spells.Pounce,
+  Spells.Prowl,
+  Spells.TigersFury,
+  Spells.DashR1,
+  Spells.DashR2,
+])
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -109,6 +150,11 @@ export const exclusiveAuras: Set<number>[] = [
 
 export const druidConfig: ClassThreatConfig = {
   exclusiveAuras,
+
+  auraImplications: new Map([
+    [Spells.DireBearForm, DIRE_BEAR_FORM_IMPLIED_ABILITIES],
+    [Spells.CatForm, CAT_FORM_IMPLIED_ABILITIES],
+  ]),
 
   auraModifiers: {
     // Bear Form (same modifier as Dire Bear)

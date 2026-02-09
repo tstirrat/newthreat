@@ -45,6 +45,7 @@ const TEST_SPELLS = {
   BEAR_FORM: 5487,
   CAT_FORM: 768,
   DIRE_BEAR_FORM: 9634,
+  RAKE: 9904,
   SYNTHETIC_AURA: 99999,
   GLOBAL_COMBATANT_AURA: 99998,
 } as const
@@ -104,6 +105,9 @@ const testConfig = createMockThreatConfig({
           TEST_SPELLS.DIRE_BEAR_FORM,
         ]),
       ],
+      auraImplications: new Map([
+        [TEST_SPELLS.CAT_FORM, new Set([TEST_SPELLS.RAKE])],
+      ]),
       auraModifiers: {},
       abilities: {},
     },
@@ -785,6 +789,65 @@ describe('FightState', () => {
 
       expect(state.getCurrentTarget(1)).toBeNull()
       expect(state.getLastTarget(1)).toBeNull()
+    })
+  })
+
+  describe('cast aura implications', () => {
+    it('infers cat form from rake cast when form aura event is missing', () => {
+      const actorMap = createActorMap([
+        { id: 3, name: 'Druid', class: 'druid' },
+      ])
+      const state = new FightState(actorMap, testConfig)
+
+      state.processEvent(
+        {
+          timestamp: 100,
+          type: 'cast',
+          sourceID: 3,
+          sourceIsFriendly: true,
+          targetID: 99,
+          targetIsFriendly: false,
+          abilityGameID: TEST_SPELLS.RAKE,
+        },
+        testConfig,
+      )
+
+      expect(state.getAuras(3).has(TEST_SPELLS.CAT_FORM)).toBe(true)
+    })
+
+    it('uses cast implication to swap bear form to cat form via exclusivity', () => {
+      const actorMap = createActorMap([
+        { id: 3, name: 'Druid', class: 'druid' },
+      ])
+      const state = new FightState(actorMap, testConfig)
+
+      state.processEvent(
+        createApplyBuffEvent({
+          timestamp: 0,
+          sourceID: 3,
+          sourceIsFriendly: true,
+          targetID: 3,
+          targetIsFriendly: true,
+          abilityGameID: TEST_SPELLS.BEAR_FORM,
+        }),
+        testConfig,
+      )
+
+      state.processEvent(
+        {
+          timestamp: 100,
+          type: 'cast',
+          sourceID: 3,
+          sourceIsFriendly: true,
+          targetID: 99,
+          targetIsFriendly: false,
+          abilityGameID: TEST_SPELLS.RAKE,
+        },
+        testConfig,
+      )
+
+      expect(state.getAuras(3).has(TEST_SPELLS.BEAR_FORM)).toBe(false)
+      expect(state.getAuras(3).has(TEST_SPELLS.CAT_FORM)).toBe(true)
     })
   })
 

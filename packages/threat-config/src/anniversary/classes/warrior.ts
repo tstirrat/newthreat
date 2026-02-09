@@ -13,6 +13,7 @@ import type {
   ClassThreatConfig,
   TalentImplicationContext,
   GearItem,
+  SpellId,
 } from '../../types'
 
 // ============================================================================
@@ -105,6 +106,58 @@ function inferGearAuras(gear: GearItem[]): number[] {
   return t1Pieces >= 8 ? [Spells.T1_8pc] : []
 }
 
+const BATTLE_STANCE_IMPLIED_ABILITIES: ReadonlySet<SpellId> = new Set([
+  // Overpower
+  7384,
+  7887,
+  11584,
+  Spells.Overpower,
+  // Charge
+  100,
+  6178,
+  11578,
+  // Thunder Clap (all ranks)
+  6343,
+  8198,
+  8204,
+  8205,
+  11580,
+  11581,
+  // Mocking Blow (all ranks)
+  694,
+  7400,
+  7402,
+  20559,
+  Spells.MockingBlow,
+  20230, // Retaliation
+  12292, // Sweeping Strikes
+])
+
+const BERSERKER_STANCE_IMPLIED_ABILITIES: ReadonlySet<SpellId> = new Set([
+  // Intercept
+  20252,
+  20617,
+  20616,
+  1680, // Whirlwind
+  18499, // Berserker Rage
+  1719, // Recklessness
+  6552,
+  6554, // Pummel
+])
+
+const DEFENSIVE_STANCE_IMPLIED_ABILITIES: ReadonlySet<SpellId> = new Set([
+  Spells.Taunt,
+  Spells.Disarm,
+  6572,
+  6574,
+  7379,
+  11600,
+  11601,
+  Spells.Revenge,
+  2565, // Shield Block
+  871, // Shield Wall
+])
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -120,6 +173,12 @@ export const exclusiveAuras: Set<number>[] = [
 
 export const warriorConfig: ClassThreatConfig = {
   exclusiveAuras,
+
+  auraImplications: new Map([
+    [Spells.BattleStance, BATTLE_STANCE_IMPLIED_ABILITIES],
+    [Spells.BerserkerStance, BERSERKER_STANCE_IMPLIED_ABILITIES],
+    [Spells.DefensiveStance, DEFENSIVE_STANCE_IMPLIED_ABILITIES],
+  ]),
 
   auraModifiers: {
     // Stances

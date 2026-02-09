@@ -34,6 +34,9 @@ export type WowClass =
   | 'demonhunter'
   | 'evoker'
 
+// TODO: Promote SpellId to a branded/tagged type for stronger compile-time safety.
+export type SpellId = number
+
 export enum SpellSchool {
   Physical = 1,
   Holy = 2,
@@ -231,6 +234,8 @@ export type TalentImplicationsFn = (
   ctx: TalentImplicationContext,
 ) => number[]
 
+export type AuraImplications = ReadonlyMap<SpellId, ReadonlySet<SpellId>>
+
 export interface ClassThreatConfig {
   /** Exclusive aura sets - engine auto-removes others when one is applied */
   exclusiveAuras?: Set<number>[]
@@ -249,6 +254,9 @@ export interface ClassThreatConfig {
 
   /** Called when combatantInfo is received to detect talent-based synthetic auras */
   talentImplications?: TalentImplicationsFn
+
+  /** Implied aura state keyed by aura spell ID -> cast spell IDs that imply it */
+  auraImplications?: AuraImplications
 
   /** Buffs that indicate fixate (taunt) state */
   fixateBuffs?: Set<number>

@@ -65,6 +65,35 @@ describe('exclusiveAuras', () => {
   })
 })
 
+describe('auraImplications', () => {
+  it('maps overpower to implied battle stance', () => {
+    const battleImplications = warriorConfig.auraImplications?.get(
+      Spells.BattleStance,
+    )
+
+    expect(battleImplications).toBeDefined()
+    expect(battleImplications?.has(Spells.Overpower)).toBe(true)
+  })
+
+  it('maps intercept to implied berserker stance', () => {
+    const berserkerImplications = warriorConfig.auraImplications?.get(
+      Spells.BerserkerStance,
+    )
+
+    expect(berserkerImplications).toBeDefined()
+    expect(berserkerImplications?.has(20252)).toBe(true)
+  })
+
+  it('maps taunt to implied defensive stance', () => {
+    const defensiveImplications = warriorConfig.auraImplications?.get(
+      Spells.DefensiveStance,
+    )
+
+    expect(defensiveImplications).toBeDefined()
+    expect(defensiveImplications?.has(Spells.Taunt)).toBe(true)
+  })
+})
+
 describe('auraModifiers', () => {
   it('returns Defensive Stance modifier', () => {
     const modifierFn = warriorConfig.auraModifiers[Spells.DefensiveStance]

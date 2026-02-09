@@ -31,8 +31,8 @@ Legend:
 
 - [x] **[REQ-017][P1][C4]** Add Era-style `combatantImplications` + talent-rank pipeline (not just `gearImplications`).
 - [x] **[REQ-018][P1][C3]** Add class `combatantImplications` hooks (all/class) to infer synthetic auras/talent ranks from combatant info beyond gear-only logic.
-- [ ] **[REQ-019][P1][C4]** Add cast-driven aura inference (`auraImplications`) for stance/form inference parity.
-- [ ] **[REQ-020][P1][C3]** Add `auraImplications` (cast -> inferred aura) for stance/form inference parity.
+- [x] **[REQ-019][P1][C4]** Add cast-driven aura inference (`auraImplications`) for stance/form inference parity.
+- [x] **[REQ-020][P1][C3]** Add `auraImplications` (cast -> inferred aura) for stance/form inference parity.
 - [ ] **[REQ-021][P1][C4]** Support threat tracking by enemy instance (not only enemy ID) for parity with multi-instance mechanics.
 - [ ] **[REQ-022][P1][C4]** Add target/instance-aware state needed for advanced raid mechanics (e.g., magnetic pull-style behavior).
 

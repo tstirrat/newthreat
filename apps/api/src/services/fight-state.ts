@@ -211,6 +211,9 @@ export class FightState {
             targetInstance: event.targetInstance ?? 0,
           })
         }
+        if (event.type === 'cast') {
+          this.processCastAuraImplications(event, config)
+        }
         break
       case 'damage':
         if (event.overkill > 0) {
@@ -247,6 +250,31 @@ export class FightState {
       case 'resurrect':
         this.deadActors.delete(event.targetID)
         break
+    }
+  }
+
+  /** Process cast-driven aura implications (e.g., form inferred by cast spell). */
+  private processCastAuraImplications(
+    event: Extract<WCLEvent, { type: 'cast' }>,
+    config: ThreatConfig,
+  ): void {
+    const sourceActor = this.actorMap.get(event.sourceID) ?? null
+    const wowClass = sourceActor?.class as WowClass | null
+    const classConfig = wowClass ? config.classes[wowClass] : undefined
+    const auraImplications = classConfig?.auraImplications
+
+    if (!auraImplications || auraImplications.size === 0) {
+      return
+    }
+
+    const impliedAuras = [...auraImplications.entries()]
+      .filter(([, spellIds]) => spellIds.has(event.abilityGameID))
+      .map(([auraId]) => auraId)
+
+    if (impliedAuras.length > 0) {
+      this.getOrCreateActorState(event.sourceID).auraTracker.seedAuras(
+        dedupeIds(impliedAuras),
+      )
     }
   }
 

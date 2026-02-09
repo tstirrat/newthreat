@@ -44,6 +44,7 @@ import {
 // Test fixtures
 const warriorActor: Actor = { id: 1, name: 'WarriorTank', class: 'warrior' }
 const priestActor: Actor = { id: 2, name: 'PriestHealer', class: 'priest' }
+const druidActor: Actor = { id: 3, name: 'Druid', class: 'druid' }
 
 const bossEnemy: Enemy = { id: 99, name: 'Boss', instance: 0 }
 const addEnemy: Enemy = { id: 100, name: 'Add', instance: 0 }
@@ -56,10 +57,13 @@ const SPELLS = {
   DEFENSIVE_STANCE: 71,
   BATTLE_STANCE: 2457,
   BERSERKER_STANCE: 2458,
+  BEAR_FORM: 5487,
+  CAT_FORM: 768,
   // Abilities
   MOCK_ABILITY_1: 1001,
   MOCK_ABILITY_2: 1002,
   MOCK_CAST_CAN_MISS: 1003,
+  RAKE: 9904,
   // Auras
   MOCK_AURA_THREAT_UP: 2001,
   MOCK_AURA_THREAT_DOWN: 2002,
@@ -179,6 +183,22 @@ const mockConfig = createMockThreatConfig({
           source: 'buff',
           name: 'Test Threat Up',
           value: 1.5,
+        }),
+      },
+      abilities: {},
+    },
+
+    druid: {
+      exclusiveAuras: [new Set([SPELLS.BEAR_FORM, SPELLS.CAT_FORM])],
+      baseThreatFactor: 1.0,
+      auraImplications: new Map([
+        [SPELLS.CAT_FORM, new Set([SPELLS.RAKE])],
+      ]),
+      auraModifiers: {
+        [SPELLS.CAT_FORM]: () => ({
+          source: 'class',
+          name: 'Cat Form',
+          value: 0.71,
         }),
       },
       abilities: {},
@@ -1256,6 +1276,47 @@ describe('combatantinfo processing', () => {
     })
 
     expect(result.eventCounts.combatantinfo).toBe(1)
+  })
+})
+
+describe('cast aura implications', () => {
+  it('infers cat form from rake cast when no cat form aura event exists', () => {
+    const actorMap = new Map<number, Actor>([[druidActor.id, druidActor]])
+
+    const events: WCLEvent[] = [
+      {
+        timestamp: 1000,
+        type: 'cast',
+        sourceID: druidActor.id,
+        sourceIsFriendly: true,
+        targetID: bossEnemy.id,
+        targetIsFriendly: false,
+        abilityGameID: SPELLS.RAKE,
+      },
+      createDamageEvent({
+        timestamp: 1100,
+        sourceID: druidActor.id,
+        targetID: bossEnemy.id,
+        targetIsFriendly: false,
+        abilityGameID: SPELLS.RAKE,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      enemies,
+      config: mockConfig,
+    })
+
+    const damageEvent = result.augmentedEvents.find((e) => e.type === 'damage')
+    const catFormModifier = damageEvent?.threat.calculation.modifiers.find(
+      (m: ThreatModifier) => m.name === 'Cat Form',
+    )
+
+    expect(catFormModifier).toBeDefined()
+    expect(catFormModifier?.value).toBe(0.71)
   })
 })
 
