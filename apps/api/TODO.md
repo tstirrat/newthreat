@@ -5,7 +5,8 @@ Legend:
 - `Priority`: `P0` critical engine parity, `P1` major parity gaps, `P2` polish/advanced mechanics
 - `Complexity`: `1` low, `2` medium-low, `3` medium, `4` high, `5` very high
 - `Requirement Code`: `REQ-###` unique ID for cross-reference
-- `Parity Source`: [Era spells.js](https://github.com/Voomlz/voomlz.github.io/blob/master/era/spells.js)
+- `Parity Source`: [`voomlz.github.io/era/spells.js`](https://github.com/Voomlz/voomlz.github.io/blob/master/era/spells.js)
+- `Quick Local Check`: `git clone --depth 1 https://github.com/Voomlz/voomlz.github.io.git /tmp/voomlz.github.io` then inspect `/tmp/voomlz.github.io/era/spells.js`
 
 ## P0 - Core Engine Semantics
 

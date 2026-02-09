@@ -202,6 +202,9 @@ type narrowing.
 **Hono routing:** Routes composed via `new Hono()` + `.route()` mounting. Dependencies
 flow through Hono context (`c.env`, `c.set()`/`c.get()`).
 
+**Implementation plans:** Include brief code snippets where helpful so proposed changes
+have concrete context (function signatures, key conditionals, or data shapes).
+
 **Test patterns:**
 
 - BDD style: `describe`/`it`/`expect` (globals enabled)
