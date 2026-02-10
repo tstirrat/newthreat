@@ -286,6 +286,31 @@ unions, aliases, and function types.
 - Use `as const` for lookup tables (spell IDs, error codes)
 - Generics where appropriate (`get<T>`, `Partial<>` for test factories)
 
+### Domain ID Branding
+
+Use branded types for domain identifiers that cross API/frontend boundaries so IDs are
+not accidentally mixed.
+
+- Brand IDs that represent distinct concepts, such as `EncounterId`, `SpellId`,
+  `TalentPointId`, `ActorId`, `FightId`, and `ReportId`.
+- Apply branding at boundaries: API response mappers, request validators, route param
+  parsers, and query-param parsers.
+- Keep wire payloads plain (`number`/`string`) and convert to branded types in
+  application code after validation/parsing.
+- Do not over-brand internal ephemeral values (loop indexes, chart point indexes, local
+  counters).
+
+```typescript
+type Brand<T, TBrand extends string> = T & { readonly __brand: TBrand }
+
+type EncounterId = Brand<number, 'EncounterId'>
+type SpellId = Brand<number, 'SpellId'>
+type TalentPointId = Brand<number, 'TalentPointId'>
+type ActorId = Brand<number, 'ActorId'>
+type FightId = Brand<number, 'FightId'>
+type ReportId = Brand<string, 'ReportId'>
+```
+
 ### Error Handling
 
 Errors are thrown (not returned). Use the `AppError` class with factory functions:
