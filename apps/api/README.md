@@ -63,6 +63,7 @@ Notes:
 
 - `fights[].enemyNPCs[].name` and similar participant `name` fields are optional.
 - `actors` are normalized to a stable summary shape (`id`, `name`, `type`, optional `subType`, optional `petOwner`).
+- `abilities` exposes report-level ability metadata from `masterData.abilities` (`gameID`, `icon`, `name`, `type`) and defaults to `[]` when unavailable.
 
 ### `GET /v1/reports/:code/fights/:id`
 

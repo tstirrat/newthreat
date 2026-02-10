@@ -4,6 +4,7 @@
  * GET /reports/:code - Get report metadata
  */
 import type {
+  ReportAbility as WCLReportAbility,
   ReportActor as WCLReportActor,
   ReportFight as WCLReportFight,
 } from '@wcl-threat/wcl-types'
@@ -11,7 +12,11 @@ import { Hono } from 'hono'
 
 import { invalidReportCode, reportNotFound } from '../middleware/error'
 import { WCLClient } from '../services/wcl'
-import { toReportActorSummary, toReportFightSummary } from '../types/api-transformers'
+import {
+  toReportAbilitySummary,
+  toReportActorSummary,
+  toReportFightSummary,
+} from '../types/api-transformers'
 import type { ReportResponse } from '../types/api'
 import type { Bindings, Variables } from '../types/bindings'
 import { fightsRoutes } from './fights'
@@ -28,7 +33,7 @@ export type { ReportResponse } from '../types/api'
 
 /**
  * GET /reports/:code
- * Returns report metadata including fights and actors
+ * Returns report metadata including fights, actors, and abilities
  */
 reportRoutes.get('/:code', async (c) => {
   const code = c.req.param('code')
@@ -67,6 +72,9 @@ reportRoutes.get('/:code', async (c) => {
       ),
       actors: masterData.actors.map((actor: WCLReportActor) =>
         toReportActorSummary(actor),
+      ),
+      abilities: (masterData.abilities ?? []).map((ability: WCLReportAbility) =>
+        toReportAbilitySummary(ability),
       ),
     },
     200,

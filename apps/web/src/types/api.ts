@@ -1,7 +1,5 @@
 /**
- * API Contract Types
- *
- * Frontend-facing response contracts for the public HTTP API.
+ * Frontend API response contract types.
  */
 import type { AugmentedEvent } from '@wcl-threat/threat-config'
 import type { PlayerClass, Zone } from '@wcl-threat/wcl-types'

@@ -3,9 +3,10 @@
  *
  * Normalizes WCL response models into frontend-facing API contract types.
  */
-import type { ReportActor, ReportFight } from '@wcl-threat/wcl-types'
+import type { ReportAbility, ReportActor, ReportFight } from '@wcl-threat/wcl-types'
 
 import type {
+  ReportAbilitySummary,
   ReportActorSummary,
   ReportFightParticipant,
   ReportFightSummary,
@@ -27,6 +28,18 @@ export function toReportActorSummary(actor: ReportActor): ReportActorSummary {
     name: actor.name,
     type: actor.type,
     subType: actor.subType,
+  }
+}
+
+/** Convert a WCL ability to a stable frontend-facing ability summary. */
+export function toReportAbilitySummary(
+  ability: ReportAbility,
+): ReportAbilitySummary {
+  return {
+    gameID: ability.gameID,
+    icon: ability.icon,
+    name: ability.name,
+    type: ability.type,
   }
 }
 

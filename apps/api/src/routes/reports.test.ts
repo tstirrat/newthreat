@@ -41,6 +41,36 @@ describe('Reports API', () => {
       expect(data.gameVersion).toBe(1)
       expect(data.fights).toHaveLength(3)
       expect(data.actors).toHaveLength(7)
+      expect(data.abilities).toHaveLength(3)
+      expect(data.abilities[0]).toEqual({
+        gameID: 23922,
+        icon: 'ability_warrior_shieldslam',
+        name: 'Shield Slam',
+        type: '1',
+      })
+    })
+
+    it('returns empty abilities array when report has no ability metadata', async () => {
+      mockFetch({
+        report: {
+          ...reportData,
+          masterData: {
+            ...reportData.masterData,
+            abilities: undefined,
+          },
+        },
+      })
+
+      const res = await app.request(
+        'http://localhost/v1/reports/NOABIL999',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(200)
+
+      const data: ReportResponse = await res.json()
+      expect(data.abilities).toEqual([])
     })
 
     it('returns 400 for invalid report code format', async () => {

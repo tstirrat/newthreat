@@ -1,0 +1,49 @@
+{
+  "name": "@wcl-threat/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@wcl-threat/threat-config": "workspace:*",
+    "@wcl-threat/wcl-types": "workspace:*",
+    "@tanstack/react-query": "^5.66.0",
+    "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.1"
+  },
+  "devDependencies": {
+    "@eslint/core": "^0.17.0",
+    "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.50.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@wcl-threat/typescript-config": "workspace:*",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.2",
+    "globals": "^17.3.0",
+    "jsdom": "^25.0.1",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.54.0",
+    "vite": "^5.4.12",
+    "jiti": "^2.6.1",
+    "vitest": "^2.1.9"
+  }
+}

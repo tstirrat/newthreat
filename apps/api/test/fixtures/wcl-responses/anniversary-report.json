@@ -157,6 +157,26 @@
               "subType": "Undead",
               "petOwner": null
             }
+          ],
+          "abilities": [
+            {
+              "gameID": 23922,
+              "icon": "ability_warrior_shieldslam",
+              "name": "Shield Slam",
+              "type": "1"
+            },
+            {
+              "gameID": 116,
+              "icon": "spell_frost_frostbolt02",
+              "name": "Frostbolt",
+              "type": "16"
+            },
+            {
+              "gameID": 27243,
+              "icon": "inv_misc_monsterclaw_03",
+              "name": "Feed Pet Effect",
+              "type": "1"
+            }
           ]
         }
       }
