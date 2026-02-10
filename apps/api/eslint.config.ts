@@ -1,3 +1,4 @@
+import { type Plugin } from '@eslint/core'
 import js from '@eslint/js'
 import json from '@eslint/json'
 import markdown from '@eslint/markdown'
@@ -21,13 +22,13 @@ export default defineConfig([
   tseslint.configs.recommended,
   {
     files: ['**/*.json'],
-    plugins: { json },
+    plugins: { json: json as Plugin },
     language: 'json/json',
     extends: ['json/recommended'],
   },
   {
     files: ['**/*.jsonc'],
-    plugins: { json },
+    plugins: { json: json as Plugin },
     language: 'json/jsonc',
     extends: ['json/recommended'],
   },
