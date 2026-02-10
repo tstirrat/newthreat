@@ -81,6 +81,8 @@ const DEFIANCE_AURA_BY_RANK = [
 const DEFIANCE_RANK_BY_TALENT_ID = new Map<number, number>(
   DEFIANCE_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
 )
+const PROTECTION_TREE_INDEX = 2
+const HIGH_CONFIDENCE_DEFIANCE_PROT_POINTS = 31
 
 function inferDefianceRank(ctx: TalentImplicationContext): number {
   const fromRankSpellIds = inferMappedTalentRank(
@@ -92,8 +94,19 @@ function inferDefianceRank(ctx: TalentImplicationContext): number {
     ctx.talentRanks.get(Spells.Defiance) ?? 0,
     DEFIANCE_AURA_BY_RANK.length,
   )
+  const rankedDefiance = Math.max(fromRankSpellIds, fromDefianceAlias)
+  if (rankedDefiance > 0) {
+    return rankedDefiance
+  }
 
-  return Math.max(fromRankSpellIds, fromDefianceAlias)
+  const protectionPoints = Math.trunc(ctx.talentPoints[PROTECTION_TREE_INDEX] ?? 0)
+  if (protectionPoints < HIGH_CONFIDENCE_DEFIANCE_PROT_POINTS) {
+    return 0
+  }
+
+  // Legacy payloads can lack per-talent ranks and only expose tree splits.
+  // In high-confidence deep protection builds, infer max Defiance rank.
+  return DEFIANCE_AURA_BY_RANK.length
 }
 
 function inferGearAuras(gear: GearItem[]): number[] {

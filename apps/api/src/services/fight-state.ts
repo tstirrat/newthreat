@@ -43,6 +43,14 @@ const TALENT_RANK_KEYS = [
   'value',
 ] as const
 
+const TALENT_TREE_SPLIT_KEYS = ['id', 'points', 'value'] as const
+const COMBATANT_AURA_ID_KEYS = [
+  'abilityGameID',
+  'ability',
+  'abilityID',
+  'abilityId',
+] as const
+
 type UnknownRecord = Record<string, unknown>
 const MAX_TALENT_PARSE_DEPTH = 6
 
@@ -67,6 +75,52 @@ function isFiniteNumberArray(value: unknown): value is number[] {
     value.every((item) => typeof item === 'number' && Number.isFinite(item))
 }
 
+function isValidTalentPointSplit(points: number[]): boolean {
+  return points.length === 3 && points.every((point) => point >= 0 && point <= 61)
+}
+
+function parseLegacyTalentPointSplit(value: unknown): number[] {
+  if (!Array.isArray(value) || value.length !== 3) {
+    return []
+  }
+
+  const parsed = value.map((entry) => {
+    if (typeof entry === 'number' && Number.isFinite(entry)) {
+      return Math.trunc(entry)
+    }
+
+    const record = asRecord(entry)
+    if (!record) {
+      return null
+    }
+
+    // Legacy payloads encode talent tree point splits as [{ id: 14 }, { id: 5 }, { id: 31 }]
+    // and do not include per-talent ranks.
+    if (readNumber(record, TALENT_RANK_KEYS) !== null) {
+      return null
+    }
+
+    const treePoints = readNumber(record, TALENT_TREE_SPLIT_KEYS)
+    return treePoints === null ? null : Math.trunc(treePoints)
+  })
+
+  if (parsed.some((value) => value === null)) {
+    return []
+  }
+
+  const points = parsed as number[]
+  return isValidTalentPointSplit(points) ? points : []
+}
+
+function parseCombatantInfoAuraId(aura: unknown): number | null {
+  const record = asRecord(aura)
+  if (!record) {
+    return null
+  }
+
+  return readNumber(record, COMBATANT_AURA_ID_KEYS)
+}
+
 function parseTalentPoints(
   event: Extract<WCLEvent, { type: 'combatantinfo' }>,
 ): number[] {
@@ -74,8 +128,17 @@ function parseTalentPoints(
     return event.talentPoints
   }
 
+  if (isFiniteNumberArray(event.talentRows)) {
+    return event.talentRows
+  }
+
   if (isFiniteNumberArray(event.talents)) {
     return event.talents
+  }
+
+  const legacyTalentPointSplit = parseLegacyTalentPointSplit(event.talents)
+  if (legacyTalentPointSplit.length > 0) {
+    return legacyTalentPointSplit
   }
 
   return []
@@ -356,7 +419,15 @@ export class FightState {
 
     // Seed initial auras from combatant info
     if (event.auras) {
-      actorState.auraTracker.seedAuras(event.auras.map((a) => a.abilityGameID))
+      const auraIds = dedupeIds(
+        event.auras
+          .map((aura) => parseCombatantInfoAuraId(aura))
+          .filter((auraId): auraId is number => auraId !== null),
+      )
+
+      if (auraIds.length > 0) {
+        actorState.auraTracker.seedAuras(auraIds)
+      }
     }
 
     // Store gear

@@ -468,6 +468,33 @@ describe('FightState', () => {
       expect(state.getAuras(1).has(25780)).toBe(true)
     })
 
+    it('seeds initial auras from legacy combatant aura payloads', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        {
+          timestamp: 0,
+          type: 'combatantinfo',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 1,
+          targetIsFriendly: true,
+          auras: [
+            {
+              source: 1,
+              ability: 71,
+              stacks: 1,
+              icon: 'spell_shadow_deathscream.jpg',
+              name: null,
+            },
+          ],
+        } as WCLEvent,
+        testConfig,
+      )
+
+      expect(state.getAuras(1).has(71)).toBe(true)
+    })
+
     it('stores gear from combatant info', () => {
       const state = new FightState(defaultActorMap, testConfig)
       const gear = [
@@ -588,6 +615,30 @@ describe('FightState', () => {
           targetID: 1,
           targetIsFriendly: true,
           talents: [14, 5, 31],
+        } as WCLEvent,
+        config,
+      )
+
+      expect(state.getAuras(1).has(TALENT_INFERRED_AURA)).toBe(true)
+    })
+
+    it('runs class talentImplications using legacy three-tree talent payloads', () => {
+      const TALENT_INFERRED_AURA = 77777
+      const config = createConfigWithImplications({
+        classTalentImplications: ({ talentPoints }) =>
+          (talentPoints[2] ?? 0) >= 31 ? [TALENT_INFERRED_AURA] : [],
+      })
+      const state = new FightState(defaultActorMap, config)
+
+      state.processEvent(
+        {
+          timestamp: 0,
+          type: 'combatantinfo',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 1,
+          targetIsFriendly: true,
+          talents: [{ id: 14 }, { id: 5 }, { id: 31 }],
         } as WCLEvent,
         config,
       )

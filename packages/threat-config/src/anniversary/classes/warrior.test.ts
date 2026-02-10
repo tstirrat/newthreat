@@ -237,6 +237,37 @@ describe('talentImplications', () => {
     expect(result).toEqual([Spells.DefianceRank3])
   })
 
+  it('infers Defiance rank 5 from high-confidence protection tree split', () => {
+    const result = warriorConfig.talentImplications!(
+      createTalentContext({
+        talentPoints: [14, 5, 31],
+      }),
+    )
+
+    expect(result).toEqual([Spells.DefianceRank5])
+  })
+
+  it('does not infer Defiance from low-confidence protection tree split', () => {
+    const result = warriorConfig.talentImplications!(
+      createTalentContext({
+        talentPoints: [20, 20, 11],
+      }),
+    )
+
+    expect(result).toEqual([])
+  })
+
+  it('prefers explicit ranked talent payload over tree-split inference', () => {
+    const result = warriorConfig.talentImplications!(
+      createTalentContext({
+        talentPoints: [14, 5, 31],
+        talentRanks: new Map([[Spells.DefianceRank2, 1]]),
+      }),
+    )
+
+    expect(result).toEqual([Spells.DefianceRank2])
+  })
+
   it('returns no synthetic aura when Defiance is absent', () => {
     const result = warriorConfig.talentImplications!(
       createTalentContext({

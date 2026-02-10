@@ -6,6 +6,19 @@ pnpm monorepo (Turborepo) for a World of Warcraft combat log threat calculation 
 The API runs on Cloudflare Workers using Hono. All code is TypeScript (strict mode, ESM).
 Node >= 20 (see `.nvmrc`), pnpm 9.15+.
 
+## Warcraft Logs Domains
+
+Use the correct Warcraft Logs host for the game branch you are inspecting:
+
+- `www.warcraftlogs.com` -> Retail
+- `classic.warcraftlogs.com` -> Classic progression (currently Mists of Pandaria)
+- `fresh.warcraftlogs.com` -> Anniversary Edition progression (currently Burning Crusade)
+- `vanilla.warcraftlogs.com` -> Classic Era (does not progress to Burning Crusade)
+- `sod.warcraftlogs.com` -> Season of Discovery
+
+When querying combatant/talent payloads, pick the host intentionally. Payload shape
+and talent metadata can differ by host/version.
+
 ## Workspace Layout
 
 ```

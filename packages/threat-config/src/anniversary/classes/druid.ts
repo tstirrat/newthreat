@@ -109,17 +109,31 @@ const FERAL_INSTINCT_AURA_BY_RANK = [
   Spells.FeralInstinctRank4,
   Spells.FeralInstinctRank5,
 ] as const
+const FERAL_TREE_INDEX = 1
+const HIGH_CONFIDENCE_FERAL_INSTINCT_FERAL_POINTS = 31
 
 const FERAL_INSTINCT_RANK_BY_TALENT_ID = new Map<number, number>(
   FERAL_INSTINCT_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
 )
 
 function inferFeralInstinctRank(ctx: TalentImplicationContext): number {
-  return inferMappedTalentRank(
+  const fromRankMap = inferMappedTalentRank(
     ctx.talentRanks,
     FERAL_INSTINCT_RANK_BY_TALENT_ID,
     FERAL_INSTINCT_AURA_BY_RANK.length,
   )
+  if (fromRankMap > 0) {
+    return fromRankMap
+  }
+
+  const feralPoints = Math.trunc(ctx.talentPoints[FERAL_TREE_INDEX] ?? 0)
+  if (feralPoints < HIGH_CONFIDENCE_FERAL_INSTINCT_FERAL_POINTS) {
+    return 0
+  }
+
+  // Legacy payloads can omit per-talent ranks and only include tree splits.
+  // In high-confidence deep feral builds, infer max Feral Instinct rank.
+  return FERAL_INSTINCT_AURA_BY_RANK.length
 }
 
 function hasBearForm(sourceAuras: Set<number>): boolean {

@@ -268,6 +268,37 @@ describe('Druid Config', () => {
       expect(result).toEqual([Spells.FeralInstinctRank4])
     })
 
+    it('infers Feral Instinct rank 5 from high-confidence feral split', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [0, 31, 0],
+        }),
+      )
+
+      expect(result).toEqual([Spells.FeralInstinctRank5])
+    })
+
+    it('does not infer Feral Instinct from low-confidence feral split', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [0, 20, 31],
+        }),
+      )
+
+      expect(result).toEqual([])
+    })
+
+    it('prefers explicit ranked talent payload over tree-split inference', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [0, 31, 0],
+          talentRanks: new Map([[Spells.FeralInstinctRank2, 1]]),
+        }),
+      )
+
+      expect(result).toEqual([Spells.FeralInstinctRank2])
+    })
+
     it('returns no synthetic aura when Feral Instinct is absent', () => {
       const result = druidConfig.talentImplications!(
         createTalentContext({

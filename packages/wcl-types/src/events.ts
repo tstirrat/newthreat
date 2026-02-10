@@ -208,10 +208,11 @@ export interface GearItem {
 /** Aura snapshot from combatant info at fight start */
 export interface CombatantInfoAura {
   source: number
-  abilityGameID: number
+  abilityGameID?: number
+  ability?: number
   stacks: number
   icon: string
-  name: string
+  name?: string | null
 }
 
 export interface CombatantInfoEvent extends BaseWCLEvent {
