@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-pnpm monorepo (Turborepo) for a World of Warcraft combat log threat calculation API.
-The API runs on Cloudflare Workers using Hono. All code is TypeScript (strict mode, ESM).
-Node >= 20 (see `.nvmrc`), pnpm 9.15+.
+pnpm monorepo (Turborepo) for a World of Warcraft combat log threat calculation platform.
+The backend API runs on Cloudflare Workers using Hono, and the frontend web app is a React SPA hosted on Firebase Hosting.
+All code is TypeScript (strict mode, ESM). Node >= 20 (see `.nvmrc`), pnpm 9.15+.
 
 ## Warcraft Logs Domains
 
@@ -22,29 +22,36 @@ and talent metadata can differ by host/version.
 ## Workspace Layout
 
 ```
-apps/api/              @wcl-threat/api        Cloudflare Worker API (Hono v4)
-apps/web/              (empty placeholder)     Future frontend
-packages/shared/       @wcl-threat/shared      Cross-cutting utilities
-packages/threat-config/@wcl-threat/threat-config  Per-class threat calculation configs
-packages/wcl-types/    @wcl-threat/wcl-types   WCL API type definitions
-tooling/typescript-config/                     Shared tsconfig presets
+apps/api/               @wcl-threat/api          Cloudflare Worker API (Hono v4)
+apps/web/               @wcl-threat/web          Frontend SPA (React + Vite, Firebase Hosting)
+packages/shared/        @wcl-threat/shared       Cross-cutting utilities
+packages/threat-engine/ @wcl-threat/threat-engine Core threat simulation engine
+packages/threat-config/ @wcl-threat/threat-config Per-class threat calculation configs
+packages/wcl-types/     @wcl-threat/wcl-types    WCL API type definitions
+tooling/typescript-config/                       Shared tsconfig presets
 ```
 
 ## Build & Dev Commands
 
 ```bash
-pnpm install                              # Install all dependencies
-pnpm build                                # Build all workspaces (turbo)
-pnpm dev                                  # Start API dev server (wrangler dev)
-pnpm clean                                # Clean all build artifacts + node_modules
-pnpm --filter @wcl-threat/api deploy      # Deploy to production
-pnpm --filter @wcl-threat/api deploy:staging  # Deploy to staging
+pnpm install                                  # Install all dependencies
+pnpm build                                    # Build all workspaces (turbo)
+pnpm dev                                      # Run dev scripts via Turborepo
+pnpm clean                                    # Clean all build artifacts + node_modules
+pnpm --filter @wcl-threat/api dev             # Start API dev server (wrangler dev)
+pnpm --filter @wcl-threat/web dev             # Start web dev server (vite)
+pnpm --filter @wcl-threat/api deploy          # Deploy API to production
+pnpm --filter @wcl-threat/api deploy:staging  # Deploy API to staging
 ```
 
 ## Testing
 
-Framework: Vitest. The API package uses `@cloudflare/vitest-pool-workers` (tests run
-inside miniflare). Other packages use standard Vitest.
+Framework: Vitest.
+
+- API package uses `@cloudflare/vitest-pool-workers` (tests run inside miniflare).
+- Web package uses Vitest + React Testing Library for component/integration tests.
+- Custom snapshot tests are allowed for `@wcl-threat/threat-engine`, `@wcl-threat/threat-config`, or any tests that assert final augmented events payloads; these are most commonly used in `@wcl-threat/threat-config`.
+- End-to-end tests are in Playwright.
 
 ```bash
 # All tests
@@ -52,23 +59,37 @@ pnpm test
 
 # Tests for a specific workspace
 pnpm --filter @wcl-threat/api test
+pnpm --filter @wcl-threat/web test
+pnpm --filter @wcl-threat/threat-engine test
 pnpm --filter @wcl-threat/threat-config test
 pnpm --filter @wcl-threat/shared test
 
-# Single test file (run from package directory)
+# API single test file
 pnpm --filter @wcl-threat/api exec vitest run src/services/threat.test.ts
-pnpm --filter @wcl-threat/threat-config exec vitest run src/anniversary/classes/warrior.test.ts
+
+# Web single test file
+pnpm --filter @wcl-threat/web exec vitest run src/lib/threat-aggregation.test.ts
+
+# Threat engine single test file
+pnpm --filter @wcl-threat/threat-engine exec vitest run src/threat-engine.test.ts
 
 # Single test by name pattern
 pnpm --filter @wcl-threat/api exec vitest run -t "calculates basic damage threat"
+pnpm --filter @wcl-threat/web exec vitest run -t "loads report from pasted url"
 
 # Watch mode
 pnpm test:watch
 pnpm --filter @wcl-threat/api test:watch
+pnpm --filter @wcl-threat/web test:watch
+pnpm --filter @wcl-threat/threat-engine test:watch
+
+# Web end-to-end
+pnpm --filter @wcl-threat/web e2e
 ```
 
-Tests are co-located with source (`foo.ts` / `foo.test.ts`). Test helpers live in
-`apps/api/test/` (setup, mock-fetch, fixtures).
+Tests are co-located with source (`foo.ts` / `foo.test.ts`).
+API test helpers live in `apps/api/test/`. Web test helpers live in `apps/web/src/test/`.
+Threat engine test helpers live in `packages/threat-engine/src/test/helpers/`.
 
 ## Typecheck & Lint
 
@@ -77,7 +98,138 @@ pnpm typecheck                            # tsc --noEmit across all workspaces
 pnpm lint                                 # eslint src/ across all workspaces
 pnpm --filter @wcl-threat/api typecheck   # Typecheck API only
 pnpm --filter @wcl-threat/api lint        # Lint API only
+pnpm --filter @wcl-threat/web typecheck   # Typecheck web only
+pnpm --filter @wcl-threat/web lint        # Lint web only
 ```
+
+## Frontend Architecture (v0)
+
+- App architecture: Single Page Application (SPA)
+- Frontend runtime: React (functional components only)
+- Build/dev tool: Vite
+- Routing: React Router (data routers + nested routes)
+- Server state: TanStack React Query
+- Hosting: Firebase Hosting (frontend), Cloudflare Worker API remains backend
+- Authentication: Firebase Authentication for office access
+- Browser support: modern evergreen browsers only
+
+### Frontend Route Contract
+
+Required routes:
+
+- `/`
+- `/report/:reportId`
+- `/report/:reportId/fight/:fightId`
+
+Required query params:
+
+- `players`: comma-separated player IDs for deep-link filtering
+- `targetId`: selected boss/add target within a fight
+- `startMs`: selected chart window start (fight-relative milliseconds)
+- `endMs`: selected chart window end (fight-relative milliseconds)
+
+URL behavior rules:
+
+- If `players` is present, filter visible ranking/chart rows to those IDs.
+- If `players` is absent, show all players for the current context.
+- Unknown/invalid player IDs are ignored (no hard error).
+- Unknown/invalid `targetId` falls back to default target selection.
+- Invalid or partial time window params fall back to full-fight range.
+
+Route behavior details:
+
+- `/` landing page includes:
+  - Input for Warcraft Logs report URL
+  - Last 5 loaded reports from local storage
+  - Example report links when no history exists
+- `/report/:reportId` includes:
+  - Link-driven navigation for players and fights (not dropdown-only)
+  - Click-through to fight chart and player-focused views
+- `/report/:reportId/fight/:fightId` includes:
+  - Chart for selected target with all visible player lines by default
+  - Player-focused views via `players` query param
+  - Link to Warcraft Logs report and direct fight link
+
+### Frontend Data & Caching
+
+- Isolate network requests and response normalization in `apps/web/src/api/`.
+- Use React Query for all server-state fetching/caching.
+- Prefer fetch-once semantics for static report/fight data.
+- Use long `staleTime` and minimal automatic refetching.
+
+React Query defaults for v0:
+
+- `staleTime`: high (for example, 30 minutes+)
+- `refetchOnWindowFocus`: `false`
+- `refetchOnReconnect`: `false`
+- `retry`: conservative (for example, 1 retry)
+
+Client persistence:
+
+- Store last 5 loaded reports in local storage.
+- Recent report entries should include enough metadata for relaunch (`reportId`, `title`, `lastOpenedAt`).
+- Deduplicate by `reportId`, keep most-recent-first.
+
+### Frontend UI Composition & Behavior
+
+- Functional components only.
+- Keep components presentational and typed.
+- Move behavior to custom hooks (`useReportData`, `useFightData`, query-param hooks, selectors).
+- Keep transforms in hooks/selectors, not inline JSX.
+
+Interaction requirements:
+
+- Avoid dropdown-only navigation for core report/fight discovery.
+- For fights with multiple bosses/adds, auto-select default target as enemy with highest accumulated threat.
+- Provide explicit target selector control.
+- Chart supports selecting partial time window and one-click reset to full range.
+- Chart legend is rendered on the right side.
+- Double-clicking a legend actor isolates that actor; repeating restores normal visibility behavior.
+- Focused-player view renders summary table below chart with total threat, total damage done, total healing done.
+- Pet labels include owner attribution in legend/tooltip: `<Pet Name> (<Owner Name>)`.
+
+### Frontend UI Libraries
+
+Selected for v0:
+
+- `shadcn/ui` (Radix primitives) + Tailwind CSS
+- Apache ECharts via `echarts-for-react`
+
+Chart requirements:
+
+- Multi-series line chart with high point density.
+- Built-in zoom/pan via ECharts `dataZoom`.
+- Tooltip shows a single nearest data point (not all points for X).
+- Tooltip includes cumulative threat, delta threat, event type, ability name, active multipliers, and formula text.
+
+### Frontend Testing Requirements
+
+- Unit/integration: Vitest + React Testing Library.
+- No snapshot tests for unit/component coverage.
+- End-to-end: Playwright with mocked/stubbed Warcraft Logs API responses.
+
+Critical e2e flows:
+
+- Load report from pasted Warcraft Logs URL.
+- Show example logs when no history exists.
+- Persist/show recent history (last 5 reports).
+- Navigate report route and render ranked list.
+- Navigate fight route and render fight data.
+- Auto-select default target and allow target switching.
+- Deep-link with `players` and verify filtering.
+- Show right-side legend and isolate line on double-click.
+- Show single-point tooltip with required event/formula fields.
+- Deep-link chart window params and verify initial zoom + reset.
+
+### Frontend App Structure
+
+- `apps/web/src/routes/`
+- `apps/web/src/pages/`
+- `apps/web/src/components/` (presentational components)
+- `apps/web/src/hooks/` (custom hooks for state/effects)
+- `apps/web/src/api/` (API client + response mappers)
+- `apps/web/src/lib/` (shared frontend utilities)
+- `apps/web/src/test/` (test setup/helpers)
 
 ## Code Style
 
@@ -154,17 +306,17 @@ Prefer functional array operations over imperative for-of loops. Functional patt
 easier to read, verify, and compose:
 
 ```typescript
-// ✅ Good: functional, composable, explicit intent
+// Good: functional, composable, explicit intent
 const actorsInFight = actors
   .filter((a) => fightActorIds.includes(a.id))
   .map((a) => ({ ...a, class: a.type === 'Player' ? a.subType : null }))
 
-// ✅ Good: functional transformation with map + filter
+// Good: functional transformation with map + filter
 const validEnemies = allEnemies
   .map((npc) => ({ ...npc, name: actorMap.get(npc.id)?.name ?? 'Unknown' }))
   .filter((e) => e.id !== ENVIRONMENT_TARGET_ID)
 
-// ❌ Avoid: imperative loop is harder to verify
+// Avoid: imperative loop is harder to verify
 const actorsInFight = []
 for (const actor of actors) {
   if (fightActorIds.includes(actor.id)) {
@@ -225,6 +377,7 @@ have concrete context (function signatures, key conditionals, or data shapes).
 - Test descriptions are lowercase, starting with verbs
 - Factory functions for test data with spread overrides: `{ ...defaults, ...overrides }`
 - Integration tests mock `fetch` via `vi.stubGlobal()` and use `app.request()`
+- Use custom snapshots when asserting final augmented events payloads (typically in `@wcl-threat/threat-config` tests)
 
 **No class inheritance** (except `AppError extends Error`). Prefer composition and
 plain functions. No DI framework -- pass dependencies explicitly.
