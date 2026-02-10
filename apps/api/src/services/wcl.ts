@@ -148,7 +148,6 @@ export class WCLClient {
               enemyNPCs {
                 id
                 gameID
-                name
                 instanceCount
                 groupCount
                 petOwner
@@ -156,7 +155,6 @@ export class WCLClient {
               enemyPets {
                 id
                 gameID
-                name
                 instanceCount
                 groupCount
                 petOwner
@@ -165,7 +163,6 @@ export class WCLClient {
               friendlyPets {
                 id
                 gameID
-                name
                 instanceCount
                 groupCount
                 petOwner

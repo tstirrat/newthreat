@@ -1,4 +1,5 @@
 apps/web/*.html
+!apps/web/index.html
 
 # Dependencies
 node_modules/
