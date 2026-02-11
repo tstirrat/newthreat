@@ -1,7 +1,7 @@
 /**
  * Hook for reading and updating fight deep-link query state.
  */
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import {
@@ -28,34 +28,53 @@ export function useFightQueryState({
   maxDurationMs: number
 }): UseFightQueryStateResult {
   const [searchParams, setSearchParams] = useSearchParams()
+  const searchParamsString = searchParams.toString()
 
   const state = useMemo(
     () =>
       resolveFightQueryState({
-        searchParams,
+        searchParams: new URLSearchParams(searchParamsString),
         validPlayerIds,
         validTargetIds,
         maxDurationMs,
       }),
-    [maxDurationMs, searchParams, validPlayerIds, validTargetIds],
+    [maxDurationMs, searchParamsString, validPlayerIds, validTargetIds],
   )
 
-  const setPlayers = (players: number[]): void => {
-    setSearchParams(applyFightQueryState(searchParams, { players }))
-  }
+  const setPlayers = useCallback(
+    (players: number[]): void => {
+      setSearchParams((currentSearchParams) =>
+        applyFightQueryState(currentSearchParams, { players }),
+      )
+    },
+    [setSearchParams],
+  )
 
-  const setTargetId = (targetId: number | null): void => {
-    setSearchParams(applyFightQueryState(searchParams, { targetId }))
-  }
+  const setTargetId = useCallback(
+    (targetId: number | null): void => {
+      setSearchParams((currentSearchParams) =>
+        applyFightQueryState(currentSearchParams, { targetId }),
+      )
+    },
+    [setSearchParams],
+  )
 
-  const setWindow = (startMs: number | null, endMs: number | null): void => {
-    setSearchParams(applyFightQueryState(searchParams, { startMs, endMs }))
-  }
+  const setWindow = useCallback(
+    (startMs: number | null, endMs: number | null): void => {
+      setSearchParams((currentSearchParams) =>
+        applyFightQueryState(currentSearchParams, { startMs, endMs }),
+      )
+    },
+    [setSearchParams],
+  )
 
-  return {
-    state,
-    setPlayers,
-    setTargetId,
-    setWindow,
-  }
+  return useMemo(
+    () => ({
+      state,
+      setPlayers,
+      setTargetId,
+      setWindow,
+    }),
+    [setPlayers, setTargetId, setWindow, state],
+  )
 }

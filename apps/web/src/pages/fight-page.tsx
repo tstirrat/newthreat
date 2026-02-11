@@ -1,7 +1,7 @@
 /**
  * Fight-level page with target/player filters and threat chart.
  */
-import { useEffect, useState, type FC } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 
 import { ErrorState } from '../components/error-state'
@@ -64,17 +64,28 @@ export const FightPage: FC = () => {
   const fightData = fightQuery.data ?? null
   const eventsData = eventsQuery.data ?? null
 
-  const players = fightData?.actors.filter((actor) => actor.type === 'Player') ?? []
+  const players = useMemo(
+    () => fightData?.actors.filter((actor) => actor.type === 'Player') ?? [],
+    [fightData?.actors],
+  )
 
-  const validPlayerIds = new Set(players.map((player) => player.id))
-  const validTargetIds = new Set((fightData?.enemies ?? []).map((enemy) => enemy.id))
+  const validPlayerIds = useMemo(
+    () => new Set(players.map((player) => player.id)),
+    [players],
+  )
+  const validTargetIds = useMemo(
+    () => new Set((fightData?.enemies ?? []).map((enemy) => enemy.id)),
+    [fightData?.enemies],
+  )
 
-  let durationMs = 0
-  if (fightData && eventsData) {
+  const durationMs = useMemo(() => {
+    if (!fightData || !eventsData) {
+      return 0
+    }
+
     const fightDuration = fightData.endTime - fightData.startTime
-
-    durationMs = fightDuration > 0 ? fightDuration : eventsData.summary.duration
-  }
+    return fightDuration > 0 ? fightDuration : eventsData.summary.duration
+  }, [eventsData, fightData])
 
   const queryState = useFightQueryState({
     validPlayerIds,
@@ -82,31 +93,51 @@ export const FightPage: FC = () => {
     maxDurationMs: durationMs,
   })
 
-  const defaultTargetId = selectDefaultTargetId(eventsData?.events ?? [], validTargetIds)
+  const defaultTargetId = useMemo(
+    () => selectDefaultTargetId(eventsData?.events ?? [], validTargetIds),
+    [eventsData?.events, validTargetIds],
+  )
 
-  const selectedTargetId =
-    queryState.state.targetId ?? defaultTargetId ?? fightData?.enemies[0]?.id ?? null
+  const selectedTargetId = useMemo(
+    () => queryState.state.targetId ?? defaultTargetId ?? fightData?.enemies[0]?.id ?? null,
+    [defaultTargetId, fightData?.enemies, queryState.state.targetId],
+  )
 
-  let allSeries = []
-  if (selectedTargetId && eventsData && fightData && reportData) {
-    allSeries = buildThreatSeries({
+  const allSeries = useMemo(() => {
+    if (!selectedTargetId || !eventsData || !fightData || !reportData) {
+      return []
+    }
+
+    return buildThreatSeries({
       events: eventsData.events,
       actors: fightData.actors,
       abilities: reportData.abilities,
       fightStartTime: fightData.startTime,
       targetId: selectedTargetId,
     })
-  }
+  }, [
+    eventsData,
+    fightData,
+    reportData,
+    selectedTargetId,
+  ])
 
-  const visibleSeries = filterSeriesByPlayers(allSeries, queryState.state.players)
+  const visibleSeries = useMemo(
+    () => filterSeriesByPlayers(allSeries, queryState.state.players),
+    [allSeries, queryState.state.players],
+  )
 
-  let focusedActorIds = new Set<number>()
-  if (isolatedActorId !== null) {
-    focusedActorIds = new Set([isolatedActorId])
-  } else if (queryState.state.players.length > 0) {
+  const focusedActorIds = useMemo(() => {
+    if (isolatedActorId !== null) {
+      return new Set([isolatedActorId])
+    }
+
+    if (queryState.state.players.length === 0) {
+      return new Set<number>()
+    }
+
     const selectedPlayers = new Set(queryState.state.players)
-
-    focusedActorIds = new Set(
+    return new Set(
       visibleSeries
         .filter((series) => {
           if (series.actorType === 'Player') {
@@ -121,9 +152,39 @@ export const FightPage: FC = () => {
         })
         .map((series) => series.actorId),
     )
-  }
+  }, [isolatedActorId, queryState.state.players, visibleSeries])
 
-  const summaryRows = buildPlayerSummaryRows(visibleSeries, focusedActorIds)
+  const summaryRows = useMemo(
+    () => buildPlayerSummaryRows(visibleSeries, focusedActorIds),
+    [focusedActorIds, visibleSeries],
+  )
+
+  const handleTargetChange = useCallback(
+    (targetId: number) => {
+      queryState.setTargetId(targetId)
+      setIsolatedActorId(null)
+    },
+    [queryState],
+  )
+
+  const handlePlayersChange = useCallback(
+    (playerIds: number[]) => {
+      queryState.setPlayers(playerIds)
+      setIsolatedActorId(null)
+    },
+    [queryState],
+  )
+
+  const handleIsolatedActorChange = useCallback((actorId: number | null) => {
+    setIsolatedActorId(actorId)
+  }, [])
+
+  const handleWindowChange = useCallback(
+    (startMs: number | null, endMs: number | null) => {
+      queryState.setWindow(startMs, endMs)
+    },
+    [queryState],
+  )
 
   if (!reportId || Number.isNaN(fightId)) {
     return (
@@ -207,10 +268,7 @@ export const FightPage: FC = () => {
             <TargetSelector
               enemies={fightData.enemies}
               selectedTargetId={selectedTargetId}
-              onChange={(targetId) => {
-                queryState.setTargetId(targetId)
-                setIsolatedActorId(null)
-              }}
+              onChange={handleTargetChange}
             />
           ) : (
             <p className="text-sm text-muted">No valid targets available for this fight.</p>
@@ -218,10 +276,7 @@ export const FightPage: FC = () => {
           <PlayerFilterPanel
             players={players}
             selectedPlayerIds={queryState.state.players}
-            onChange={(playerIds) => {
-              queryState.setPlayers(playerIds)
-              setIsolatedActorId(null)
-            }}
+            onChange={handlePlayersChange}
           />
         </div>
       </SectionCard>
@@ -239,10 +294,8 @@ export const FightPage: FC = () => {
             series={visibleSeries}
             windowEndMs={queryState.state.endMs}
             windowStartMs={queryState.state.startMs}
-            onIsolatedActorChange={(actorId) => setIsolatedActorId(actorId)}
-            onWindowChange={(startMs, endMs) => {
-              queryState.setWindow(startMs, endMs)
-            }}
+            onIsolatedActorChange={handleIsolatedActorChange}
+            onWindowChange={handleWindowChange}
           />
         )}
       </SectionCard>
