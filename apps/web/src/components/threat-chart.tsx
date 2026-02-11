@@ -249,6 +249,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     series: series.map((item) => ({
       name: item.label,
       type: 'line',
+      color: item.color,
       showSymbol: false,
       triggerLineEvent: true,
       animation: false,
