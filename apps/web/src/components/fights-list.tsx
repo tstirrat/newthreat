@@ -1,17 +1,20 @@
 /**
  * Fight navigation list for report-level route.
  */
+import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ReportFightSummary } from '../types/api'
 
-export function FightsList({
-  reportId,
-  fights,
-}: {
+export type FightsListProps = {
   reportId: string
   fights: ReportFightSummary[]
-}): JSX.Element {
+}
+
+export const FightsList: FC<FightsListProps> = ({
+  reportId,
+  fights,
+}) => {
   return (
     <ul className="space-y-2">
       {fights.map((fight) => (

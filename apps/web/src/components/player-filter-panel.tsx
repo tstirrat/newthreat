@@ -1,20 +1,24 @@
 /**
  * Player filter controls for deep-linkable visibility states.
  */
+import type { FC } from 'react'
+
 import type { PlayerClass } from '@wcl-threat/wcl-types'
 
 import { getClassColor } from '../lib/class-colors'
 import type { ReportActorSummary } from '../types/api'
 
-export function PlayerFilterPanel({
-  players,
-  selectedPlayerIds,
-  onChange,
-}: {
+export type PlayerFilterPanelProps = {
   players: ReportActorSummary[]
   selectedPlayerIds: number[]
   onChange: (playerIds: number[]) => void
-}): JSX.Element {
+}
+
+export const PlayerFilterPanel: FC<PlayerFilterPanelProps> = ({
+  players,
+  selectedPlayerIds,
+  onChange,
+}) => {
   const selectedSet = new Set(selectedPlayerIds)
 
   return (

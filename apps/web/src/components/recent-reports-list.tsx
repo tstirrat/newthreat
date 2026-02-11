@@ -1,15 +1,18 @@
 /**
  * Render recent reports from local history.
  */
+import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { RecentReportEntry } from '../types/app'
 
-export function RecentReportsList({
-  reports,
-}: {
+export type RecentReportsListProps = {
   reports: RecentReportEntry[]
-}): JSX.Element {
+}
+
+export const RecentReportsList: FC<RecentReportsListProps> = ({
+  reports,
+}) => {
   if (reports.length === 0) {
     return <p className="text-sm text-muted">No recent reports yet.</p>
   }

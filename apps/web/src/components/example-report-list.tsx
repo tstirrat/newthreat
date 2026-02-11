@@ -1,15 +1,18 @@
 /**
  * Render preconfigured example report links.
  */
+import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ExampleReportLink } from '../types/app'
 
-export function ExampleReportList({
-  examples,
-}: {
+export type ExampleReportListProps = {
   examples: ExampleReportLink[]
-}): JSX.Element {
+}
+
+export const ExampleReportList: FC<ExampleReportListProps> = ({
+  examples,
+}) => {
   return (
     <ul className="space-y-2">
       {examples.map((example) => (

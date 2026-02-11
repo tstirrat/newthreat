@@ -1,7 +1,7 @@
 /**
  * Fight-level page with target/player filters and threat chart.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, type FC } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 
 import { ErrorState } from '../components/error-state'
@@ -30,7 +30,7 @@ interface LocationState {
   host?: WarcraftLogsHost
 }
 
-export function FightPage(): JSX.Element {
+export const FightPage: FC = () => {
   const params = useParams<{ reportId: string; fightId: string }>()
   const location = useLocation()
   const locationState = location.state as LocationState | null
@@ -58,58 +58,23 @@ export function FightPage(): JSX.Element {
     })
   }, [addRecentReport, locationState?.host, reportHost, reportId, reportQuery.data])
 
-  if (!reportId || Number.isNaN(fightId)) {
-    return (
-      <ErrorState
-        message="Fight route requires both reportId and fightId."
-        title="Invalid fight route"
-      />
-    )
-  }
+  const [isolatedActorId, setIsolatedActorId] = useState<number | null>(null)
 
-  if (reportQuery.isLoading || fightQuery.isLoading || eventsQuery.isLoading) {
-    return <LoadingState message="Loading fight data and threat events..." />
-  }
+  const reportData = reportQuery.data ?? null
+  const fightData = fightQuery.data ?? null
+  const eventsData = eventsQuery.data ?? null
 
-  if (reportQuery.error || !reportQuery.data) {
-    return (
-      <ErrorState
-        message={reportQuery.error?.message ?? 'Report metadata unavailable.'}
-        title="Unable to load report"
-      />
-    )
-  }
+  const players = fightData?.actors.filter((actor) => actor.type === 'Player') ?? []
 
-  if (fightQuery.error || !fightQuery.data) {
-    return (
-      <ErrorState
-        message={fightQuery.error?.message ?? 'Fight metadata unavailable.'}
-        title="Unable to load fight"
-      />
-    )
-  }
-
-  if (eventsQuery.error || !eventsQuery.data) {
-    return (
-      <ErrorState
-        message={eventsQuery.error?.message ?? 'Fight events unavailable.'}
-        title="Unable to load threat events"
-      />
-    )
-  }
-
-  const reportData = reportQuery.data
-  const fightData = fightQuery.data
-  const eventsData = eventsQuery.data
-
-  const players = fightData.actors.filter((actor) => actor.type === 'Player')
   const validPlayerIds = new Set(players.map((player) => player.id))
-  const validTargetIds = new Set(fightData.enemies.map((enemy) => enemy.id))
+  const validTargetIds = new Set((fightData?.enemies ?? []).map((enemy) => enemy.id))
 
-  const durationMs =
-    fightData.endTime - fightData.startTime > 0
-      ? fightData.endTime - fightData.startTime
-      : eventsData.summary.duration
+  let durationMs = 0
+  if (fightData && eventsData) {
+    const fightDuration = fightData.endTime - fightData.startTime
+
+    durationMs = fightDuration > 0 ? fightDuration : eventsData.summary.duration
+  }
 
   const queryState = useFightQueryState({
     validPlayerIds,
@@ -117,47 +82,31 @@ export function FightPage(): JSX.Element {
     maxDurationMs: durationMs,
   })
 
-  const defaultTargetId = useMemo(
-    () => selectDefaultTargetId(eventsData.events, validTargetIds),
-    [eventsData.events, validTargetIds],
-  )
+  const defaultTargetId = selectDefaultTargetId(eventsData?.events ?? [], validTargetIds)
 
   const selectedTargetId =
-    queryState.state.targetId ?? defaultTargetId ?? fightData.enemies[0]?.id ?? null
+    queryState.state.targetId ?? defaultTargetId ?? fightData?.enemies[0]?.id ?? null
 
-  const [isolatedActorId, setIsolatedActorId] = useState<number | null>(null)
-
-  const allSeries = useMemo(() => {
-    if (!selectedTargetId) {
-      return []
-    }
-
-    return buildThreatSeries({
+  let allSeries = []
+  if (selectedTargetId && eventsData && fightData && reportData) {
+    allSeries = buildThreatSeries({
       events: eventsData.events,
       actors: fightData.actors,
       abilities: reportData.abilities,
       fightStartTime: fightData.startTime,
       targetId: selectedTargetId,
     })
-  }, [eventsData.events, fightData.actors, fightData.startTime, reportData.abilities, selectedTargetId])
+  }
 
-  const visibleSeries = useMemo(
-    () => filterSeriesByPlayers(allSeries, queryState.state.players),
-    [allSeries, queryState.state.players],
-  )
+  const visibleSeries = filterSeriesByPlayers(allSeries, queryState.state.players)
 
-  const focusedActorIds = useMemo(() => {
-    if (isolatedActorId !== null) {
-      return new Set([isolatedActorId])
-    }
-
-    if (queryState.state.players.length === 0) {
-      return new Set<number>()
-    }
-
+  let focusedActorIds = new Set<number>()
+  if (isolatedActorId !== null) {
+    focusedActorIds = new Set([isolatedActorId])
+  } else if (queryState.state.players.length > 0) {
     const selectedPlayers = new Set(queryState.state.players)
 
-    return new Set(
+    focusedActorIds = new Set(
       visibleSeries
         .filter((series) => {
           if (series.actorType === 'Player') {
@@ -172,12 +121,49 @@ export function FightPage(): JSX.Element {
         })
         .map((series) => series.actorId),
     )
-  }, [isolatedActorId, queryState.state.players, visibleSeries])
+  }
 
-  const summaryRows = useMemo(
-    () => buildPlayerSummaryRows(visibleSeries, focusedActorIds),
-    [focusedActorIds, visibleSeries],
-  )
+  const summaryRows = buildPlayerSummaryRows(visibleSeries, focusedActorIds)
+
+  if (!reportId || Number.isNaN(fightId)) {
+    return (
+      <ErrorState
+        message="Fight route requires both reportId and fightId."
+        title="Invalid fight route"
+      />
+    )
+  }
+
+  if (reportQuery.isLoading || fightQuery.isLoading || eventsQuery.isLoading) {
+    return <LoadingState message="Loading fight data and threat events..." />
+  }
+
+  if (reportQuery.error || !reportData) {
+    return (
+      <ErrorState
+        message={reportQuery.error?.message ?? 'Report metadata unavailable.'}
+        title="Unable to load report"
+      />
+    )
+  }
+
+  if (fightQuery.error || !fightData) {
+    return (
+      <ErrorState
+        message={fightQuery.error?.message ?? 'Fight metadata unavailable.'}
+        title="Unable to load fight"
+      />
+    )
+  }
+
+  if (eventsQuery.error || !eventsData) {
+    return (
+      <ErrorState
+        message={eventsQuery.error?.message ?? 'Fight events unavailable.'}
+        title="Unable to load threat events"
+      />
+    )
+  }
 
   return (
     <div className="space-y-5">

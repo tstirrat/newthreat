@@ -1,13 +1,18 @@
 /**
  * Shared section wrapper for neutral card-like layout blocks.
  */
-import type { PropsWithChildren } from 'react'
+import type { FC, PropsWithChildren } from 'react'
 
-export function SectionCard({
+export type SectionCardProps = PropsWithChildren<{
+  title: string
+  subtitle?: string
+}>
+
+export const SectionCard: FC<SectionCardProps> = ({
   title,
   subtitle,
   children,
-}: PropsWithChildren<{ title: string; subtitle?: string }>): JSX.Element {
+}) => {
   return (
     <section className="rounded-xl border border-border bg-panel p-4 shadow-sm">
       <header className="mb-4">

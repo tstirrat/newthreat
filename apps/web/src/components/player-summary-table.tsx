@@ -1,15 +1,19 @@
 /**
  * Summary table for focused/selected player rows.
  */
+import type { FC } from 'react'
+
 import { formatNumber } from '../lib/format'
 import type { PlayerSummaryRow } from '../types/app'
 import { PlayerName } from './player-name'
 
-export function PlayerSummaryTable({
-  rows,
-}: {
+export type PlayerSummaryTableProps = {
   rows: PlayerSummaryRow[]
-}): JSX.Element {
+}
+
+export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
+  rows,
+}) => {
   if (rows.length === 0) {
     return <p className="text-sm text-muted">Select or focus a player to view summary.</p>
   }

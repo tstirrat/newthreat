@@ -1,9 +1,10 @@
 /**
  * Shared app shell for all routed pages.
  */
+import type { FC } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 
-export function RootLayout(): JSX.Element {
+export const RootLayout: FC = () => {
   return (
     <div className="min-h-screen text-text">
       <header className="border-b border-border bg-panel">

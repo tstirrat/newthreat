@@ -1,13 +1,15 @@
 /**
  * Input form for loading a report from URL or report code.
  */
-import { useState } from 'react'
+import { useState, type FC } from 'react'
 
-export function ReportUrlForm({
-  onSubmit,
-}: {
+export type ReportUrlFormProps = {
   onSubmit: (input: string) => void
-}): JSX.Element {
+}
+
+export const ReportUrlForm: FC<ReportUrlFormProps> = ({
+  onSubmit,
+}) => {
   const [value, setValue] = useState('')
 
   return (

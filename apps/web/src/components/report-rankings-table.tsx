@@ -1,18 +1,22 @@
 /**
  * Report-level aggregated player ranking table.
  */
+import type { FC } from 'react'
+
 import { formatNumber } from '../lib/format'
-import type { ReportFightSummary } from '../types/api'
 import type { ReportPlayerRanking } from '../lib/threat-aggregation'
+import type { ReportFightSummary } from '../types/api'
 import { PlayerName } from './player-name'
 
-export function ReportRankingsTable({
-  rankings,
-  fights,
-}: {
+export type ReportRankingsTableProps = {
   rankings: ReportPlayerRanking[]
   fights: ReportFightSummary[]
-}): JSX.Element {
+}
+
+export const ReportRankingsTable: FC<ReportRankingsTableProps> = ({
+  rankings,
+  fights,
+}) => {
   if (rankings.length === 0) {
     return <p className="text-sm text-muted">No ranking data available yet.</p>
   }

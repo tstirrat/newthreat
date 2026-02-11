@@ -1,14 +1,17 @@
 /**
  * Class-colored player label component.
  */
+import type { FC } from 'react'
 
-export function PlayerName({
-  label,
-  color,
-}: {
+export type PlayerNameProps = {
   label: string
   color: string
-}): JSX.Element {
+}
+
+export const PlayerName: FC<PlayerNameProps> = ({
+  label,
+  color,
+}) => {
   return (
     <span className="font-medium" style={{ color }}>
       {label}

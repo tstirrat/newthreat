@@ -1,8 +1,13 @@
 /**
  * Simple loading panel used across pages.
  */
+import type { FC } from 'react'
 
-export function LoadingState({ message }: { message: string }): JSX.Element {
+export type LoadingStateProps = {
+  message: string
+}
+
+export const LoadingState: FC<LoadingStateProps> = ({ message }) => {
   return (
     <section className="rounded-xl border border-border bg-panel p-6 shadow-sm">
       <p className="text-sm text-muted">{message}</p>

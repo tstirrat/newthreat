@@ -1,14 +1,17 @@
 /**
  * Error panel used across page-level query failures.
  */
+import type { FC } from 'react'
 
-export function ErrorState({
-  title,
-  message,
-}: {
+export type ErrorStateProps = {
   title: string
   message: string
-}): JSX.Element {
+}
+
+export const ErrorState: FC<ErrorStateProps> = ({
+  title,
+  message,
+}) => {
   return (
     <section className="rounded-xl border border-red-300 bg-red-50 p-6 text-red-900 shadow-sm">
       <h2 className="text-lg font-semibold">{title}</h2>

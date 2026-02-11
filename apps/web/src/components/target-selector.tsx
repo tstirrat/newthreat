@@ -1,17 +1,21 @@
 /**
  * Explicit target selector control for fight charts.
  */
+import type { FC } from 'react'
+
 import type { ReportActorSummary } from '../types/api'
 
-export function TargetSelector({
-  enemies,
-  selectedTargetId,
-  onChange,
-}: {
+export type TargetSelectorProps = {
   enemies: ReportActorSummary[]
   selectedTargetId: number
   onChange: (targetId: number) => void
-}): JSX.Element {
+}
+
+export const TargetSelector: FC<TargetSelectorProps> = ({
+  enemies,
+  selectedTargetId,
+  onChange,
+}) => {
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="font-medium">Target</span>

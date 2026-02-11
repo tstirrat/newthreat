@@ -1,9 +1,10 @@
 /**
  * Not found page for unmatched routes.
  */
+import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
-export function NotFoundPage(): JSX.Element {
+export const NotFoundPage: FC = () => {
   return (
     <section className="rounded-xl border border-border bg-panel p-6 shadow-sm">
       <h1 className="text-xl font-semibold">Page not found</h1>

@@ -87,6 +87,8 @@ Additional component composition guidance:
 - Keep components presentational and typed.
 - Move behavior to custom hooks (`useReportData`, `useFightData`, query-param hooks, selectors).
 - Keep transforms in hooks/selectors, not inline JSX.
+- React Compiler is enabled for this app. Do not add `useMemo` or `useCallback` as default optimization tools.
+- Only add manual memoization when there is a demonstrated correctness or performance need that the compiler does not cover.
 
 Interaction requirements:
 

@@ -1,7 +1,7 @@
 /**
  * Report-level page with fights, players, and aggregated rankings.
  */
-import { useEffect, useMemo } from 'react'
+import { useEffect, type FC } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 
 import { ErrorState } from '../components/error-state'
@@ -21,7 +21,7 @@ interface LocationState {
   host?: WarcraftLogsHost
 }
 
-export function ReportPage(): JSX.Element {
+export const ReportPage: FC = () => {
   const params = useParams<{ reportId: string }>()
   const reportId = params.reportId ?? ''
   const location = useLocation()
@@ -32,10 +32,7 @@ export function ReportPage(): JSX.Element {
 
   const { data, isLoading, error } = useReportData(reportId)
 
-  const players = useMemo(
-    () => data?.actors.filter((actor) => actor.type === 'Player') ?? [],
-    [data?.actors],
-  )
+  const players = data?.actors.filter((actor) => actor.type === 'Player') ?? []
 
   const rankings = useReportRankings({
     reportId,

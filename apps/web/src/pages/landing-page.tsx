@@ -1,7 +1,7 @@
 /**
  * Landing page for report loading via URL, history, and examples.
  */
-import { useState } from 'react'
+import { useState, type FC } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { ExampleReportList } from '../components/example-report-list'
@@ -12,7 +12,7 @@ import { defaultHost, exampleReports } from '../lib/constants'
 import { parseReportInput } from '../lib/wcl-url'
 import { useRecentReports } from '../hooks/use-recent-reports'
 
-export function LandingPage(): JSX.Element {
+export const LandingPage: FC = () => {
   const navigate = useNavigate()
   const { recentReports, addRecentReport } = useRecentReports()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)

@@ -1,7 +1,7 @@
 /**
  * ECharts threat timeline with deep-linkable zoom and legend isolation behavior.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FC } from 'react'
 import type { EChartsOption } from 'echarts'
 import ReactECharts from 'echarts-for-react'
 
@@ -77,38 +77,34 @@ function readChartThemeColors(): ChartThemeColors {
   }
 }
 
-export function ThreatChart({
-  series,
-  windowStartMs,
-  windowEndMs,
-  onWindowChange,
-  onIsolatedActorChange,
-}: {
+export type ThreatChartProps = {
   series: ThreatSeries[]
   windowStartMs: number | null
   windowEndMs: number | null
   onWindowChange: (startMs: number | null, endMs: number | null) => void
   onIsolatedActorChange: (actorId: number | null) => void
-}): JSX.Element {
+}
+
+export const ThreatChart: FC<ThreatChartProps> = ({
+  series,
+  windowStartMs,
+  windowEndMs,
+  onWindowChange,
+  onIsolatedActorChange,
+}) => {
   const chartRef = useRef<ReactECharts>(null)
   const lastLegendClickRef = useRef<LegendClickState | null>(null)
   const [isolatedActorId, setIsolatedActorId] = useState<number | null>(null)
   const [themeColors, setThemeColors] = useState<ChartThemeColors>(() => readChartThemeColors())
 
-  const bounds = useMemo(() => resolveWindowBounds(series), [series])
-  const visibleIsolatedActorId = useMemo(() => {
-    if (isolatedActorId === null) {
-      return null
-    }
+  const bounds = resolveWindowBounds(series)
+  const visibleIsolatedActorId =
+    isolatedActorId !== null && series.some((item) => item.actorId === isolatedActorId)
+      ? isolatedActorId
+      : null
 
-    return series.some((item) => item.actorId === isolatedActorId) ? isolatedActorId : null
-  }, [isolatedActorId, series])
-
-  const legendNames = useMemo(() => series.map((item) => item.label), [series])
-  const actorIdByLabel = useMemo(
-    () => new Map(series.map((item) => [item.label, item.actorId])),
-    [series],
-  )
+  const legendNames = series.map((item) => item.label)
+  const actorIdByLabel = new Map(series.map((item) => [item.label, item.actorId]))
 
   useEffect(() => {
     if (isolatedActorId === null || visibleIsolatedActorId !== null) {
@@ -129,180 +125,167 @@ export function ThreatChart({
     }
   }, [])
 
-  const option = useMemo<EChartsOption>(() => {
-    const richStyles = Object.fromEntries(
-      series.map((item) => [
-        `actor-${item.actorId}`,
-        {
-          color: item.color,
-          fontWeight: 600,
-        },
-      ]),
-    )
+  const richStyles = Object.fromEntries(
+    series.map((item) => [
+      `actor-${item.actorId}`,
+      {
+        color: item.color,
+        fontWeight: 600,
+      },
+    ]),
+  )
 
-    const startValue = windowStartMs ?? bounds.min
-    const endValue = windowEndMs ?? bounds.max
+  const startValue = windowStartMs ?? bounds.min
+  const endValue = windowEndMs ?? bounds.max
 
-    return {
-      animation: false,
-      grid: {
-        top: 30,
-        left: 60,
-        right: 250,
-        bottom: 84,
+  const option: EChartsOption = {
+    animation: false,
+    grid: {
+      top: 30,
+      left: 60,
+      right: 250,
+      bottom: 84,
+    },
+    legend: {
+      orient: 'vertical',
+      right: 8,
+      top: 32,
+      itemHeight: 10,
+      itemWidth: 18,
+      formatter: (name) => {
+        const actorId = actorIdByLabel.get(name)
+        if (!actorId) {
+          return name
+        }
+        return `{actor-${actorId}|${name}}`
       },
-      legend: {
-        orient: 'vertical',
-        right: 8,
-        top: 32,
-        itemHeight: 10,
-        itemWidth: 18,
-        formatter: (name) => {
-          const actorId = actorIdByLabel.get(name)
-          if (!actorId) {
-            return name
-          }
-          return `{actor-${actorId}|${name}}`
-        },
-        textStyle: {
-          color: themeColors.muted,
-          rich: richStyles,
-        },
+      textStyle: {
+        color: themeColors.muted,
+        rich: richStyles,
       },
-      tooltip: {
-        trigger: 'item',
-        appendToBody: true,
-        backgroundColor: themeColors.panel,
-        borderColor: themeColors.border,
-        borderWidth: 1,
-        textStyle: {
-          color: themeColors.foreground,
-        },
-        formatter: (params) => {
-          const payload = (params as { data?: Record<string, unknown> }).data
-          if (!payload) {
-            return ''
-          }
+    },
+    tooltip: {
+      trigger: 'item',
+      appendToBody: true,
+      backgroundColor: themeColors.panel,
+      borderColor: themeColors.border,
+      borderWidth: 1,
+      textStyle: {
+        color: themeColors.foreground,
+      },
+      formatter: (params) => {
+        const payload = (params as { data?: Record<string, unknown> }).data
+        if (!payload) {
+          return ''
+        }
 
-          const threat = Number(payload.totalThreat ?? 0)
-          const delta = Number(payload.threatDelta ?? 0)
-          const eventType = String(payload.eventType ?? 'unknown')
-          const abilityName = String(payload.abilityName ?? 'Unknown ability')
-          const modifiers = String(payload.modifiers ?? 'none')
-          const formula = String(payload.formula ?? 'n/a')
-          const timeMs = Number(payload.timeMs ?? 0)
+        const threat = Number(payload.totalThreat ?? 0)
+        const delta = Number(payload.threatDelta ?? 0)
+        const eventType = String(payload.eventType ?? 'unknown')
+        const abilityName = String(payload.abilityName ?? 'Unknown ability')
+        const modifiers = String(payload.modifiers ?? 'none')
+        const formula = String(payload.formula ?? 'n/a')
+        const timeMs = Number(payload.timeMs ?? 0)
 
-          return [
-            `<strong>${(params as { seriesName: string }).seriesName}</strong>`,
-            `Time: ${formatSeconds(timeMs)}`,
-            `Cumulative Threat: ${formatNumber(threat)}`,
-            `Threat Delta: ${delta >= 0 ? '+' : ''}${formatNumber(delta)}`,
-            `Event Type: ${eventType}`,
-            `Ability: ${abilityName}`,
-            `Active Multipliers: ${modifiers}`,
-            `Formula: ${formula}`,
-          ].join('<br/>')
-        },
+        return [
+          `<strong>${(params as { seriesName: string }).seriesName}</strong>`,
+          `Time: ${formatSeconds(timeMs)}`,
+          `Cumulative Threat: ${formatNumber(threat)}`,
+          `Threat Delta: ${delta >= 0 ? '+' : ''}${formatNumber(delta)}`,
+          `Event Type: ${eventType}`,
+          `Ability: ${abilityName}`,
+          `Active Multipliers: ${modifiers}`,
+          `Formula: ${formula}`,
+        ].join('<br/>')
       },
-      xAxis: {
-        type: 'value',
-        name: 'Fight Time (ms)',
-        min: bounds.min,
-        max: bounds.max,
-        nameTextStyle: {
-          color: themeColors.muted,
-        },
-        axisLabel: {
-          color: themeColors.muted,
-        },
-        axisLine: {
-          lineStyle: {
-            color: themeColors.border,
-          },
-        },
-        splitLine: {
-          lineStyle: {
-            color: themeColors.border,
-            opacity: 0.4,
-          },
-        },
+    },
+    xAxis: {
+      type: 'value',
+      name: 'Fight Time (ms)',
+      min: bounds.min,
+      max: bounds.max,
+      nameTextStyle: {
+        color: themeColors.muted,
       },
-      yAxis: {
-        type: 'value',
-        name: 'Threat',
-        nameTextStyle: {
-          color: themeColors.muted,
-        },
-        axisLabel: {
-          color: themeColors.muted,
-        },
-        axisLine: {
-          lineStyle: {
-            color: themeColors.border,
-          },
-        },
-        splitLine: {
-          lineStyle: {
-            color: themeColors.border,
-            opacity: 0.4,
-          },
-        },
+      axisLabel: {
+        color: themeColors.muted,
       },
-      dataZoom: [
-        {
-          type: 'inside',
-          xAxisIndex: 0,
-          filterMode: 'none',
-          startValue,
-          endValue,
-        },
-        {
-          type: 'slider',
-          xAxisIndex: 0,
-          filterMode: 'none',
-          height: 20,
-          bottom: 24,
-          startValue,
-          endValue,
-        },
-      ],
-      series: series.map((item) => ({
-        name: item.label,
-        type: 'line',
-        showSymbol: false,
-        animation: false,
-        emphasis: {
-          focus: 'series',
-        },
+      axisLine: {
         lineStyle: {
-          color: item.color,
-          type: item.actorType === 'Pet' ? 'dashed' : 'solid',
-          width: 2,
+          color: themeColors.border,
         },
-        data: item.points.map((point) => ({
-          value: [point.timeMs, point.totalThreat],
-          timeMs: point.timeMs,
-          totalThreat: point.totalThreat,
-          threatDelta: point.threatDelta,
-          eventType: point.eventType,
-          abilityName: point.abilityName,
-          modifiers: point.modifiers,
-          formula: point.formula,
-        })),
+      },
+      splitLine: {
+        lineStyle: {
+          color: themeColors.border,
+          opacity: 0.4,
+        },
+      },
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Threat',
+      nameTextStyle: {
+        color: themeColors.muted,
+      },
+      axisLabel: {
+        color: themeColors.muted,
+      },
+      axisLine: {
+        lineStyle: {
+          color: themeColors.border,
+        },
+      },
+      splitLine: {
+        lineStyle: {
+          color: themeColors.border,
+          opacity: 0.4,
+        },
+      },
+    },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: 0,
+        filterMode: 'none',
+        startValue,
+        endValue,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: 0,
+        filterMode: 'none',
+        height: 20,
+        bottom: 24,
+        startValue,
+        endValue,
+      },
+    ],
+    series: series.map((item) => ({
+      name: item.label,
+      type: 'line',
+      showSymbol: false,
+      animation: false,
+      emphasis: {
+        focus: 'series',
+      },
+      lineStyle: {
+        color: item.color,
+        type: item.actorType === 'Pet' ? 'dashed' : 'solid',
+        width: 2,
+      },
+      data: item.points.map((point) => ({
+        value: [point.timeMs, point.totalThreat],
+        timeMs: point.timeMs,
+        totalThreat: point.totalThreat,
+        threatDelta: point.threatDelta,
+        eventType: point.eventType,
+        abilityName: point.abilityName,
+        modifiers: point.modifiers,
+        formula: point.formula,
       })),
-    }
-  }, [
-    actorIdByLabel,
-    bounds.max,
-    bounds.min,
-    series,
-    themeColors.border,
-    themeColors.foreground,
-    themeColors.muted,
-    themeColors.panel,
-    windowEndMs,
-    windowStartMs,
-  ])
+    })),
+  }
 
   return (
     <div className="space-y-3">

@@ -1,21 +1,24 @@
 /**
  * Player-focused navigation links from report view to fight pages.
  */
+import type { FC } from 'react'
 import type { PlayerClass } from '@wcl-threat/wcl-types'
 import { Link } from 'react-router-dom'
 
 import { getClassColor } from '../lib/class-colors'
 import type { ReportActorSummary, ReportFightSummary } from '../types/api'
 
-export function PlayersNavigationList({
-  reportId,
-  players,
-  fights,
-}: {
+export type PlayersNavigationListProps = {
   reportId: string
   players: ReportActorSummary[]
   fights: ReportFightSummary[]
-}): JSX.Element {
+}
+
+export const PlayersNavigationList: FC<PlayersNavigationListProps> = ({
+  reportId,
+  players,
+  fights,
+}) => {
   if (players.length === 0) {
     return <p className="text-sm text-muted">No players detected in this report.</p>
   }
