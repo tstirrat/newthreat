@@ -33,7 +33,7 @@ const baseThreat = {
 
 export const sodConfig: ThreatConfig = {
   version: '0.1.0',
-  gameVersion: 2,
+  gameVersion: 5,
 
   baseThreat,
 

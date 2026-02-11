@@ -245,24 +245,34 @@ describe('talentImplications', () => {
     expect(result).toEqual([Spells.DefianceRank3])
   })
 
-  it('infers Defiance rank 5 from high-confidence protection tree split', () => {
+  it('infers Defiance rank 5 from protection tree split at threshold', () => {
     const result = warriorConfig.talentImplications!(
       createTalentContext({
-        talentPoints: [14, 5, 31],
+        talentPoints: [20, 6, 14],
       }),
     )
 
     expect(result).toEqual([Spells.DefianceRank5])
   })
 
-  it('does not infer Defiance from low-confidence protection tree split', () => {
+  it('does not infer Defiance when protection tree points are below threshold', () => {
     const result = warriorConfig.talentImplications!(
       createTalentContext({
-        talentPoints: [20, 20, 11],
+        talentPoints: [20, 7, 13],
       }),
     )
 
     expect(result).toEqual([])
+  })
+
+  it('infers Defiance rank 5 for legacy 0/32/19 tree split payloads', () => {
+    const result = warriorConfig.talentImplications!(
+      createTalentContext({
+        talentPoints: [0, 32, 19],
+      }),
+    )
+
+    expect(result).toEqual([Spells.DefianceRank5])
   })
 
   it('prefers explicit ranked talent payload over tree-split inference', () => {

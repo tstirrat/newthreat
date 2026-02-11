@@ -100,6 +100,18 @@ function formatSignedThreat(value: number): string {
   return `${prefix}${formatNumber(Math.abs(value))}`
 }
 
+function formatTooltipModifiers(modifiers: string): string[] {
+  const normalized = modifiers.trim()
+  if (!normalized || normalized === 'none') {
+    return []
+  }
+
+  return normalized
+    .split(', ')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
 export type ThreatChartProps = {
   series: ThreatSeries[]
   windowStartMs: number | null
@@ -440,7 +452,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         )
         const actorColor = escapeHtml(String(payload.actorColor ?? '#94a3b8'))
         const abilityName = escapeHtml(payload.abilityName ?? 'Unknown ability')
-        const modifiers = escapeHtml(payload.modifiers ?? 'none')
+        const modifiers = formatTooltipModifiers(payload.modifiers ?? 'none')
         const formula = escapeHtml(payload.formula ?? 'n/a')
         const timeMs = Number(payload.timeMs ?? 0)
         const totalThreat = Number(payload.totalThreat ?? 0)
@@ -448,6 +460,15 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         const amount = Number(payload.amount ?? 0)
         const baseThreat = Number(payload.baseThreat ?? 0)
         const eventType = escapeHtml(payload.eventType ?? 'unknown')
+        const multipliersLines =
+          modifiers.length === 0
+            ? ['Multipliers: none']
+            : [
+                'Multipliers:',
+                ...modifiers.map(
+                  (modifier) => `&nbsp;&nbsp;&bull; ${escapeHtml(modifier)}`,
+                ),
+              ]
 
         return [
           `<strong style="color:${actorColor};">${actorName}</strong>`,
@@ -458,7 +479,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
           `Base Threat: ${formatNumber(baseThreat)}`,
           `Threat Applied To Target: ${formatSignedThreat(threatDelta)}`,
           `Cumulative Threat: ${formatNumber(totalThreat)}`,
-          `Multipliers: ${modifiers}`,
+          ...multipliersLines,
         ].join('<br/>')
       },
     },

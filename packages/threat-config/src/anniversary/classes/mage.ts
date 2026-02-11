@@ -41,7 +41,7 @@ export const Spells = {
 // ============================================================================
 
 const Mods = {
-  BurningSoul: 0.15, // 15% per rank (up to 30%)
+  BurningSoul: 0.05, // 5% per rank (up to 10%)
   FrostChanneling: 0.1, // 10% per rank (up to 30%)
   ArcaneSubtlety: 0.2, // 20% per rank (up to 40%)
 }
@@ -69,6 +69,28 @@ const BURNING_SOUL_RANK_BY_TALENT_ID = new Map<number, number>(
 const FROST_CHANNELING_RANK_BY_TALENT_ID = new Map<number, number>(
   FROST_CHANNELING_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
 )
+const FIRE_TREE_INDEX = 1
+const BURNING_SOUL_FIRE_POINTS_THRESHOLD = 12
+
+function inferBurningSoulRank(ctx: TalentImplicationContext): number {
+  const fromRankMap = inferMappedTalentRank(
+    ctx.talentRanks,
+    BURNING_SOUL_RANK_BY_TALENT_ID,
+    BURNING_SOUL_AURA_BY_RANK.length,
+  )
+  if (fromRankMap > 0) {
+    return fromRankMap
+  }
+
+  const firePoints = Math.trunc(ctx.talentPoints[FIRE_TREE_INDEX] ?? 0)
+  if (firePoints < BURNING_SOUL_FIRE_POINTS_THRESHOLD) {
+    return 0
+  }
+
+  // Legacy payloads can omit per-talent ranks and only include tree splits.
+  // At 12+ fire points, infer max Burning Soul rank as a fire-mage heuristic.
+  return BURNING_SOUL_AURA_BY_RANK.length
+}
 
 // ============================================================================
 // Configuration
@@ -141,11 +163,7 @@ export const mageConfig: ClassThreatConfig = {
       syntheticAuras.push(ARCANE_SUBTLETY_AURA_BY_RANK[arcaneSubtletyRank - 1]!)
     }
 
-    const burningSoulRank = inferMappedTalentRank(
-      ctx.talentRanks,
-      BURNING_SOUL_RANK_BY_TALENT_ID,
-      BURNING_SOUL_AURA_BY_RANK.length,
-    )
+    const burningSoulRank = inferBurningSoulRank(ctx)
     if (burningSoulRank > 0) {
       syntheticAuras.push(BURNING_SOUL_AURA_BY_RANK[burningSoulRank - 1]!)
     }

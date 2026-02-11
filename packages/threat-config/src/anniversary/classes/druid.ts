@@ -93,6 +93,11 @@ export const Spells = {
   FeralInstinctRank3: 16949,
   FeralInstinctRank4: 16950,
   FeralInstinctRank5: 16951,
+  SubtletyRank1: 17118,
+  SubtletyRank2: 17119,
+  SubtletyRank3: 17120,
+  SubtletyRank4: 17121,
+  SubtletyRank5: 17122,
 } as const
 
 // ============================================================================
@@ -103,6 +108,7 @@ const Mods = {
   Cat: 0.71,
   DireBear: 1.3,
   FeralInstinct: 0.03, // Per talent point (additive with Bear Form)
+  Subtlety: 0.04, // 4% per rank (up to 20%) on healing spells
   Maul: 1.75,
   Swipe: 1.75,
 }
@@ -114,12 +120,77 @@ const FERAL_INSTINCT_AURA_BY_RANK = [
   Spells.FeralInstinctRank4,
   Spells.FeralInstinctRank5,
 ] as const
+const SUBTLETY_AURA_BY_RANK = [
+  Spells.SubtletyRank1,
+  Spells.SubtletyRank2,
+  Spells.SubtletyRank3,
+  Spells.SubtletyRank4,
+  Spells.SubtletyRank5,
+] as const
 const FERAL_TREE_INDEX = 1
-const HIGH_CONFIDENCE_FERAL_INSTINCT_FERAL_POINTS = 31
+const FERAL_INSTINCT_FERAL_POINTS_THRESHOLD = 7
+const RESTORATION_TREE_INDEX = 2
+const SUBTLETY_RESTORATION_POINTS_THRESHOLD = 15
 
 const FERAL_INSTINCT_RANK_BY_TALENT_ID = new Map<number, number>(
   FERAL_INSTINCT_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
 )
+const SUBTLETY_RANK_BY_TALENT_ID = new Map<number, number>(
+  SUBTLETY_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
+)
+
+const HEALING_SPELLS = new Set([
+  // Healing Touch
+  5185,
+  5186,
+  5187,
+  5188,
+  5189,
+  6778,
+  8903,
+  9758,
+  9888,
+  9889,
+  25297,
+  // Regrowth
+  8936,
+  8938,
+  8939,
+  8940,
+  8941,
+  9750,
+  9856,
+  9857,
+  9858,
+  // Rejuvenation
+  774,
+  1058,
+  1430,
+  2090,
+  2091,
+  3627,
+  8910,
+  9839,
+  9840,
+  9841,
+  25299,
+  // Tranquility
+  740,
+  8918,
+  9862,
+  9863,
+])
+
+function hasCombatantInfoBearFormAura(ctx: TalentImplicationContext): boolean {
+  if (!ctx.event.auras) {
+    return false
+  }
+
+  return ctx.event.auras.some((aura) => {
+    const auraId = aura.abilityGameID ?? aura.ability ?? null
+    return auraId === Spells.BearForm || auraId === Spells.DireBearForm
+  })
+}
 
 function inferFeralInstinctRank(ctx: TalentImplicationContext): number {
   const fromRankMap = inferMappedTalentRank(
@@ -132,13 +203,39 @@ function inferFeralInstinctRank(ctx: TalentImplicationContext): number {
   }
 
   const feralPoints = Math.trunc(ctx.talentPoints[FERAL_TREE_INDEX] ?? 0)
-  if (feralPoints < HIGH_CONFIDENCE_FERAL_INSTINCT_FERAL_POINTS) {
+  if (feralPoints < FERAL_INSTINCT_FERAL_POINTS_THRESHOLD) {
+    return 0
+  }
+
+  if (!hasCombatantInfoBearFormAura(ctx)) {
     return 0
   }
 
   // Legacy payloads can omit per-talent ranks and only include tree splits.
-  // In high-confidence deep feral builds, infer max Feral Instinct rank.
+  // In bear-form snapshots with 7+ feral points, infer max Feral Instinct rank.
   return FERAL_INSTINCT_AURA_BY_RANK.length
+}
+
+function inferSubtletyRank(ctx: TalentImplicationContext): number {
+  const fromRankMap = inferMappedTalentRank(
+    ctx.talentRanks,
+    SUBTLETY_RANK_BY_TALENT_ID,
+    SUBTLETY_AURA_BY_RANK.length,
+  )
+  if (fromRankMap > 0) {
+    return fromRankMap
+  }
+
+  const restorationPoints = Math.trunc(
+    ctx.talentPoints[RESTORATION_TREE_INDEX] ?? 0,
+  )
+  if (restorationPoints < SUBTLETY_RESTORATION_POINTS_THRESHOLD) {
+    return 0
+  }
+
+  // Legacy payloads can omit per-talent ranks and only include tree splits.
+  // In restoration-leaning builds, infer max Subtlety rank.
+  return SUBTLETY_AURA_BY_RANK.length
 }
 
 function hasBearForm(sourceAuras: Set<number>): boolean {
@@ -271,6 +368,37 @@ export const druidConfig: ClassThreatConfig = {
       name: 'Feral Instinct (Rank 5)',
       value: feralInstinctMultiplier(5, ctx.sourceAuras),
     }),
+
+    [Spells.SubtletyRank1]: () => ({
+      source: 'talent',
+      name: 'Subtlety (Rank 1)',
+      spellIds: HEALING_SPELLS,
+      value: 1 - Mods.Subtlety,
+    }),
+    [Spells.SubtletyRank2]: () => ({
+      source: 'talent',
+      name: 'Subtlety (Rank 2)',
+      spellIds: HEALING_SPELLS,
+      value: 1 - Mods.Subtlety * 2,
+    }),
+    [Spells.SubtletyRank3]: () => ({
+      source: 'talent',
+      name: 'Subtlety (Rank 3)',
+      spellIds: HEALING_SPELLS,
+      value: 1 - Mods.Subtlety * 3,
+    }),
+    [Spells.SubtletyRank4]: () => ({
+      source: 'talent',
+      name: 'Subtlety (Rank 4)',
+      spellIds: HEALING_SPELLS,
+      value: 1 - Mods.Subtlety * 4,
+    }),
+    [Spells.SubtletyRank5]: () => ({
+      source: 'talent',
+      name: 'Subtlety (Rank 5)',
+      spellIds: HEALING_SPELLS,
+      value: 1 - Mods.Subtlety * 5,
+    }),
   },
 
   abilities: {
@@ -340,10 +468,18 @@ export const druidConfig: ClassThreatConfig = {
   fixateBuffs: new Set([Spells.Growl, Spells.ChallengingRoar]),
 
   talentImplications: (ctx: TalentImplicationContext) => {
+    const syntheticAuras: number[] = []
+
     const feralInstinctRank = inferFeralInstinctRank(ctx)
-    if (feralInstinctRank === 0) {
-      return []
+    if (feralInstinctRank > 0) {
+      syntheticAuras.push(FERAL_INSTINCT_AURA_BY_RANK[feralInstinctRank - 1]!)
     }
-    return [FERAL_INSTINCT_AURA_BY_RANK[feralInstinctRank - 1]!]
+
+    const subtletyRank = inferSubtletyRank(ctx)
+    if (subtletyRank > 0) {
+      syntheticAuras.push(SUBTLETY_AURA_BY_RANK[subtletyRank - 1]!)
+    }
+
+    return syntheticAuras
   },
 }

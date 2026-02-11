@@ -84,6 +84,37 @@ describe('Mage Config', () => {
       ])
     })
 
+    it('infers Burning Soul rank 2 from fire tree split threshold', () => {
+      const result = mageConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [0, 12, 39],
+        }),
+      )
+
+      expect(result).toEqual([Spells.BurningSoulRank2])
+    })
+
+    it('does not infer Burning Soul when fire tree points are below threshold', () => {
+      const result = mageConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [20, 11, 20],
+        }),
+      )
+
+      expect(result).toEqual([])
+    })
+
+    it('prefers explicit Burning Soul rank over tree-split inference', () => {
+      const result = mageConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [0, 12, 39],
+          talentRanks: new Map([[Spells.BurningSoulRank1, 1]]),
+        }),
+      )
+
+      expect(result).toEqual([Spells.BurningSoulRank1])
+    })
+
     it('returns no synthetic aura when tracked talents are absent', () => {
       const result = mageConfig.talentImplications!(
         createTalentContext({

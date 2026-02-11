@@ -83,7 +83,7 @@ const DEFIANCE_RANK_BY_TALENT_ID = new Map<number, number>(
   DEFIANCE_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
 )
 const PROTECTION_TREE_INDEX = 2
-const HIGH_CONFIDENCE_DEFIANCE_PROT_POINTS = 31
+const DEFIANCE_PROTECTION_POINTS_THRESHOLD = 14
 
 function inferDefianceRank(ctx: TalentImplicationContext): number {
   const fromRankSpellIds = inferMappedTalentRank(
@@ -103,12 +103,12 @@ function inferDefianceRank(ctx: TalentImplicationContext): number {
   const protectionPoints = Math.trunc(
     ctx.talentPoints[PROTECTION_TREE_INDEX] ?? 0,
   )
-  if (protectionPoints < HIGH_CONFIDENCE_DEFIANCE_PROT_POINTS) {
+  if (protectionPoints < DEFIANCE_PROTECTION_POINTS_THRESHOLD) {
     return 0
   }
 
   // Legacy payloads can lack per-talent ranks and only expose tree splits.
-  // In high-confidence deep protection builds, infer max Defiance rank.
+  // With at least 14 points in Protection, infer Defiance as a tanking build heuristic.
   return DEFIANCE_AURA_BY_RANK.length
 }
 

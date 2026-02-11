@@ -83,6 +83,19 @@ describe('Druid Config', () => {
 
       expect(modifier.value).toBe(1)
     })
+
+    it('returns subtlety rank 5 modifier scoped to healing spells', () => {
+      const modifierFn = druidConfig.auraModifiers[Spells.SubtletyRank5]
+      expect(modifierFn).toBeDefined()
+
+      const modifier = modifierFn!(createMockContext())
+
+      expect(modifier.name).toBe('Subtlety (Rank 5)')
+      expect(modifier.value).toBe(0.8)
+      expect(modifier.source).toBe('talent')
+      expect(modifier.spellIds).toBeDefined()
+      expect(modifier.spellIds?.has(5185)).toBe(true)
+    })
   })
 
   describe('abilities', () => {
@@ -268,20 +281,62 @@ describe('Druid Config', () => {
       expect(result).toEqual([Spells.FeralInstinctRank4])
     })
 
-    it('infers Feral Instinct rank 5 from high-confidence feral split', () => {
+    it('infers Feral Instinct rank 5 from bear-form feral split at threshold', () => {
       const result = druidConfig.talentImplications!(
         createTalentContext({
-          talentPoints: [0, 31, 0],
+          event: {
+            timestamp: 0,
+            type: 'combatantinfo',
+            sourceID: 1,
+            sourceIsFriendly: true,
+            targetID: 1,
+            targetIsFriendly: true,
+            auras: [
+              {
+                source: 1,
+                ability: Spells.DireBearForm,
+                stacks: 1,
+                icon: 'ability_racial_bearform.jpg',
+              },
+            ],
+          },
+          talentPoints: [44, 7, 0],
         }),
       )
 
       expect(result).toEqual([Spells.FeralInstinctRank5])
     })
 
-    it('does not infer Feral Instinct from low-confidence feral split', () => {
+    it('does not infer Feral Instinct when bear-form feral split is below threshold', () => {
       const result = druidConfig.talentImplications!(
         createTalentContext({
-          talentPoints: [0, 20, 31],
+          event: {
+            timestamp: 0,
+            type: 'combatantinfo',
+            sourceID: 1,
+            sourceIsFriendly: true,
+            targetID: 1,
+            targetIsFriendly: true,
+            auras: [
+              {
+                source: 1,
+                ability: Spells.BearForm,
+                stacks: 1,
+                icon: 'ability_racial_bearform.jpg',
+              },
+            ],
+          },
+          talentPoints: [0, 6, 14],
+        }),
+      )
+
+      expect(result).toEqual([])
+    })
+
+    it('does not infer Feral Instinct from non-bear split even above threshold', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [0, 20, 14],
         }),
       )
 
@@ -291,12 +346,69 @@ describe('Druid Config', () => {
     it('prefers explicit ranked talent payload over tree-split inference', () => {
       const result = druidConfig.talentImplications!(
         createTalentContext({
-          talentPoints: [0, 31, 0],
+          event: {
+            timestamp: 0,
+            type: 'combatantinfo',
+            sourceID: 1,
+            sourceIsFriendly: true,
+            targetID: 1,
+            targetIsFriendly: true,
+            auras: [
+              {
+                source: 1,
+                ability: Spells.BearForm,
+                stacks: 1,
+                icon: 'ability_racial_bearform.jpg',
+              },
+            ],
+          },
+          talentPoints: [0, 20, 14],
           talentRanks: new Map([[Spells.FeralInstinctRank2, 1]]),
         }),
       )
 
       expect(result).toEqual([Spells.FeralInstinctRank2])
+    })
+
+    it('infers Subtlety aura from ranked talent payload', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentRanks: new Map([[Spells.SubtletyRank3, 1]]),
+        }),
+      )
+
+      expect(result).toEqual([Spells.SubtletyRank3])
+    })
+
+    it('infers Subtlety rank 5 from restoration split threshold', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [31, 5, 15],
+        }),
+      )
+
+      expect(result).toEqual([Spells.SubtletyRank5])
+    })
+
+    it('does not infer Subtlety when restoration split is below threshold', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [31, 6, 14],
+        }),
+      )
+
+      expect(result).toEqual([])
+    })
+
+    it('prefers explicit Subtlety rank over tree-split inference', () => {
+      const result = druidConfig.talentImplications!(
+        createTalentContext({
+          talentPoints: [0, 0, 15],
+          talentRanks: new Map([[Spells.SubtletyRank2, 1]]),
+        }),
+      )
+
+      expect(result).toEqual([Spells.SubtletyRank2])
     })
 
     it('returns no synthetic aura when Feral Instinct is absent', () => {

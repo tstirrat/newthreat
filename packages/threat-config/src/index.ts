@@ -11,9 +11,9 @@ import { sodConfig } from './sod'
 
 // Map WCL gameVersion integers to configs
 const configs: Record<number, ThreatConfig> = {
-  1: anniversaryConfig, // Anniversary Edition / Classic Era
-  2: sodConfig, // Season of Discovery
-  3: retailConfig, // Retail
+  2: anniversaryConfig, // Anniversary Edition / Classic Era
+  5: sodConfig, // Season of Discovery
+  1: retailConfig, // Retail
 }
 
 /**
