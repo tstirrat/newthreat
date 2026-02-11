@@ -64,3 +64,23 @@ export interface PlayerSummaryRow {
   totalHealing: number
   color: string
 }
+
+export interface FocusedPlayerSummary {
+  actorId: number
+  label: string
+  actorClass: PlayerClass | null
+  totalThreat: number
+  totalTps: number
+  totalDamage: number
+  totalHealing: number
+  color: string
+}
+
+export interface FocusedPlayerThreatRow {
+  key: string
+  abilityId: number | null
+  abilityName: string
+  amount: number
+  threat: number
+  tps: number
+}

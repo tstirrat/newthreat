@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, type FC } from 'react'
 import type { EChartsOption } from 'echarts'
 import ReactECharts from 'echarts-for-react'
 
-import { formatNumber, formatSeconds } from '../lib/format'
+import { formatNumber, formatTimelineTime } from '../lib/format'
+import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
 import type { ThreatSeries } from '../types/app'
 
 interface LegendClickState {
@@ -21,19 +22,6 @@ interface ChartThemeColors {
 }
 
 const doubleClickThresholdMs = 320
-
-function resolveWindowBounds(series: ThreatSeries[]): { min: number; max: number } {
-  const allPoints = series.flatMap((item) => item.points)
-  if (allPoints.length === 0) {
-    return { min: 0, max: 0 }
-  }
-
-  const times = allPoints.map((point) => point.timeMs)
-  return {
-    min: Math.min(...times),
-    max: Math.max(...times),
-  }
-}
 
 function resetLegendSelection(
   chart: ReturnType<ReactECharts['getEchartsInstance']>,
@@ -82,7 +70,7 @@ export type ThreatChartProps = {
   windowStartMs: number | null
   windowEndMs: number | null
   onWindowChange: (startMs: number | null, endMs: number | null) => void
-  onIsolatedActorChange: (actorId: number | null) => void
+  onSeriesClick: (playerId: number) => void
 }
 
 export const ThreatChart: FC<ThreatChartProps> = ({
@@ -90,14 +78,14 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   windowStartMs,
   windowEndMs,
   onWindowChange,
-  onIsolatedActorChange,
+  onSeriesClick,
 }) => {
   const chartRef = useRef<ReactECharts>(null)
   const lastLegendClickRef = useRef<LegendClickState | null>(null)
   const [isolatedActorId, setIsolatedActorId] = useState<number | null>(null)
   const [themeColors, setThemeColors] = useState<ChartThemeColors>(() => readChartThemeColors())
 
-  const bounds = resolveWindowBounds(series)
+  const bounds = resolveSeriesWindowBounds(series)
   const visibleIsolatedActorId =
     isolatedActorId !== null && series.some((item) => item.actorId === isolatedActorId)
       ? isolatedActorId
@@ -105,14 +93,12 @@ export const ThreatChart: FC<ThreatChartProps> = ({
 
   const legendNames = series.map((item) => item.label)
   const actorIdByLabel = new Map(series.map((item) => [item.label, item.actorId]))
-
-  useEffect(() => {
-    if (isolatedActorId === null || visibleIsolatedActorId !== null) {
-      return
-    }
-
-    onIsolatedActorChange(null)
-  }, [isolatedActorId, onIsolatedActorChange, visibleIsolatedActorId])
+  const playerIdByLabel = new Map(
+    series.map((item) => [
+      item.label,
+      item.actorType === 'Player' ? item.actorId : item.ownerId,
+    ]),
+  )
 
   useEffect(() => {
     const updateThemeColors = (): void => {
@@ -125,16 +111,6 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     }
   }, [])
 
-  const richStyles = Object.fromEntries(
-    series.map((item) => [
-      `actor-${item.actorId}`,
-      {
-        color: item.color,
-        fontWeight: 600,
-      },
-    ]),
-  )
-
   const startValue = windowStartMs ?? bounds.min
   const endValue = windowEndMs ?? bounds.max
 
@@ -143,25 +119,27 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     grid: {
       top: 30,
       left: 60,
-      right: 250,
+      right: 300,
       bottom: 84,
     },
     legend: {
+      type: 'scroll',
       orient: 'vertical',
       right: 8,
       top: 32,
+      bottom: 32,
+      width: 260,
       itemHeight: 10,
       itemWidth: 18,
-      formatter: (name) => {
-        const actorId = actorIdByLabel.get(name)
-        if (!actorId) {
-          return name
-        }
-        return `{actor-${actorId}|${name}}`
-      },
+      data: series.map((item) => ({
+        name: item.label,
+        textStyle: {
+          color: item.color,
+          fontWeight: 600,
+        },
+      })),
       textStyle: {
         color: themeColors.muted,
-        rich: richStyles,
       },
     },
     tooltip: {
@@ -189,7 +167,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
 
         return [
           `<strong>${(params as { seriesName: string }).seriesName}</strong>`,
-          `Time: ${formatSeconds(timeMs)}`,
+          `Time: ${formatTimelineTime(timeMs)}`,
           `Cumulative Threat: ${formatNumber(threat)}`,
           `Threat Delta: ${delta >= 0 ? '+' : ''}${formatNumber(delta)}`,
           `Event Type: ${eventType}`,
@@ -201,7 +179,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     },
     xAxis: {
       type: 'value',
-      name: 'Fight Time (ms)',
+      name: 'Fight Time',
       min: bounds.min,
       max: bounds.max,
       nameTextStyle: {
@@ -209,6 +187,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       },
       axisLabel: {
         color: themeColors.muted,
+        formatter: (value: number) => formatTimelineTime(value),
       },
       axisLine: {
         lineStyle: {
@@ -265,6 +244,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       name: item.label,
       type: 'line',
       showSymbol: false,
+      triggerLineEvent: true,
       animation: false,
       emphasis: {
         focus: 'series',
@@ -276,6 +256,8 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       },
       data: item.points.map((point) => ({
         value: [point.timeMs, point.totalThreat],
+        actorId: item.actorId,
+        playerId: item.actorType === 'Player' ? item.actorId : item.ownerId,
         timeMs: point.timeMs,
         totalThreat: point.totalThreat,
         threatDelta: point.threatDelta,
@@ -309,7 +291,6 @@ export const ThreatChart: FC<ThreatChartProps> = ({
 
               resetLegendSelection(chart, legendNames)
               setIsolatedActorId(null)
-              onIsolatedActorChange(null)
             }}
           >
             Clear isolate
@@ -370,13 +351,38 @@ export const ThreatChart: FC<ThreatChartProps> = ({
             if (visibleIsolatedActorId === clickedActorId) {
               resetLegendSelection(chart, legendNames)
               setIsolatedActorId(null)
-              onIsolatedActorChange(null)
               return
             }
 
             isolateLegendSelection(chart, params.name, legendNames)
             setIsolatedActorId(clickedActorId)
-            onIsolatedActorChange(clickedActorId)
+          },
+          click: (params: {
+            componentType?: string
+            seriesName?: string
+            data?: Record<string, unknown>
+            seriesType?: string
+          }) => {
+            if (params.componentType !== 'series' || params.seriesType !== 'line') {
+              return
+            }
+
+            const payloadPlayerId = Number(params.data?.playerId)
+            if (Number.isFinite(payloadPlayerId) && payloadPlayerId > 0) {
+              onSeriesClick(payloadPlayerId)
+              return
+            }
+
+            if (!params.seriesName) {
+              return
+            }
+
+            const clickedPlayerId = playerIdByLabel.get(params.seriesName)
+            if (!clickedPlayerId) {
+              return
+            }
+
+            onSeriesClick(clickedPlayerId)
           },
         }}
       />

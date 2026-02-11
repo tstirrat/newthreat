@@ -1,20 +1,20 @@
 /**
- * Fight-level page with target/player filters and threat chart.
+ * Fight-level page with target filter and player-focused chart interactions.
  */
 import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 
 import { ErrorState } from '../components/error-state'
 import { LoadingState } from '../components/loading-state'
-import { PlayerFilterPanel } from '../components/player-filter-panel'
 import { PlayerSummaryTable } from '../components/player-summary-table'
 import { SectionCard } from '../components/section-card'
 import { TargetSelector } from '../components/target-selector'
 import { ThreatChart } from '../components/threat-chart'
 import {
-  buildPlayerSummaryRows,
+  buildFocusedPlayerSummary,
+  buildFocusedPlayerThreatRows,
   buildThreatSeries,
-  filterSeriesByPlayers,
+  resolveSeriesWindowBounds,
   selectDefaultTargetId,
 } from '../lib/threat-aggregation'
 import { buildFightRankingsUrl, buildReportUrl } from '../lib/wcl-url'
@@ -58,20 +58,20 @@ export const FightPage: FC = () => {
     })
   }, [addRecentReport, locationState?.host, reportHost, reportId, reportQuery.data])
 
-  const [isolatedActorId, setIsolatedActorId] = useState<number | null>(null)
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null)
 
   const reportData = reportQuery.data ?? null
   const fightData = fightQuery.data ?? null
   const eventsData = eventsQuery.data ?? null
 
-  const players = useMemo(
-    () => fightData?.actors.filter((actor) => actor.type === 'Player') ?? [],
-    [fightData?.actors],
-  )
-
   const validPlayerIds = useMemo(
-    () => new Set(players.map((player) => player.id)),
-    [players],
+    () =>
+      new Set(
+        (fightData?.actors ?? [])
+          .filter((actor) => actor.type === 'Player')
+          .map((actor) => actor.id),
+      ),
+    [fightData?.actors],
   )
   const validTargetIds = useMemo(
     () => new Set((fightData?.enemies ?? []).map((enemy) => enemy.id)),
@@ -123,61 +123,102 @@ export const FightPage: FC = () => {
   ])
 
   const visibleSeries = useMemo(
-    () => filterSeriesByPlayers(allSeries, queryState.state.players),
-    [allSeries, queryState.state.players],
+    () =>
+      allSeries
+        .filter((series) => series.actorType === 'Player')
+        .sort((a, b) => b.totalThreat - a.totalThreat),
+    [allSeries],
   )
 
-  const focusedActorIds = useMemo(() => {
-    if (isolatedActorId !== null) {
-      return new Set([isolatedActorId])
+  const windowBounds = useMemo(
+    () => resolveSeriesWindowBounds(visibleSeries),
+    [visibleSeries],
+  )
+  const selectedWindowStartMs = queryState.state.startMs ?? windowBounds.min
+  const selectedWindowEndMs = queryState.state.endMs ?? windowBounds.max
+
+  const focusedPlayerId = useMemo(() => {
+    const candidatePlayerId = selectedPlayerId ?? queryState.state.players[0] ?? null
+    if (candidatePlayerId === null) {
+      return null
     }
 
-    if (queryState.state.players.length === 0) {
-      return new Set<number>()
-    }
-
-    const selectedPlayers = new Set(queryState.state.players)
-    return new Set(
-      visibleSeries
-        .filter((series) => {
-          if (series.actorType === 'Player') {
-            return selectedPlayers.has(series.actorId)
-          }
-
-          if (!series.ownerId) {
-            return false
-          }
-
-          return selectedPlayers.has(series.ownerId)
-        })
-        .map((series) => series.actorId),
+    const hasVisibleSeries = visibleSeries.some(
+      (series) =>
+        series.actorId === candidatePlayerId || series.ownerId === candidatePlayerId,
     )
-  }, [isolatedActorId, queryState.state.players, visibleSeries])
+    return hasVisibleSeries ? candidatePlayerId : null
+  }, [queryState.state.players, selectedPlayerId, visibleSeries])
 
-  const summaryRows = useMemo(
-    () => buildPlayerSummaryRows(visibleSeries, focusedActorIds),
-    [focusedActorIds, visibleSeries],
+  const focusedPlayerSummary = useMemo(
+    () => {
+      if (selectedTargetId === null) {
+        return null
+      }
+
+      return buildFocusedPlayerSummary({
+        events: eventsData?.events ?? [],
+        actors: fightData?.actors ?? [],
+        fightStartTime: fightData?.startTime ?? 0,
+        targetId: selectedTargetId,
+        focusedPlayerId,
+        windowStartMs: selectedWindowStartMs,
+        windowEndMs: selectedWindowEndMs,
+      })
+    },
+    [
+      eventsData?.events,
+      fightData?.actors,
+      fightData?.startTime,
+      focusedPlayerId,
+      selectedTargetId,
+      selectedWindowEndMs,
+      selectedWindowStartMs,
+    ],
+  )
+
+  const focusedPlayerRows = useMemo(
+    () => {
+      if (selectedTargetId === null) {
+        return []
+      }
+
+      return buildFocusedPlayerThreatRows({
+        events: eventsData?.events ?? [],
+        actors: fightData?.actors ?? [],
+        abilities: reportData?.abilities ?? [],
+        fightStartTime: fightData?.startTime ?? 0,
+        targetId: selectedTargetId,
+        focusedPlayerId,
+        windowStartMs: selectedWindowStartMs,
+        windowEndMs: selectedWindowEndMs,
+      })
+    },
+    [
+      eventsData?.events,
+      fightData?.actors,
+      fightData?.startTime,
+      focusedPlayerId,
+      reportData?.abilities,
+      selectedTargetId,
+      selectedWindowEndMs,
+      selectedWindowStartMs,
+    ],
   )
 
   const handleTargetChange = useCallback(
     (targetId: number) => {
       queryState.setTargetId(targetId)
-      setIsolatedActorId(null)
     },
     [queryState],
   )
 
-  const handlePlayersChange = useCallback(
-    (playerIds: number[]) => {
-      queryState.setPlayers(playerIds)
-      setIsolatedActorId(null)
+  const handleSeriesClick = useCallback(
+    (playerId: number) => {
+      setSelectedPlayerId(playerId)
     },
-    [queryState],
+    [],
   )
-
-  const handleIsolatedActorChange = useCallback((actorId: number | null) => {
-    setIsolatedActorId(actorId)
-  }, [])
 
   const handleWindowChange = useCallback(
     (startMs: number | null, endMs: number | null) => {
@@ -260,41 +301,32 @@ export const FightPage: FC = () => {
       </SectionCard>
 
       <SectionCard
-        title="Filters"
-        subtitle="Player and target controls are synced with URL query params for deep linking."
+        title="Target filter"
+        subtitle="Selected target is synced with URL query params for deep linking."
       >
-        <div className="space-y-4">
-          {selectedTargetId ? (
-            <TargetSelector
-              enemies={fightData.enemies}
-              selectedTargetId={selectedTargetId}
-              onChange={handleTargetChange}
-            />
-          ) : (
-            <p className="text-sm text-muted">No valid targets available for this fight.</p>
-          )}
-          <PlayerFilterPanel
-            players={players}
-            selectedPlayerIds={queryState.state.players}
-            onChange={handlePlayersChange}
+        {selectedTargetId ? (
+          <TargetSelector
+            enemies={fightData.enemies}
+            selectedTargetId={selectedTargetId}
+            onChange={handleTargetChange}
           />
-        </div>
+        ) : (
+          <p className="text-sm text-muted">No valid targets available for this fight.</p>
+        )}
       </SectionCard>
 
       <SectionCard
         title="Threat timeline"
-        subtitle="Legend on the right. Double-click an actor label to isolate, and double-click again to restore."
+        subtitle="Player threat lines with a scrollable legend sorted by total threat. Click a line to focus a player."
       >
         {visibleSeries.length === 0 ? (
-          <p className="text-sm text-muted">
-            No threat points are available for this filter/target combination.
-          </p>
+          <p className="text-sm text-muted">No threat points are available for this target.</p>
         ) : (
           <ThreatChart
             series={visibleSeries}
             windowEndMs={queryState.state.endMs}
             windowStartMs={queryState.state.startMs}
-            onIsolatedActorChange={handleIsolatedActorChange}
+            onSeriesClick={handleSeriesClick}
             onWindowChange={handleWindowChange}
           />
         )}
@@ -302,9 +334,9 @@ export const FightPage: FC = () => {
 
       <SectionCard
         title="Focused player summary"
-        subtitle="Displayed for selected players or a legend-isolated actor."
+        subtitle="Totals and ability TPS are calculated from the currently visible chart window."
       >
-        <PlayerSummaryTable rows={summaryRows} />
+        <PlayerSummaryTable summary={focusedPlayerSummary} rows={focusedPlayerRows} />
       </SectionCard>
     </div>
   )

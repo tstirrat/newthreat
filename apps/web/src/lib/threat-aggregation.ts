@@ -9,7 +9,12 @@ import type {
   ReportAbilitySummary,
   ReportActorSummary,
 } from '../types/api'
-import type { PlayerSummaryRow, ThreatSeries } from '../types/app'
+import type {
+  FocusedPlayerSummary,
+  FocusedPlayerThreatRow,
+  PlayerSummaryRow,
+  ThreatSeries,
+} from '../types/app'
 
 const trackableActorTypes = new Set(['Player', 'Pet'])
 
@@ -263,6 +268,233 @@ export function buildPlayerSummaryRows(
       color: item.color,
     }))
     .sort((a, b) => b.totalThreat - a.totalThreat)
+}
+
+/** Resolve chart window bounds from all visible series points. */
+export function resolveSeriesWindowBounds(
+  series: ThreatSeries[],
+): { min: number; max: number } {
+  const allPoints = series.flatMap((item) => item.points)
+  if (allPoints.length === 0) {
+    return { min: 0, max: 0 }
+  }
+
+  const times = allPoints.map((point) => point.timeMs)
+  return {
+    min: Math.min(...times),
+    max: Math.max(...times),
+  }
+}
+
+function resolveFocusedPlayerSourceIds(
+  actors: ReportActorSummary[],
+  focusedPlayerId: number,
+): Set<number> {
+  return new Set(
+    actors
+      .filter(
+        (actor) =>
+          actor.id === focusedPlayerId ||
+          (actor.type === 'Pet' && actor.petOwner === focusedPlayerId),
+      )
+      .map((actor) => actor.id),
+  )
+}
+
+function resolveAbilityName(
+  abilityId: number | null,
+  abilityById: Map<number, ReportAbilitySummary>,
+): string {
+  if (abilityId === null) {
+    return 'Unknown ability'
+  }
+
+  return abilityById.get(abilityId)?.name ?? `Ability #${abilityId}`
+}
+
+/** Build totals/class metadata for the currently focused player. */
+export function buildFocusedPlayerSummary({
+  events,
+  actors,
+  fightStartTime,
+  targetId,
+  focusedPlayerId,
+  windowStartMs,
+  windowEndMs,
+}: {
+  events: AugmentedEventsResponse['events']
+  actors: ReportActorSummary[]
+  fightStartTime: number
+  targetId: number
+  focusedPlayerId: number | null
+  windowStartMs: number
+  windowEndMs: number
+}): FocusedPlayerSummary | null {
+  if (focusedPlayerId === null) {
+    return null
+  }
+
+  const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
+  const focusedPlayer = actorsById.get(focusedPlayerId)
+  if (!focusedPlayer || focusedPlayer.type !== 'Player') {
+    return null
+  }
+
+  const sourceIds = resolveFocusedPlayerSourceIds(actors, focusedPlayerId)
+  if (sourceIds.size === 0) {
+    return null
+  }
+
+  const sortedEvents = [...events].sort((a, b) => a.timestamp - b.timestamp)
+  const firstTimestamp = sortedEvents[0]?.timestamp ?? fightStartTime
+  const windowDurationSeconds = Math.max(1, windowEndMs - windowStartMs) / 1000
+
+  const totals = sortedEvents.reduce(
+    (acc, event) => {
+      const timeMs = resolveRelativeTimeMs(event.timestamp, fightStartTime, firstTimestamp)
+      if (timeMs < windowStartMs || timeMs > windowEndMs) {
+        return acc
+      }
+
+      const hasMatchingChange = (event.threat.changes ?? []).some(
+        (change) => change.targetId === targetId && sourceIds.has(change.sourceId),
+      )
+      if (!hasMatchingChange) {
+        return acc
+      }
+
+      const threatDelta = (event.threat.changes ?? [])
+        .filter(
+          (change) => change.targetId === targetId && sourceIds.has(change.sourceId),
+        )
+        .reduce((sum, change) => sum + change.amount, 0)
+
+      return {
+        totalThreat: acc.totalThreat + threatDelta,
+        totalDamage:
+          acc.totalDamage + (event.type === 'damage' ? Math.max(0, event.amount ?? 0) : 0),
+        totalHealing:
+          acc.totalHealing + (event.type === 'heal' ? Math.max(0, event.amount ?? 0) : 0),
+      }
+    },
+    {
+      totalThreat: 0,
+      totalDamage: 0,
+      totalHealing: 0,
+    },
+  )
+
+  return {
+    actorId: focusedPlayerId,
+    label: focusedPlayer.name,
+    actorClass: (focusedPlayer.subType as PlayerClass | undefined) ?? null,
+    totalThreat: totals.totalThreat,
+    totalTps: totals.totalThreat / windowDurationSeconds,
+    totalDamage: totals.totalDamage,
+    totalHealing: totals.totalHealing,
+    color: getActorColor(focusedPlayer, actorsById),
+  }
+}
+
+/** Build per-ability threat breakdown rows for a focused player in the selected chart window. */
+export function buildFocusedPlayerThreatRows({
+  events,
+  actors,
+  abilities,
+  fightStartTime,
+  targetId,
+  focusedPlayerId,
+  windowStartMs,
+  windowEndMs,
+}: {
+  events: AugmentedEventsResponse['events']
+  actors: ReportActorSummary[]
+  abilities: ReportAbilitySummary[]
+  fightStartTime: number
+  targetId: number
+  focusedPlayerId: number | null
+  windowStartMs: number
+  windowEndMs: number
+}): FocusedPlayerThreatRow[] {
+  if (focusedPlayerId === null) {
+    return []
+  }
+
+  const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
+  const focusedPlayer = actorsById.get(focusedPlayerId)
+  if (!focusedPlayer || focusedPlayer.type !== 'Player') {
+    return []
+  }
+
+  const sourceIds = resolveFocusedPlayerSourceIds(actors, focusedPlayerId)
+  if (sourceIds.size === 0) {
+    return []
+  }
+
+  const abilityById = createAbilityMap(abilities)
+  const sortedEvents = [...events].sort((a, b) => a.timestamp - b.timestamp)
+  const firstTimestamp = sortedEvents[0]?.timestamp ?? fightStartTime
+  const windowDurationSeconds = Math.max(1, windowEndMs - windowStartMs) / 1000
+  const rowsByAbility = new Map<string, FocusedPlayerThreatRow>()
+
+  sortedEvents.forEach((event) => {
+    const timeMs = resolveRelativeTimeMs(event.timestamp, fightStartTime, firstTimestamp)
+    if (timeMs < windowStartMs || timeMs > windowEndMs) {
+      return
+    }
+
+    const matchingThreat = (event.threat.changes ?? [])
+      .filter(
+        (change) => change.targetId === targetId && sourceIds.has(change.sourceId),
+      )
+      .reduce((sum, change) => sum + change.amount, 0)
+    if (matchingThreat === 0) {
+      return
+    }
+
+    const abilityId = event.abilityGameID ?? null
+    const abilityName = resolveAbilityName(abilityId, abilityById)
+    const key = abilityId === null ? `unknown:${abilityName}` : String(abilityId)
+    const damageHealingAmount =
+      event.type === 'damage' || event.type === 'heal'
+        ? Math.max(0, event.amount ?? 0)
+        : 0
+
+    const existing = rowsByAbility.get(key)
+    if (existing) {
+      existing.amount += damageHealingAmount
+      existing.threat += matchingThreat
+      return
+    }
+
+    rowsByAbility.set(key, {
+      key,
+      abilityId,
+      abilityName,
+      amount: damageHealingAmount,
+      threat: matchingThreat,
+      tps: 0,
+    })
+  })
+
+  return [...rowsByAbility.values()]
+    .map((row) => ({
+      ...row,
+      tps: row.threat / windowDurationSeconds,
+    }))
+    .sort((a, b) => {
+      const byThreat = Math.abs(b.threat) - Math.abs(a.threat)
+      if (byThreat !== 0) {
+        return byThreat
+      }
+
+      const byAmount = b.amount - a.amount
+      if (byAmount !== 0) {
+        return byAmount
+      }
+
+      return a.abilityName.localeCompare(b.abilityName)
+    })
 }
 
 function resolveRankingOwnerId(actor: ReportActorSummary): number | null {
