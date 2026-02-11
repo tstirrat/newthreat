@@ -44,6 +44,11 @@ pnpm --filter @wcl-threat/api deploy          # Deploy API to production
 pnpm --filter @wcl-threat/api deploy:staging  # Deploy API to staging
 ```
 
+## Quality Expectations
+
+- Every change must be linted, type checked, and tested before it is considered complete; use the workspace commands (`pnpm lint`, `pnpm typecheck`, `pnpm test`, etc.) that cover the touched areas.
+- Introduce targeted tests for any new code or functionality whenever practical—unit, integration, or e2e tests that guard the behavior you add are preferred and should live alongside the relevant source files.
+
 ## Testing
 
 Framework: Vitest.
