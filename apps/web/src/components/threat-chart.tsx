@@ -1,9 +1,9 @@
 /**
  * ECharts threat timeline with deep-linkable zoom and legend isolation behavior.
  */
-import { useEffect, useRef, useState, type FC } from 'react'
 import type { EChartsOption } from 'echarts'
 import ReactECharts from 'echarts-for-react'
+import { type FC, useEffect, useRef, useState } from 'react'
 
 import { formatNumber, formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
@@ -83,16 +83,21 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   const chartRef = useRef<ReactECharts>(null)
   const lastLegendClickRef = useRef<LegendClickState | null>(null)
   const [isolatedActorId, setIsolatedActorId] = useState<number | null>(null)
-  const [themeColors, setThemeColors] = useState<ChartThemeColors>(() => readChartThemeColors())
+  const [themeColors, setThemeColors] = useState<ChartThemeColors>(() =>
+    readChartThemeColors(),
+  )
 
   const bounds = resolveSeriesWindowBounds(series)
   const visibleIsolatedActorId =
-    isolatedActorId !== null && series.some((item) => item.actorId === isolatedActorId)
+    isolatedActorId !== null &&
+    series.some((item) => item.actorId === isolatedActorId)
       ? isolatedActorId
       : null
 
   const legendNames = series.map((item) => item.label)
-  const actorIdByLabel = new Map(series.map((item) => [item.label, item.actorId]))
+  const actorIdByLabel = new Map(
+    series.map((item) => [item.label, item.actorId]),
+  )
   const playerIdByLabel = new Map(
     series.map((item) => [
       item.label,
@@ -113,22 +118,24 @@ export const ThreatChart: FC<ThreatChartProps> = ({
 
   const startValue = windowStartMs ?? bounds.min
   const endValue = windowEndMs ?? bounds.max
+  const legendWidthPx = 128
+  const legendRightOffsetPx = 8
 
   const option: EChartsOption = {
     animation: false,
     grid: {
       top: 30,
       left: 60,
-      right: 300,
+      right: legendWidthPx + legendRightOffsetPx,
       bottom: 84,
     },
     legend: {
       type: 'scroll',
       orient: 'vertical',
-      right: 8,
+      right: legendRightOffsetPx,
       top: 32,
       bottom: 32,
-      width: 260,
+      width: legendWidthPx,
       itemHeight: 10,
       itemWidth: 18,
       data: series.map((item) => ({
@@ -141,6 +148,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       textStyle: {
         color: themeColors.muted,
       },
+      icon: undefined,
     },
     tooltip: {
       trigger: 'item',
@@ -179,12 +187,8 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     },
     xAxis: {
       type: 'value',
-      name: 'Fight Time',
       min: bounds.min,
       max: bounds.max,
-      nameTextStyle: {
-        color: themeColors.muted,
-      },
       axisLabel: {
         color: themeColors.muted,
         formatter: (value: number) => formatTimelineTime(value),
@@ -229,6 +233,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         filterMode: 'none',
         startValue,
         endValue,
+        labelFormatter: (value: number) => formatTimelineTime(value),
       },
       {
         type: 'slider',
@@ -238,6 +243,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         bottom: 24,
         startValue,
         endValue,
+        labelFormatter: (value: number) => formatTimelineTime(value),
       },
     ],
     series: series.map((item) => ({
@@ -309,8 +315,12 @@ export const ThreatChart: FC<ThreatChartProps> = ({
             endValue?: number
           }) => {
             const batch = params.batch?.[0]
-            const nextStart = Math.round(batch?.startValue ?? params.startValue ?? bounds.min)
-            const nextEnd = Math.round(batch?.endValue ?? params.endValue ?? bounds.max)
+            const nextStart = Math.round(
+              batch?.startValue ?? params.startValue ?? bounds.min,
+            )
+            const nextEnd = Math.round(
+              batch?.endValue ?? params.endValue ?? bounds.max,
+            )
 
             if (nextStart <= bounds.min && nextEnd >= bounds.max) {
               onWindowChange(null, null)
@@ -363,7 +373,10 @@ export const ThreatChart: FC<ThreatChartProps> = ({
             data?: Record<string, unknown>
             seriesType?: string
           }) => {
-            if (params.componentType !== 'series' || params.seriesType !== 'line') {
+            if (
+              params.componentType !== 'series' ||
+              params.seriesType !== 'line'
+            ) {
               return
             }
 
