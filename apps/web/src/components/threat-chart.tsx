@@ -3,7 +3,7 @@
  */
 import type { EChartsOption } from 'echarts'
 import ReactECharts from 'echarts-for-react'
-import { type FC, useEffect, useRef, useState } from 'react'
+import { type FC, useEffect, useMemo, useRef, useState } from 'react'
 
 import { formatNumber, formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
@@ -21,7 +21,28 @@ interface ChartThemeColors {
   panel: string
 }
 
+interface TooltipPointPayload {
+  actorColor: string
+  abilityName: string
+  amount: number
+  baseThreat: number
+  eventType: string
+  formula: string
+  modifiedThreat: number
+  modifiers: string
+  threatDelta: number
+  timeMs: number
+  totalThreat: number
+}
+
+interface SeriesChartPoint extends TooltipPointPayload {
+  actorId: number
+  playerId: number | null
+  value: [number, number]
+}
+
 const doubleClickThresholdMs = 320
+const tooltipSnapDistancePx = 10
 
 function resetLegendSelection(
   chart: ReturnType<ReactECharts['getEchartsInstance']>,
@@ -65,6 +86,20 @@ function readChartThemeColors(): ChartThemeColors {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function formatSignedThreat(value: number): string {
+  const prefix = value >= 0 ? '+' : '-'
+  return `${prefix}${formatNumber(Math.abs(value))}`
+}
+
 export type ThreatChartProps = {
   series: ThreatSeries[]
   windowStartMs: number | null
@@ -82,6 +117,18 @@ export const ThreatChart: FC<ThreatChartProps> = ({
 }) => {
   const chartRef = useRef<ReactECharts>(null)
   const lastLegendClickRef = useRef<LegendClickState | null>(null)
+  const lastShownTooltipRef = useRef<{
+    dataIndex: number
+    seriesIndex: number
+  } | null>(null)
+  const pinnedTooltipRef = useRef<{
+    dataIndex: number
+    seriesIndex: number
+  } | null>(null)
+  const [pinnedTooltip, setPinnedTooltip] = useState<{
+    dataIndex: number
+    seriesIndex: number
+  } | null>(null)
   const [isolatedActorId, setIsolatedActorId] = useState<number | null>(null)
   const [themeColors, setThemeColors] = useState<ChartThemeColors>(() =>
     readChartThemeColors(),
@@ -120,6 +167,223 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   const endValue = windowEndMs ?? bounds.max
   const legendWidthPx = 128
   const legendRightOffsetPx = 8
+  const chartSeries = useMemo(
+    () =>
+      series.map((item) => {
+        const playerId =
+          item.actorType === 'Player' ? item.actorId : item.ownerId
+        const toDataPoint = (
+          point: ThreatSeries['points'][number],
+        ): SeriesChartPoint => ({
+          ...point,
+          actorId: item.actorId,
+          actorColor: item.color,
+          playerId,
+          value: [point.timeMs, point.totalThreat],
+        })
+
+        return {
+          actorType: item.actorType,
+          color: item.color,
+          data: item.points.map(toDataPoint),
+          name: item.label,
+        }
+      }),
+    [series],
+  )
+
+  useEffect(() => {
+    const chart = chartRef.current?.getEchartsInstance()
+    if (!chart) {
+      return
+    }
+
+    const zr = chart.getZr()
+
+    const hideTooltip = (): void => {
+      if (!lastShownTooltipRef.current) {
+        return
+      }
+
+      chart.dispatchAction({ type: 'hideTip' })
+      lastShownTooltipRef.current = null
+    }
+
+    const resolvePointerPosition = (event: {
+      offsetX?: number
+      offsetY?: number
+      zrX?: number
+      zrY?: number
+    }): { x: number; y: number } | null => {
+      const x = event.offsetX ?? event.zrX
+      const y = event.offsetY ?? event.zrY
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return null
+      }
+
+      return { x, y }
+    }
+
+    const findNearestPoint = (event: {
+      offsetX?: number
+      offsetY?: number
+      zrX?: number
+      zrY?: number
+    }): {
+      dataIndex: number
+      distance: number
+      seriesIndex: number
+    } | null => {
+      const pointer = resolvePointerPosition(event)
+      if (!pointer) {
+        return null
+      }
+
+      const legendOption = chart.getOption().legend?.[0] as
+        | {
+            selected?: Record<string, boolean>
+          }
+        | undefined
+      const legendSelection = legendOption?.selected
+
+      return chartSeries.reduce<{
+        dataIndex: number
+        distance: number
+        seriesIndex: number
+      } | null>((closest, seriesEntry, seriesIndex) => {
+        if (legendSelection?.[seriesEntry.name] === false) {
+          return closest
+        }
+
+        return seriesEntry.data.reduce<{
+          dataIndex: number
+          distance: number
+          seriesIndex: number
+        } | null>((seriesClosest, point, dataIndex) => {
+          const pixelPoint = chart.convertToPixel(
+            { seriesIndex },
+            point.value,
+          ) as number[] | number
+          if (!Array.isArray(pixelPoint) || pixelPoint.length !== 2) {
+            return seriesClosest
+          }
+
+          const [pointX, pointY] = pixelPoint
+          const distance = Math.hypot(pointX - pointer.x, pointY - pointer.y)
+          if (distance > tooltipSnapDistancePx) {
+            return seriesClosest
+          }
+
+          if (!seriesClosest || distance < seriesClosest.distance) {
+            return {
+              dataIndex,
+              distance,
+              seriesIndex,
+            }
+          }
+
+          return seriesClosest
+        }, closest)
+      }, null)
+    }
+
+    const showNearestTip = (
+      nearest: { seriesIndex: number; dataIndex: number },
+      force = false,
+    ): void => {
+      const previous = lastShownTooltipRef.current
+      if (
+        !force &&
+        previous?.seriesIndex === nearest.seriesIndex &&
+        previous.dataIndex === nearest.dataIndex
+      ) {
+        return
+      }
+
+      chart.dispatchAction({
+        type: 'showTip',
+        seriesIndex: nearest.seriesIndex,
+        dataIndex: nearest.dataIndex,
+      })
+      lastShownTooltipRef.current = {
+        seriesIndex: nearest.seriesIndex,
+        dataIndex: nearest.dataIndex,
+      }
+    }
+
+    const handleMouseMove = (event: {
+      offsetX?: number
+      offsetY?: number
+      zrX?: number
+      zrY?: number
+    }): void => {
+      const pinned = pinnedTooltipRef.current
+      if (pinned) {
+        const hasPinnedPoint =
+          chartSeries[pinned.seriesIndex]?.data[pinned.dataIndex] !== undefined
+        if (!hasPinnedPoint) {
+          pinnedTooltipRef.current = null
+          setPinnedTooltip(null)
+          hideTooltip()
+          return
+        }
+
+        showNearestTip(pinned, true)
+        return
+      }
+
+      const nearest = findNearestPoint(event)
+
+      if (!nearest) {
+        hideTooltip()
+        return
+      }
+
+      showNearestTip(nearest)
+    }
+
+    const handleClick = (event: {
+      offsetX?: number
+      offsetY?: number
+      zrX?: number
+      zrY?: number
+    }): void => {
+      const nearest = findNearestPoint(event)
+      if (!nearest) {
+        pinnedTooltipRef.current = null
+        setPinnedTooltip(null)
+        hideTooltip()
+        return
+      }
+
+      const pinnedPoint = {
+        seriesIndex: nearest.seriesIndex,
+        dataIndex: nearest.dataIndex,
+      }
+      pinnedTooltipRef.current = pinnedPoint
+      setPinnedTooltip(pinnedPoint)
+      showNearestTip(nearest, true)
+    }
+
+    const handleGlobalOut = (): void => {
+      if (pinnedTooltipRef.current) {
+        showNearestTip(pinnedTooltipRef.current, true)
+        return
+      }
+
+      hideTooltip()
+    }
+
+    zr.on('mousemove', handleMouseMove)
+    zr.on('click', handleClick)
+    zr.on('globalout', handleGlobalOut)
+
+    return () => {
+      zr.off('mousemove', handleMouseMove)
+      zr.off('click', handleClick)
+      zr.off('globalout', handleGlobalOut)
+    }
+  }, [chartSeries])
 
   const option: EChartsOption = {
     animation: false,
@@ -152,6 +416,8 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     },
     tooltip: {
       trigger: 'item',
+      triggerOn: 'mousemove|click',
+      alwaysShowContent: true,
       appendToBody: true,
       backgroundColor: themeColors.panel,
       borderColor: themeColors.border,
@@ -160,28 +426,39 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         color: themeColors.foreground,
       },
       formatter: (params) => {
-        const payload = (params as { data?: Record<string, unknown> }).data
+        const entry = params as {
+          data?: TooltipPointPayload
+          seriesName?: string
+        }
+        const payload = entry.data
         if (!payload) {
           return ''
         }
 
-        const threat = Number(payload.totalThreat ?? 0)
-        const delta = Number(payload.threatDelta ?? 0)
-        const eventType = String(payload.eventType ?? 'unknown')
-        const abilityName = String(payload.abilityName ?? 'Unknown ability')
-        const modifiers = String(payload.modifiers ?? 'none')
-        const formula = String(payload.formula ?? 'n/a')
+        const actorName = escapeHtml(
+          String(entry.seriesName ?? 'Unknown actor'),
+        )
+        const actorColor = escapeHtml(String(payload.actorColor ?? '#94a3b8'))
+        const abilityName = escapeHtml(payload.abilityName ?? 'Unknown ability')
+        const modifiers = escapeHtml(payload.modifiers ?? 'none')
+        const formula = escapeHtml(payload.formula ?? 'n/a')
         const timeMs = Number(payload.timeMs ?? 0)
+        const totalThreat = Number(payload.totalThreat ?? 0)
+        const threatDelta = Number(payload.threatDelta ?? 0)
+        const amount = Number(payload.amount ?? 0)
+        const baseThreat = Number(payload.baseThreat ?? 0)
+        const eventType = escapeHtml(payload.eventType ?? 'unknown')
 
         return [
-          `<strong>${(params as { seriesName: string }).seriesName}</strong>`,
+          `<strong style="color:${actorColor};">${actorName}</strong>`,
           `Time: ${formatTimelineTime(timeMs)}`,
-          `Cumulative Threat: ${formatNumber(threat)}`,
-          `Threat Delta: ${delta >= 0 ? '+' : ''}${formatNumber(delta)}`,
-          `Event Type: ${eventType}`,
-          `Ability: ${abilityName}`,
-          `Active Multipliers: ${modifiers}`,
+          `Ability: ${abilityName} [${eventType}]`,
+          `Amount: ${formatNumber(amount)}`,
           `Formula: ${formula}`,
+          `Base Threat: ${formatNumber(baseThreat)}`,
+          `Threat Applied To Target: ${formatSignedThreat(threatDelta)}`,
+          `Cumulative Threat: ${formatNumber(totalThreat)}`,
+          `Multipliers: ${modifiers}`,
         ].join('<br/>')
       },
     },
@@ -246,34 +523,63 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         labelFormatter: (value: number) => formatTimelineTime(value),
       },
     ],
-    series: series.map((item) => ({
-      name: item.label,
-      type: 'line',
-      color: item.color,
-      showSymbol: false,
-      triggerLineEvent: true,
-      animation: false,
-      emphasis: {
-        focus: 'series',
-      },
-      lineStyle: {
+    series: chartSeries.map((item, seriesIndex) => {
+      const pinnedPoint =
+        pinnedTooltip?.seriesIndex === seriesIndex
+          ? item.data[pinnedTooltip.dataIndex]
+          : null
+
+      return {
+        name: item.name,
+        type: 'line',
         color: item.color,
-        type: item.actorType === 'Pet' ? 'dashed' : 'solid',
-        width: 2,
-      },
-      data: item.points.map((point) => ({
-        value: [point.timeMs, point.totalThreat],
-        actorId: item.actorId,
-        playerId: item.actorType === 'Player' ? item.actorId : item.ownerId,
-        timeMs: point.timeMs,
-        totalThreat: point.totalThreat,
-        threatDelta: point.threatDelta,
-        eventType: point.eventType,
-        abilityName: point.abilityName,
-        modifiers: point.modifiers,
-        formula: point.formula,
-      })),
-    })),
+        step: 'end',
+        smooth: false,
+        symbol: 'circle',
+        showSymbol: true,
+        symbolSize: 6,
+        triggerLineEvent: true,
+        animation: false,
+        itemStyle: {
+          color: item.color,
+          borderColor: item.color,
+        },
+        emphasis: {
+          focus: 'series',
+          scale: true,
+          lineStyle: {
+            width: 3,
+          },
+        },
+        lineStyle: {
+          color: item.color,
+          type: item.actorType === 'Pet' ? 'dashed' : 'solid',
+          width: 2,
+        },
+        markPoint: pinnedPoint
+          ? {
+              symbol: 'circle',
+              symbolSize: 8,
+              silent: true,
+              z: 20,
+              zlevel: 2,
+              animation: false,
+              data: [{ coord: pinnedPoint.value }],
+              label: {
+                show: false,
+              },
+              itemStyle: {
+                color: item.color,
+                borderColor: '#ffffff',
+                borderWidth: 1,
+                shadowBlur: 10,
+                shadowColor: item.color,
+              },
+            }
+          : undefined,
+        data: item.data,
+      }
+    }),
   }
 
   return (

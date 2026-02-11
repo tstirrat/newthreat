@@ -34,6 +34,9 @@ export interface ThreatPoint {
   timeMs: number
   totalThreat: number
   threatDelta: number
+  amount: number
+  baseThreat: number
+  modifiedThreat: number
   eventType: string
   abilityName: string
   formula: string

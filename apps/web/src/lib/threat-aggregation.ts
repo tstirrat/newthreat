@@ -190,6 +190,9 @@ export function buildThreatSeries({
         : 'Unknown ability'
     const formula = event.threat.calculation.formula
     const modifiers = formatModifiers(event.threat.calculation.modifiers)
+    const amount = event.threat.calculation.amount
+    const baseThreat = event.threat.calculation.baseThreat
+    const modifiedThreat = event.threat.calculation.modifiedThreat
     const timeMs = resolveRelativeTimeMs(event.timestamp, fightStartTime, firstTimestamp)
     const damageDone = event.type === 'damage' ? Math.max(0, event.amount ?? 0) : 0
     const healingDone = event.type === 'heal' ? Math.max(0, event.amount ?? 0) : 0
@@ -209,11 +212,30 @@ export function buildThreatSeries({
       accumulator.totalDamage += damageDone
       accumulator.totalHealing += healingDone
 
+      if (accumulator.points.length === 0) {
+        accumulator.points.push({
+          timestamp: fightStartTime,
+          timeMs: 0,
+          totalThreat: 0,
+          threatDelta: 0,
+          amount: 0,
+          baseThreat: 0,
+          modifiedThreat: 0,
+          eventType: 'start',
+          abilityName: 'Encounter start',
+          formula: 'n/a',
+          modifiers: 'none',
+        })
+      }
+
       accumulator.points.push({
         timestamp: event.timestamp,
         timeMs,
         totalThreat: change.total,
         threatDelta: change.amount,
+        amount,
+        baseThreat,
+        modifiedThreat,
         eventType: event.type,
         abilityName,
         formula,
