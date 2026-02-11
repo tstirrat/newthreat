@@ -301,25 +301,25 @@ export const FightPage: FC = () => {
       </SectionCard>
 
       <SectionCard
-        title="Target filter"
-        subtitle="Selected target is synced with URL query params for deep linking."
-      >
-        {selectedTargetId ? (
-          <TargetSelector
-            enemies={fightData.enemies}
-            selectedTargetId={selectedTargetId}
-            onChange={handleTargetChange}
-          />
-        ) : (
-          <p className="text-sm text-muted">No valid targets available for this fight.</p>
-        )}
-      </SectionCard>
-
-      <SectionCard
         title="Threat timeline"
-        subtitle="Player threat lines with a scrollable legend sorted by total threat. Click a line to focus a player."
+        subtitle="Player threat lines with a scrollable legend sorted by total threat. Click a line to focus a player. Selected target is synced with URL query params for deep linking."
+        headerRight={
+          selectedTargetId ? (
+            <div className="border-l border-border pl-3">
+              <TargetSelector
+                enemies={fightData.enemies}
+                selectedTargetId={selectedTargetId}
+                onChange={handleTargetChange}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-muted">No valid targets available.</p>
+          )
+        }
       >
-        {visibleSeries.length === 0 ? (
+        {selectedTargetId === null ? (
+          <p className="text-sm text-muted">No valid targets available for this fight.</p>
+        ) : visibleSeries.length === 0 ? (
           <p className="text-sm text-muted">No threat points are available for this target.</p>
         ) : (
           <ThreatChart

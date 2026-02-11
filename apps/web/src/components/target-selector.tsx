@@ -17,7 +17,7 @@ export const TargetSelector: FC<TargetSelectorProps> = ({
   onChange,
 }) => {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex items-center gap-2 text-sm">
       <span className="font-medium">Target</span>
       <select
         className="rounded-md border border-border bg-panel px-3 py-2"
