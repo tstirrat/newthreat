@@ -52,6 +52,15 @@ const castRollbackHitTypes = new Set<HitType>([
   'immune',
   'resist',
 ])
+const modifyThreatOnHitHitTypes = new Set<HitType>([
+  'hit',
+  'crit',
+  'block',
+  'glancing',
+  'crushing',
+  'immune',
+  'resist',
+])
 
 function isEventTypeAllowed(
   eventType: EventType,
@@ -137,6 +146,8 @@ export interface ModifyThreatOptions {
   modifier: number
   /** Target scope for threat modification */
   target?: 'target' | 'all'
+  /** Event types that should trigger this formula */
+  eventTypes?: EventType[]
 }
 
 export interface ThreatOnCastRollbackOnMissOptions {
@@ -219,20 +230,48 @@ export function tauntTarget(options: TauntOptions = {}): FormulaFn {
  *   modifyThreat({ modifier: 0, target: 'all' }) - Wipe all threat on source enemy (Noth Blink)
  */
 export function modifyThreat(options: ModifyThreatOptions): FormulaFn {
-  const { modifier, target = 'target' } = options
+  const { modifier, target = 'target', eventTypes } = options
 
-  return () => ({
-    formula: modifier === 0 ? 'threatWipe' : `threat * ${modifier}`,
-    value: 0,
-    splitAmongEnemies: false,
-    effects: [
-      {
-        type: 'modifyThreat',
-        multiplier: modifier,
-        target,
-      },
-    ],
+  return (ctx) => {
+    if (!isEventTypeAllowed(ctx.event.type, eventTypes)) {
+      return undefined
+    }
+
+    return {
+      formula: modifier === 0 ? 'threatWipe' : `threat * ${modifier}`,
+      value: 0,
+      splitAmongEnemies: false,
+      effects: [
+        {
+          type: 'modifyThreat',
+          multiplier: modifier,
+          target,
+        },
+      ],
+    }
+  }
+}
+
+/**
+ * Threat modification gated to successful damage/immune/resist hit results.
+ * Mirrors classic boss "knock away / wing buffet" style threat drops.
+ */
+export function modifyThreatOnHit(multiplier: number): FormulaFn {
+  const handler = modifyThreat({
+    modifier: multiplier,
+    eventTypes: ['damage'],
   })
+
+  return (ctx) => {
+    if (
+      ctx.event.type !== 'damage' ||
+      !modifyThreatOnHitHitTypes.has(ctx.event.hitType)
+    ) {
+      return undefined
+    }
+
+    return handler(ctx)
+  }
 }
 
 /**

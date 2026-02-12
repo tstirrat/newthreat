@@ -1,7 +1,7 @@
 /**
  * Tests for Rogue Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import { createDamageEvent, createMockActorContext } from '@wcl-threat/shared'
 import type { ThreatContext } from '@wcl-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
@@ -22,7 +22,7 @@ function createMockContext(
   const { spellSchoolMask, ...restOverrides } = overrides
 
   return {
-    event: { type: 'damage' } as ThreatContext['event'],
+    event: createDamageEvent(),
     amount: 100,
     spellSchoolMask: spellSchoolMask ?? 0,
     sourceAuras: new Set(),

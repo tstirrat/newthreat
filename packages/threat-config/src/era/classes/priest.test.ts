@@ -1,7 +1,7 @@
 /**
  * Tests for Priest Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import { createDamageEvent, createMockActorContext } from '@wcl-threat/shared'
 import type {
   TalentImplicationContext,
   ThreatContext,
@@ -15,10 +15,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: {
-      type: 'damage',
-      abilityGameID: Spells.MindBlastR1,
-    } as ThreatContext['event'],
+    event: createDamageEvent({ abilityGameID: Spells.MindBlastR1 }),
     amount: 100,
     spellSchoolMask: SpellSchool.Physical,
     sourceAuras: new Set(),

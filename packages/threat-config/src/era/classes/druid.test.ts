@@ -1,7 +1,12 @@
 /**
  * Tests for Druid Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import {
+  createApplyDebuffEvent,
+  createCastEvent,
+  createDamageEvent,
+  createMockActorContext,
+} from '@wcl-threat/shared'
 import type {
   TalentImplicationContext,
   ThreatContext,
@@ -23,7 +28,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: { type: 'damage' } as ThreatContext['event'],
+    event: createDamageEvent(),
     amount: 100,
     spellSchoolMask: 0,
     sourceAuras: new Set(),
@@ -131,7 +136,7 @@ describe('Druid Config', () => {
         expect(formula).toBeDefined()
 
         const ctx = createMockContext({
-          event: { type: 'applydebuff' } as ThreatContext['event'],
+          event: createApplyDebuffEvent(),
           actors: createMockActorContext({
             getThreat: () => 100,
             getTopActorsByThreat: () => [{ actorId: 99, threat: 500 }],
@@ -164,15 +169,12 @@ describe('Druid Config', () => {
 
         const castResult = formula!(
           createMockContext({
-            event: { type: 'cast' } as ThreatContext['event'],
+            event: createCastEvent(),
           }),
         )
         const missResult = formula!(
           createMockContext({
-            event: {
-              type: 'damage',
-              hitType: 'miss',
-            } as ThreatContext['event'],
+            event: createDamageEvent({ hitType: 'miss' }),
           }),
         )
 
@@ -189,7 +191,7 @@ describe('Druid Config', () => {
         expect(formula).toBeDefined()
 
         const ctx = createMockContext({
-          event: { type: 'applydebuff' } as ThreatContext['event'],
+          event: createApplyDebuffEvent(),
         })
         const result = assertDefined(formula!(ctx))
 

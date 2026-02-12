@@ -11,7 +11,7 @@ import {
   hasConfigFixture,
   loadConfigFixture,
   runConfigFixture,
-} from '../../integration/helpers'
+} from '../../test/integration/helpers'
 import { eraConfig } from '../index'
 
 const fixtureName = 'anniversary/naxx/patchwerk-fight-26'

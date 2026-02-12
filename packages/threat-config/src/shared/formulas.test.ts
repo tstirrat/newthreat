@@ -1,13 +1,24 @@
 /**
  * Tests for Built-in Threat Formulas
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import {
+  createApplyBuffEvent,
+  createApplyBuffStackEvent,
+  createApplyDebuffEvent,
+  createApplyDebuffStackEvent,
+  createCastEvent,
+  createDamageEvent,
+  createMockActorContext,
+  createRefreshBuffEvent,
+  createRefreshDebuffEvent,
+} from '@wcl-threat/shared'
 import type { ThreatContext } from '@wcl-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
 import {
   calculateThreat,
   modifyThreat,
+  modifyThreatOnHit,
   noThreat,
   tauntTarget,
   threatOnBuff,
@@ -21,7 +32,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: { type: 'damage' } as ThreatContext['event'],
+    event: createDamageEvent(),
     amount: 100,
     spellSchoolMask: 0,
     sourceAuras: new Set(),
@@ -175,10 +186,7 @@ describe('tauntTarget', () => {
     let observedThreatInstance = -1
     let observedTopInstance = -1
     const ctx = createMockContext({
-      event: {
-        type: 'applydebuff',
-        targetInstance: 3,
-      } as ThreatContext['event'],
+      event: createApplyDebuffEvent({ targetInstance: 3 }),
       amount: 0,
       actors: createMockActorContext({
         getThreat: (_actorId, enemy) => {
@@ -215,7 +223,7 @@ describe('tauntTarget', () => {
   it('returns customThreat set to top threat + bonus', () => {
     const formula = tauntTarget({ bonus: 1 })
     const ctx = createMockContext({
-      event: { type: 'applydebuff' } as ThreatContext['event'],
+      event: createApplyDebuffEvent(),
       amount: 0,
       actors: createMockActorContext({
         getThreat: () => 100,
@@ -247,7 +255,7 @@ describe('tauntTarget', () => {
   it('includes damage when modifier set', () => {
     const formula = tauntTarget({ modifier: 1, bonus: 0 })
     const ctx = createMockContext({
-      event: { type: 'applydebuff' } as ThreatContext['event'],
+      event: createApplyDebuffEvent(),
       amount: 500,
       actors: createMockActorContext({
         getThreat: () => 100,
@@ -278,7 +286,7 @@ describe('tauntTarget', () => {
   it('does not lower threat when already above taunt threshold', () => {
     const formula = tauntTarget({ modifier: 1, bonus: 100 })
     const ctx = createMockContext({
-      event: { type: 'applydebuff' } as ThreatContext['event'],
+      event: createApplyDebuffEvent(),
       amount: 300,
       actors: createMockActorContext({
         getThreat: () => 1000,
@@ -364,13 +372,59 @@ describe('modifyThreat', () => {
       target: 'all',
     })
   })
+
+  it('supports event type filtering', () => {
+    const formula = modifyThreat({
+      modifier: 0,
+      target: 'all',
+      eventTypes: ['cast'],
+    })
+    const damageCtx = createMockContext({
+      event: createDamageEvent(),
+    })
+    const castCtx = createMockContext({
+      event: createCastEvent(),
+    })
+
+    expect(formula(damageCtx)).toBeUndefined()
+    expect(assertDefined(formula(castCtx)).effects?.[0]).toEqual({
+      type: 'modifyThreat',
+      multiplier: 0,
+      target: 'all',
+    })
+  })
+})
+
+describe('modifyThreatOnHit', () => {
+  it('applies threat modification on matching damage hit types', () => {
+    const formula = modifyThreatOnHit(0.5)
+    const ctx = createMockContext({
+      event: createDamageEvent({ hitType: 'hit' }),
+    })
+
+    const result = assertDefined(formula(ctx))
+    expect(result.effects?.[0]).toEqual({
+      type: 'modifyThreat',
+      multiplier: 0.5,
+      target: 'target',
+    })
+  })
+
+  it('ignores non-matching hit types', () => {
+    const formula = modifyThreatOnHit(0.5)
+    const ctx = createMockContext({
+      event: createDamageEvent({ hitType: 'dodge' }),
+    })
+
+    expect(formula(ctx)).toBeUndefined()
+  })
 })
 
 describe('threatOnDebuffOrDamage', () => {
   it('returns flat threat on debuff apply', () => {
     const formula = threatOnDebuffOrDamage(120)
     const ctx = createMockContext({
-      event: { type: 'applydebuff' } as ThreatContext['event'],
+      event: createApplyDebuffEvent(),
     })
 
     const result = assertDefined(formula(ctx))
@@ -383,7 +437,7 @@ describe('threatOnDebuffOrDamage', () => {
   it('returns normal damage threat on damage events', () => {
     const formula = threatOnDebuffOrDamage(120)
     const ctx = createMockContext({
-      event: { type: 'damage' } as ThreatContext['event'],
+      event: createDamageEvent(),
       amount: 345,
     })
 
@@ -397,7 +451,7 @@ describe('threatOnDebuffOrDamage', () => {
   it('returns undefined for unrelated events', () => {
     const formula = threatOnDebuffOrDamage(120)
     const ctx = createMockContext({
-      event: { type: 'cast' } as ThreatContext['event'],
+      event: createCastEvent(),
     })
 
     const result = formula(ctx)
@@ -410,7 +464,7 @@ describe('threatOnDebuff', () => {
   it('applies threat on applydebuff', () => {
     const formula = threatOnDebuff(120)
     const ctx = createMockContext({
-      event: { type: 'applydebuff' } as ThreatContext['event'],
+      event: createApplyDebuffEvent(),
     })
 
     const result = assertDefined(formula(ctx))
@@ -425,14 +479,14 @@ describe('threatOnDebuff', () => {
     const refreshResult = assertDefined(
       formula(
         createMockContext({
-          event: { type: 'refreshdebuff' } as ThreatContext['event'],
+          event: createRefreshDebuffEvent(),
         }),
       ),
     )
     const stackResult = assertDefined(
       formula(
         createMockContext({
-          event: { type: 'applydebuffstack' } as ThreatContext['event'],
+          event: createApplyDebuffStackEvent(),
         }),
       ),
     )
@@ -444,7 +498,7 @@ describe('threatOnDebuff', () => {
   it('returns undefined for non-debuff phases', () => {
     const formula = threatOnDebuff(120)
     const ctx = createMockContext({
-      event: { type: 'cast' } as ThreatContext['event'],
+      event: createCastEvent(),
     })
 
     const result = formula(ctx)
@@ -457,7 +511,7 @@ describe('threatOnBuff', () => {
   it('applies threat on applybuff', () => {
     const formula = threatOnBuff(70, { split: true })
     const ctx = createMockContext({
-      event: { type: 'applybuff' } as ThreatContext['event'],
+      event: createApplyBuffEvent(),
     })
 
     const result = assertDefined(formula(ctx))
@@ -473,14 +527,14 @@ describe('threatOnBuff', () => {
     const refreshResult = assertDefined(
       formula(
         createMockContext({
-          event: { type: 'refreshbuff' } as ThreatContext['event'],
+          event: createRefreshBuffEvent(),
         }),
       ),
     )
     const stackResult = assertDefined(
       formula(
         createMockContext({
-          event: { type: 'applybuffstack' } as ThreatContext['event'],
+          event: createApplyBuffStackEvent(),
         }),
       ),
     )
@@ -492,7 +546,7 @@ describe('threatOnBuff', () => {
   it('returns undefined for non-buff phases', () => {
     const formula = threatOnBuff(70)
     const ctx = createMockContext({
-      event: { type: 'damage' } as ThreatContext['event'],
+      event: createDamageEvent(),
     })
 
     const result = formula(ctx)
@@ -505,7 +559,7 @@ describe('threatOnCastRollbackOnMiss', () => {
   it('applies flat threat on cast events', () => {
     const formula = threatOnCastRollbackOnMiss(301)
     const ctx = createMockContext({
-      event: { type: 'cast' } as ThreatContext['event'],
+      event: createCastEvent(),
     })
 
     const result = assertDefined(formula(ctx))
@@ -517,7 +571,7 @@ describe('threatOnCastRollbackOnMiss', () => {
   it('returns negative threat on miss damage events', () => {
     const formula = threatOnCastRollbackOnMiss(301)
     const ctx = createMockContext({
-      event: { type: 'damage', hitType: 'miss' } as ThreatContext['event'],
+      event: createDamageEvent({ hitType: 'miss' }),
     })
 
     const result = assertDefined(formula(ctx))
@@ -529,7 +583,7 @@ describe('threatOnCastRollbackOnMiss', () => {
   it('returns negative threat on immune damage events', () => {
     const formula = threatOnCastRollbackOnMiss(301)
     const ctx = createMockContext({
-      event: { type: 'damage', hitType: 'immune' } as ThreatContext['event'],
+      event: createDamageEvent({ hitType: 'immune' }),
     })
 
     const result = assertDefined(formula(ctx))
@@ -541,7 +595,7 @@ describe('threatOnCastRollbackOnMiss', () => {
   it('returns negative threat on resist damage events', () => {
     const formula = threatOnCastRollbackOnMiss(301)
     const ctx = createMockContext({
-      event: { type: 'damage', hitType: 'resist' } as ThreatContext['event'],
+      event: createDamageEvent({ hitType: 'resist' }),
     })
 
     const result = assertDefined(formula(ctx))
@@ -553,7 +607,7 @@ describe('threatOnCastRollbackOnMiss', () => {
   it('returns undefined for non-miss damage events', () => {
     const formula = threatOnCastRollbackOnMiss(301)
     const ctx = createMockContext({
-      event: { type: 'damage', hitType: 'hit' } as ThreatContext['event'],
+      event: createDamageEvent({ hitType: 'hit' }),
     })
 
     const result = formula(ctx)
@@ -564,7 +618,7 @@ describe('threatOnCastRollbackOnMiss', () => {
   it('returns undefined for non-cast/non-damage phases', () => {
     const formula = threatOnCastRollbackOnMiss(301)
     const ctx = createMockContext({
-      event: { type: 'applydebuff' } as ThreatContext['event'],
+      event: createApplyDebuffEvent(),
     })
 
     const result = formula(ctx)
@@ -579,14 +633,14 @@ describe('threatOnCastRollbackOnMiss', () => {
     const castResult = assertDefined(
       formula(
         createMockContext({
-          event: { type: 'cast' } as ThreatContext['event'],
+          event: createCastEvent(),
         }),
       ),
     )
     const rollbackResult = assertDefined(
       formula(
         createMockContext({
-          event: { type: 'damage', hitType: 'miss' } as ThreatContext['event'],
+          event: createDamageEvent({ hitType: 'miss' }),
         }),
       ),
     )

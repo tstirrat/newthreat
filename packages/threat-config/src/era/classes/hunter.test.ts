@@ -1,7 +1,12 @@
 /**
  * Tests for Hunter Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import {
+  createCastEvent,
+  createDamageEvent,
+  createHealEvent,
+  createMockActorContext,
+} from '@wcl-threat/shared'
 import type {
   EventInterceptorContext,
   ThreatContext,
@@ -25,11 +30,7 @@ function createMockContext(
   const { spellSchoolMask, ...restOverrides } = overrides
 
   return {
-    event: {
-      type: 'damage',
-      sourceID: 1,
-      targetID: 2,
-    } as ThreatContext['event'],
+    event: createDamageEvent({ sourceID: 1, targetID: 2 }),
     amount: 100,
     spellSchoolMask: spellSchoolMask ?? 0,
     sourceAuras: new Set(),
@@ -81,11 +82,7 @@ describe('Hunter Config', () => {
         expect(formula).toBeDefined()
 
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: 1,
-            targetID: 10, // Target ally
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: 1, targetID: 10 }), // Target ally
         })
 
         const result = assertDefined(formula!(ctx))
@@ -99,11 +96,7 @@ describe('Hunter Config', () => {
       it('handler returns passthrough for non-damage events', () => {
         const formula = hunterConfig.abilities[Spells.Misdirection]
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: 1,
-            targetID: 10,
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: 1, targetID: 10 }),
         })
 
         const result = assertDefined(formula!(ctx))
@@ -115,9 +108,9 @@ describe('Hunter Config', () => {
         const mockContext = createMockInterceptorContext(ctx.actors)
 
         // Handler should pass through heal events
-        const healEvent = { type: 'heal', sourceID: 1, targetID: 2 }
+        const healEvent = createHealEvent({ sourceID: 1, targetID: 2 })
         const healResult = handler(
-          healEvent as ThreatContext['event'],
+          healEvent,
           mockContext,
         )
         expect(healResult).toEqual({ action: 'passthrough' })
@@ -128,11 +121,7 @@ describe('Hunter Config', () => {
         const targetAllyId = 10
 
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: 1,
-            targetID: targetAllyId,
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: 1, targetID: targetAllyId }),
         })
 
         const result = assertDefined(formula!(ctx))
@@ -144,9 +133,9 @@ describe('Hunter Config', () => {
         const mockContext = createMockInterceptorContext(ctx.actors)
 
         // Handler should redirect damage from hunter (ID 1) to target ally (ID 10)
-        const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
+        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
         const damageResult = handler(
-          damageEvent as ThreatContext['event'],
+          damageEvent,
           mockContext,
         )
         expect(damageResult).toEqual({
@@ -160,11 +149,7 @@ describe('Hunter Config', () => {
         const targetAllyId = 10
 
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: 1,
-            targetID: targetAllyId,
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: 1, targetID: targetAllyId }),
           actors: createMockActorContext({
             isActorAlive: (actor) => actor.id !== targetAllyId,
           }),
@@ -178,9 +163,9 @@ describe('Hunter Config', () => {
         const handler = result.effects?.[0]?.interceptor
         const mockContext = createMockInterceptorContext(ctx.actors)
 
-        const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
+        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
         const damageResult = handler(
-          damageEvent as ThreatContext['event'],
+          damageEvent,
           mockContext,
         )
         expect(damageResult).toEqual({ action: 'passthrough' })
@@ -191,11 +176,7 @@ describe('Hunter Config', () => {
         const targetAllyId = 10
 
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: 1,
-            targetID: targetAllyId,
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: 1, targetID: targetAllyId }),
           actors: createMockActorContext({
             isActorAlive: () => false,
           }),
@@ -212,13 +193,13 @@ describe('Hunter Config', () => {
           uninstall: uninstallMock,
         })
 
-        const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
+        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
 
-        handler(damageEvent as ThreatContext['event'], mockContext)
-        handler(damageEvent as ThreatContext['event'], mockContext)
+        handler(damageEvent, mockContext)
+        handler(damageEvent, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
-        handler(damageEvent as ThreatContext['event'], mockContext)
+        handler(damageEvent, mockContext)
         expect(uninstallMock).toHaveBeenCalledTimes(1)
       })
 
@@ -229,11 +210,10 @@ describe('Hunter Config', () => {
         const otherSourceId = 5
 
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
+          event: createCastEvent({
             sourceID: hunterSourceId,
             targetID: targetAllyId,
-          } as ThreatContext['event'],
+          }),
         })
 
         const result = assertDefined(formula!(ctx))
@@ -245,13 +225,12 @@ describe('Hunter Config', () => {
         const mockContext = createMockInterceptorContext(ctx.actors)
 
         // Damage from a different source should pass through unchanged
-        const otherSourceDamage = {
-          type: 'damage',
+        const otherSourceDamage = createDamageEvent({
           sourceID: otherSourceId,
           targetID: 2,
-        }
+        })
         const result2 = handler(
-          otherSourceDamage as ThreatContext['event'],
+          otherSourceDamage,
           mockContext,
         )
         expect(result2).toEqual({ action: 'passthrough' })
@@ -264,11 +243,7 @@ describe('Hunter Config', () => {
         const otherSourceId = 5
 
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: hunterSourceId,
-            targetID: 10,
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: hunterSourceId, targetID: 10 }),
         })
 
         const result = assertDefined(formula!(ctx))
@@ -282,50 +257,44 @@ describe('Hunter Config', () => {
           uninstall: uninstallMock,
         })
 
-        const hunterDamage = {
-          type: 'damage',
+        const hunterDamage = createDamageEvent({
           sourceID: hunterSourceId,
           targetID: 2,
-        }
-        const otherDamage = {
-          type: 'damage',
+        })
+        const otherDamage = createDamageEvent({
           sourceID: otherSourceId,
           targetID: 2,
-        }
+        })
 
         // Other source damage (1st event from another source)
-        handler(otherDamage as ThreatContext['event'], mockContext)
+        handler(otherDamage, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Hunter damage (1st event from hunter)
-        handler(hunterDamage as ThreatContext['event'], mockContext)
+        handler(hunterDamage, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Other source damage (2nd event from another source)
-        handler(otherDamage as ThreatContext['event'], mockContext)
+        handler(otherDamage, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Hunter damage (2nd event from hunter)
-        handler(hunterDamage as ThreatContext['event'], mockContext)
+        handler(hunterDamage, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Other source damage (3rd event from another source)
-        handler(otherDamage as ThreatContext['event'], mockContext)
+        handler(otherDamage, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Hunter damage (3rd event from hunter - should uninstall)
-        handler(hunterDamage as ThreatContext['event'], mockContext)
+        handler(hunterDamage, mockContext)
         expect(uninstallMock).toHaveBeenCalled()
       })
 
       it('handler expires after 3 damage events', () => {
         const formula = hunterConfig.abilities[Spells.Misdirection]
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: 1,
-            targetID: 10,
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: 1, targetID: 10 }),
         })
 
         const result = assertDefined(formula!(ctx))
@@ -339,29 +308,25 @@ describe('Hunter Config', () => {
           uninstall: uninstallMock,
         })
 
-        const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
+        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
 
         // First charge
-        handler(damageEvent as ThreatContext['event'], mockContext)
+        handler(damageEvent, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Second charge
-        handler(damageEvent as ThreatContext['event'], mockContext)
+        handler(damageEvent, mockContext)
         expect(uninstallMock).not.toHaveBeenCalled()
 
         // Third charge - should uninstall
-        handler(damageEvent as ThreatContext['event'], mockContext)
+        handler(damageEvent, mockContext)
         expect(uninstallMock).toHaveBeenCalled()
       })
 
       it('handler expires after 30 seconds', () => {
         const formula = hunterConfig.abilities[Spells.Misdirection]
         const ctx = createMockContext({
-          event: {
-            type: 'cast',
-            sourceID: 1,
-            targetID: 10,
-          } as ThreatContext['event'],
+          event: createCastEvent({ sourceID: 1, targetID: 10 }),
         })
 
         const result = assertDefined(formula!(ctx))
@@ -379,9 +344,9 @@ describe('Hunter Config', () => {
           uninstall: uninstallMock,
         })
 
-        const damageEvent = { type: 'damage', sourceID: 1, targetID: 2 }
+        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
         const withinResult = handler(
-          damageEvent as ThreatContext['event'],
+          damageEvent,
           withinWindowContext,
         )
         expect(withinResult).toEqual({
@@ -398,7 +363,7 @@ describe('Hunter Config', () => {
         })
 
         const afterResult = handler(
-          damageEvent as ThreatContext['event'],
+          damageEvent,
           afterWindowContext,
         )
         expect(afterResult).toEqual({ action: 'passthrough' })

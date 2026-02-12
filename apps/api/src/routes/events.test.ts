@@ -258,19 +258,20 @@ describe('Events API', () => {
       })
 
       const res = await app.request(
-        'http://localhost/v1/reports/SOD123xyz/fights/1/events?configVersion=1.3.1',
+        'http://localhost/v1/reports/SOD123xyz/fights/1/events',
         {},
         createMockBindings(),
       )
 
-      expect(res.status).toBe(400)
+      expect(res.status).toBe(200)
 
-      const data: ApiError = await res.json()
-      expect(data.error.code).toBe('INVALID_CONFIG_VERSION')
-      expect(data.error.details).toMatchObject({
-        requestedVersion: '1.3.1',
-        supportedVersion: '0.1.0',
-      })
+      const data: AugmentedEventsResponse = await res.json()
+      expect(data.reportCode).toBe('SOD123xyz')
+      expect(data.fightId).toBe(1)
+      expect(data.fightName).toBe('Patchwerk')
+      expect(data.gameVersion).toBe(2)
+      expect(data.events).toBeDefined()
+      expect(data.summary).toBeDefined()
     })
 
     it('returns 400 when classic season metadata is unsupported', async () => {
@@ -325,7 +326,7 @@ describe('Events API', () => {
       })
 
       const res = await app.request(
-        'http://localhost/v1/reports/ERA123xyz/fights/1/events?configVersion=1.3.1',
+        'http://localhost/v1/reports/ERA123xyz/fights/1/events',
         {},
         createMockBindings(),
       )
@@ -333,7 +334,6 @@ describe('Events API', () => {
       expect(res.status).toBe(200)
 
       const data: AugmentedEventsResponse = await res.json()
-      expect(data.gameVersion).toBe(2)
       expect(data.events.length).toBeGreaterThan(0)
     })
 

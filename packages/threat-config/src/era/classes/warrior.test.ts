@@ -1,7 +1,13 @@
 /**
  * Tests for Warrior Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import {
+  createApplyBuffEvent,
+  createApplyDebuffEvent,
+  createCastEvent,
+  createDamageEvent,
+  createMockActorContext,
+} from '@wcl-threat/shared'
 import type {
   TalentImplicationContext,
   ThreatContext,
@@ -25,7 +31,7 @@ function createMockContext(
   const { spellSchoolMask, ...restOverrides } = overrides
 
   return {
-    event: { type: 'damage' } as ThreatContext['event'],
+    event: createDamageEvent(),
     amount: 100,
     spellSchoolMask: spellSchoolMask ?? 0,
     sourceAuras: new Set(),
@@ -319,16 +325,13 @@ describe('abilities', () => {
 
       const castResult = assertDefined(formula!(
         createMockContext({
-          event: { type: 'cast' } as ThreatContext['event'],
+          event: createCastEvent(),
           amount: 0,
         }),
       ))
       const missResult = assertDefined(formula!(
         createMockContext({
-          event: {
-            type: 'damage',
-            hitType: 'miss',
-          } as ThreatContext['event'],
+          event: createDamageEvent({ hitType: 'miss' }),
           amount: 0,
         }),
       ))
@@ -372,7 +375,7 @@ describe('abilities', () => {
       expect(formula).toBeDefined()
 
       const ctx = createMockContext({
-        event: { type: 'applybuff' } as ThreatContext['event'],
+        event: createApplyBuffEvent(),
       })
       const result = assertDefined(formula!(ctx))
 
@@ -388,7 +391,7 @@ describe('abilities', () => {
       expect(formula).toBeDefined()
 
       const ctx = createMockContext({
-        event: { type: 'applydebuff' } as ThreatContext['event'],
+        event: createApplyDebuffEvent(),
       })
       const result = assertDefined(formula!(ctx))
 
@@ -404,7 +407,7 @@ describe('abilities', () => {
       expect(formula).toBeDefined()
 
       const ctx = createMockContext({
-        event: { type: 'applydebuff' } as ThreatContext['event'],
+        event: createApplyDebuffEvent(),
         actors: createMockActorContext({
           getThreat: () => 100,
           getTopActorsByThreat: () => [{ actorId: 99, threat: 500 }],
@@ -436,7 +439,7 @@ describe('abilities', () => {
       expect(formula).toBeDefined()
 
       const ctx = createMockContext({
-        event: { type: 'applydebuff' } as ThreatContext['event'],
+        event: createApplyDebuffEvent(),
         amount: 500,
         actors: createMockActorContext({
           getThreat: () => 100,

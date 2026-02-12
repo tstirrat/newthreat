@@ -1,7 +1,11 @@
 /**
  * Tests for Warlock Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import {
+  createApplyDebuffEvent,
+  createDamageEvent,
+  createMockActorContext,
+} from '@wcl-threat/shared'
 import type { ThreatContext } from '@wcl-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
@@ -11,10 +15,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: {
-      type: 'damage',
-      abilityGameID: Spells.CurseOfDoom,
-    } as ThreatContext['event'],
+    event: createDamageEvent({ abilityGameID: Spells.CurseOfDoom }),
     amount: 100,
     spellSchoolMask: 0,
     sourceAuras: new Set(),
@@ -35,7 +36,7 @@ describe('Warlock Config', () => {
 
       const result = formula!(
         createMockContext({
-          event: { type: 'damage' } as ThreatContext['event'],
+          event: createDamageEvent(),
           amount: 200,
         }),
       )
@@ -50,13 +51,13 @@ describe('Warlock Config', () => {
 
       const debuffResult = formula!(
         createMockContext({
-          event: { type: 'applydebuff' } as ThreatContext['event'],
+          event: createApplyDebuffEvent(),
           amount: 0,
         }),
       )
       const damageResult = formula!(
         createMockContext({
-          event: { type: 'damage' } as ThreatContext['event'],
+          event: createDamageEvent(),
           amount: 456,
         }),
       )
@@ -73,13 +74,13 @@ describe('Warlock Config', () => {
 
       const debuffResult = formula!(
         createMockContext({
-          event: { type: 'applydebuff' } as ThreatContext['event'],
+          event: createApplyDebuffEvent(),
           amount: 0,
         }),
       )
       const damageResult = formula!(
         createMockContext({
-          event: { type: 'damage' } as ThreatContext['event'],
+          event: createDamageEvent(),
           amount: 222,
         }),
       )

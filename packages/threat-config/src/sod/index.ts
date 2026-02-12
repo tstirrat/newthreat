@@ -1,59 +1,108 @@
 /**
  * Season of Discovery Threat Configuration
  *
- * Stub config for reports that resolve to Season of Discovery metadata.
- * TODO: Implement SoD-specific runes and mechanics
+ * Ports upstream SoD global behavior from:
+ * https://github.com/Voomlz/voomlz.github.io/blob/master/sod/spells.js
  */
 import type {
   ThreatConfig,
-  ThreatConfigResolutionInput,
   ThreatContext,
-  ThreatFormulaResult,
+  ThreatModifier,
 } from '@wcl-threat/shared'
+import type { GearItem } from '@wcl-threat/wcl-types'
 
-// Placeholder base threat (same as Anniversary for now)
-const baseThreat = {
-  damage: (ctx: ThreatContext): ThreatFormulaResult => ({
-    formula: 'amt',
-    value: ctx.amount,
-    splitAmongEnemies: false,
-  }),
+import { eraConfig } from '../era'
+import { baseThreat } from '../era/general'
+import {
+  getClassicSeasonIds,
+  hasZonePartition,
+  validateAbilities,
+  validateAuraModifiers,
+} from '../shared/utils'
+import { sodClasses } from './classes'
+import {
+  aq40Abilities,
+  aq40AggroLossBuffs,
+  aq40AuraModifiers,
+} from './raids/aq40'
+import { bwlAbilities } from './raids/bwl'
+import { mcAbilities } from './raids/mc'
+import { miscAbilities } from './raids/misc'
+import { naxxAbilities } from './raids/naxx'
+import { onyxiaAbilities } from './raids/onyxia'
+import { zgAbilities, zgEncounters } from './raids/zg'
 
-  heal: (ctx: ThreatContext): ThreatFormulaResult => ({
-    formula: 'effectiveHeal * 0.5',
-    value: ctx.amount * 0.5,
-    splitAmongEnemies: true,
-  }),
-
-  energize: (ctx: ThreatContext): ThreatFormulaResult => ({
-    formula: 'resource * 0.5',
-    value: ctx.amount * 0.5,
-    splitAmongEnemies: true,
-  }),
-}
+// ============================================================================
+// SoD Constants
+// ============================================================================
 
 const SOD_CLASSIC_SEASON_ID = 3
 
-function getClassicSeasonIds(input: ThreatConfigResolutionInput): number[] {
-  return Array.from(
-    new Set(
-      input.fights
-        .map((fight) => fight.classicSeasonID)
-        .filter((seasonId): seasonId is number => seasonId != null),
-    ),
-  )
+const Items = {
+  EnchantGlovesThreat: 25072,
+  EnchantCloakSubtlety: 25084,
+  EyeOfDiminution: 1219503,
+} as const
+
+const Mods = {
+  GlovesThreat: 1.02,
+  CloakSubtlety: 0.98,
+  EyeOfDiminution: 0.3,
+} as const
+
+const eraAuraModifiers = eraConfig.auraModifiers ?? {}
+const auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
+  ...eraAuraModifiers,
+  ...aq40AuraModifiers,
+  [Items.EnchantGlovesThreat]: () => ({
+    source: 'gear',
+    name: 'Enchant Gloves - Threat',
+    value: Mods.GlovesThreat,
+  }),
+  [Items.EnchantCloakSubtlety]: () => ({
+    source: 'gear',
+    name: 'Enchant Cloak - Subtlety',
+    value: Mods.CloakSubtlety,
+  }),
+  [Items.EyeOfDiminution]: () => ({
+    source: 'gear',
+    name: 'The Eye of Diminution',
+    value: Mods.EyeOfDiminution,
+  }),
 }
 
-function hasDiscoveryPartition(input: ThreatConfigResolutionInput): boolean {
-  return (input.zone.partitions ?? []).some((partition) =>
-    partition.name.toLowerCase().includes('discovery'),
-  )
+const aggroLossBuffs = new Set<number>([
+  ...(eraConfig.aggroLossBuffs ?? []),
+  ...aq40AggroLossBuffs,
+])
+
+const invulnerabilityBuffs = new Set<number>([
+  ...(eraConfig.invulnerabilityBuffs ?? []),
+  ...[],
+])
+
+function inferGlobalGearAuras(gear: GearItem[]): number[] {
+  const inferredAuras: number[] = []
+
+  if (
+    gear.some((item) => item.permanentEnchant === Items.EnchantGlovesThreat)
+  ) {
+    inferredAuras.push(Items.EnchantGlovesThreat)
+  }
+
+  if (
+    gear.some((item) => item.permanentEnchant === Items.EnchantCloakSubtlety)
+  ) {
+    inferredAuras.push(Items.EnchantCloakSubtlety)
+  }
+
+  return inferredAuras
 }
 
 export const sodConfig: ThreatConfig = {
-  version: '0.1.0',
+  version: '1.0.0',
   displayName: 'Season of Discovery',
-  resolve: (input: ThreatConfigResolutionInput): boolean => {
+  resolve: (input) => {
     if (input.gameVersion !== 2) {
       return false
     }
@@ -63,14 +112,30 @@ export const sodConfig: ThreatConfig = {
       return seasonIds.includes(SOD_CLASSIC_SEASON_ID)
     }
 
-    return hasDiscoveryPartition(input)
+    return hasZonePartition(input, ['discovery'])
   },
 
   baseThreat,
 
-  classes: {
-    // TODO: Implement SoD class configs with runes
+  classes: sodClasses,
+  abilities: {
+    ...naxxAbilities,
+    ...onyxiaAbilities,
+    ...bwlAbilities,
+    ...mcAbilities,
+    ...zgAbilities,
+    ...aq40Abilities,
+    ...miscAbilities,
   },
 
-  auraModifiers: {},
+  auraModifiers,
+  gearImplications: inferGlobalGearAuras,
+  aggroLossBuffs,
+  invulnerabilityBuffs,
+  encounters: {
+    ...zgEncounters,
+  },
 }
+
+validateAuraModifiers(sodConfig)
+validateAbilities(sodConfig)

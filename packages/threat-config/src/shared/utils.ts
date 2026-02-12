@@ -1,7 +1,10 @@
 /**
  * Cross-version utility functions for threat calculations
  */
-import type { ThreatConfig } from '@wcl-threat/shared'
+import type {
+  ThreatConfig,
+  ThreatConfigResolutionInput,
+} from '@wcl-threat/shared'
 
 /**
  * Validates that there are no duplicate spell IDs across global and class aura modifiers.
@@ -99,4 +102,26 @@ export function validateAbilities(config: ThreatConfig): void {
       console.warn(`  Spell ID ${spellId}: ${sources.join(', ')}`)
     }
   }
+}
+
+export function hasZonePartition(
+  input: ThreatConfigResolutionInput,
+  expected: string[],
+): boolean {
+  return (input.zone.partitions ?? []).some((partition) => {
+    const zoneName = partition.name.toLowerCase()
+    return expected.some((expectedName) => zoneName.includes(expectedName))
+  })
+}
+
+export function getClassicSeasonIds(
+  input: ThreatConfigResolutionInput,
+): number[] {
+  return Array.from(
+    new Set(
+      input.fights
+        .map((fight) => fight.classicSeasonID)
+        .filter((seasonId): seasonId is number => seasonId != null),
+    ),
+  )
 }

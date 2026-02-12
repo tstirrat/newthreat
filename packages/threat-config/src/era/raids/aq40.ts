@@ -3,17 +3,18 @@
  *
  * Raid-specific spell sets and encounter rules for AQ40.
  */
-import type {
-  SpellId,
-  ThreatContext,
-  ThreatModifier,
-} from '@wcl-threat/shared'
+import type { SpellId, ThreatContext, ThreatModifier } from '@wcl-threat/shared'
+
+export const Spells = {
+  YaujFear: 26580,
+  FetishOfTheSandReaver: 26400,
+}
 
 /**
  * Aggro-loss buffs from Temple of Ahn'Qiraj bosses.
  */
 export const aq40AggroLossBuffs: ReadonlySet<SpellId> = new Set([
-  26580, // Princess Yauj: Fear
+  Spells.YaujFear, // Princess Yauj: Fear
 ])
 
 /**
@@ -23,8 +24,7 @@ export const aq40AuraModifiers: Record<
   SpellId,
   (ctx: ThreatContext) => ThreatModifier
 > = {
-  // Fetish of the Sand Reaver - 0.3x threat
-  26400: () => ({
+  [Spells.FetishOfTheSandReaver]: () => ({
     source: 'gear',
     name: 'Fetish of the Sand Reaver',
     value: 0.3,

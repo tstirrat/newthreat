@@ -1,7 +1,11 @@
 /**
  * Tests for Paladin Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import {
+  createApplyBuffEvent,
+  createDamageEvent,
+  createMockActorContext,
+} from '@wcl-threat/shared'
 import { SpellSchool, type ThreatContext } from '@wcl-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
@@ -20,7 +24,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: { type: 'damage' } as ThreatContext['event'],
+    event: createDamageEvent(),
     amount: 100,
     spellSchoolMask: SpellSchool.Physical,
     sourceAuras: new Set(),
@@ -93,7 +97,7 @@ describe('Paladin Config', () => {
         expect(formula).toBeDefined()
 
         const ctx = createMockContext({
-          event: { type: 'applybuff' } as ThreatContext['event'],
+          event: createApplyBuffEvent(),
         })
         const result = assertDefined(formula!(ctx))
 

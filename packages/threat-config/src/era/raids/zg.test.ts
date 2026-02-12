@@ -1,7 +1,7 @@
 /**
  * Zul'Gurub Encounter Hooks Tests
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import { createCastEvent, createMockActorContext } from '@wcl-threat/shared'
 import type { Enemy, ThreatContext } from '@wcl-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
@@ -37,44 +37,41 @@ describe('zg encounter hooks', () => {
     expect(preprocessor).toBeDefined()
 
     const firstCast = preprocessor?.(
-      createPreprocessorContext({
+      createPreprocessorContext(createCastEvent({
         timestamp: 1000,
-        type: 'cast',
         sourceID: 99,
         sourceIsFriendly: false,
         sourceInstance: 0,
         targetID: 1,
         targetIsFriendly: true,
         abilityGameID: 24189,
-      }),
+      })),
     )
     expect(firstCast).toBeUndefined()
 
     const shortGapCast = preprocessor?.(
-      createPreprocessorContext({
+      createPreprocessorContext(createCastEvent({
         timestamp: 25000,
-        type: 'cast',
         sourceID: 99,
         sourceIsFriendly: false,
         sourceInstance: 0,
         targetID: 1,
         targetIsFriendly: true,
         abilityGameID: 24190,
-      }),
+      })),
     )
     expect(shortGapCast).toBeUndefined()
 
     const longGapCast = preprocessor?.(
-      createPreprocessorContext({
+      createPreprocessorContext(createCastEvent({
         timestamp: 56050,
-        type: 'cast',
         sourceID: 99,
         sourceIsFriendly: false,
         sourceInstance: 0,
         targetID: 1,
         targetIsFriendly: true,
         abilityGameID: 24191,
-      }),
+      })),
     )
 
     expect(longGapCast?.effects?.[0]).toEqual({
@@ -100,44 +97,41 @@ describe('zg encounter hooks', () => {
     expect(preprocessor).toBeDefined()
 
     const tigerCast = preprocessor?.(
-      createPreprocessorContext({
+      createPreprocessorContext(createCastEvent({
         timestamp: 1000,
-        type: 'cast',
         sourceID: 120,
         sourceIsFriendly: false,
         sourceInstance: 0,
         targetID: 1,
         targetIsFriendly: true,
         abilityGameID: 1,
-      }),
+      })),
     )
     expect(tigerCast).toBeUndefined()
 
     const firstArlokkCast = preprocessor?.(
-      createPreprocessorContext({
+      createPreprocessorContext(createCastEvent({
         timestamp: 35050,
-        type: 'cast',
         sourceID: 99,
         sourceIsFriendly: false,
         sourceInstance: 0,
         targetID: 1,
         targetIsFriendly: true,
         abilityGameID: 2,
-      }),
+      })),
     )
     expect(firstArlokkCast).toBeUndefined()
 
     const postGapArlokkCast = preprocessor?.(
-      createPreprocessorContext({
+      createPreprocessorContext(createCastEvent({
         timestamp: 66060,
-        type: 'cast',
         sourceID: 99,
         sourceIsFriendly: false,
         sourceInstance: 0,
         targetID: 1,
         targetIsFriendly: true,
         abilityGameID: 3,
-      }),
+      })),
     )
 
     expect(postGapArlokkCast?.effects?.[0]).toEqual({

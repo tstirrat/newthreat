@@ -1,7 +1,7 @@
 /**
  * Tests for Mage Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import { createDamageEvent, createMockActorContext } from '@wcl-threat/shared'
 import type {
   TalentImplicationContext,
   ThreatContext,
@@ -15,7 +15,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: { type: 'damage', abilityGameID: 0 } as ThreatContext['event'],
+    event: createDamageEvent({ abilityGameID: 0 }),
     amount: 100,
     spellSchoolMask: SpellSchool.Physical,
     sourceAuras: new Set(),

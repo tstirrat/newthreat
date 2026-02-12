@@ -1,7 +1,11 @@
 /**
  * Tests for Shaman Threat Configuration
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import {
+  createDamageEvent,
+  createHealEvent,
+  createMockActorContext,
+} from '@wcl-threat/shared'
 import type {
   TalentImplicationContext,
   ThreatContext,
@@ -14,10 +18,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: {
-      type: 'heal',
-      abilityGameID: 25357,
-    } as ThreatContext['event'],
+    event: createHealEvent({ abilityGameID: 25357 }),
     amount: 100,
     spellSchoolMask: 0,
     sourceAuras: new Set(),
@@ -93,7 +94,7 @@ describe('Shaman Config', () => {
 
       const result = formula!(
         createMockContext({
-          event: { type: 'damage' } as ThreatContext['event'],
+          event: createDamageEvent(),
           amount: 250,
         }),
       )

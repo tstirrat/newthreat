@@ -1,11 +1,11 @@
 /**
  * Onyxia Boss Abilities Tests
  */
-import { createMockActorContext } from '@wcl-threat/shared'
+import { createDamageEvent, createMockActorContext } from '@wcl-threat/shared'
 import type { ThreatContext } from '@wcl-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
-import { Spells, knockAway } from './ony'
+import { Spells, onyxiaAbilities } from './ony'
 
 function assertDefined<T>(value: T | undefined): T {
   expect(value).toBeDefined()
@@ -20,7 +20,7 @@ function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
   return {
-    event: { type: 'cast' } as ThreatContext['event'],
+    event: createDamageEvent({ abilityGameID: Spells.KnockAway }),
     amount: 0,
     sourceAuras: new Set(),
     targetAuras: new Set(),
@@ -32,6 +32,8 @@ function createMockContext(
     ...overrides,
   }
 }
+
+const knockAway = onyxiaAbilities[Spells.KnockAway]
 
 describe('Onyxia Abilities', () => {
   describe('Spell constants', () => {

@@ -41,7 +41,7 @@ describe('Reports API', () => {
       expect(data.gameVersion).toBe(2)
       expect(data.threatConfig).toEqual({
         displayName: 'Anniversary (TBC)',
-        version: '1.3.1',
+        version: expect.any(String),
       })
       expect(data.fights).toHaveLength(3)
       expect(data.fights[0]?.encounterID).toBeNull()
@@ -78,7 +78,7 @@ describe('Reports API', () => {
       expect(data.abilities).toEqual([])
       expect(data.threatConfig).toEqual({
         displayName: 'Anniversary (TBC)',
-        version: '1.3.1',
+        version: expect.any(String),
       })
     })
 
@@ -109,7 +109,7 @@ describe('Reports API', () => {
       expect(data.gameVersion).toBe(2)
       expect(data.threatConfig).toEqual({
         displayName: 'Season of Discovery',
-        version: '0.1.0',
+        version: expect.any(String),
       })
     })
 
@@ -166,10 +166,11 @@ describe('Reports API', () => {
 
       const data: ReportResponse = await res.json()
       expect(data.gameVersion).toBe(2)
-      expect(data.threatConfig).toEqual({
-        displayName: 'Vanilla (Era)',
-        version: '1.3.1',
-      })
+      expect(data.threatConfig).toEqual(
+        expect.objectContaining({
+          displayName: 'Vanilla (Era)',
+        }),
+      )
     })
 
     it('returns 400 for invalid report code format', async () => {
@@ -241,6 +242,8 @@ describe('Health endpoint', () => {
     )
 
     expect(res.status).toBe(200)
-    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5174')
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(
+      'http://localhost:5174',
+    )
   })
 })

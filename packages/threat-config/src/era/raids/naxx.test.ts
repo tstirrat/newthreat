@@ -1,6 +1,7 @@
 import {
   checkExists,
   createCastEvent,
+  createDamageEvent,
   createMockActorContext,
 } from '@wcl-threat/shared'
 import type { ActorContext, ThreatContext } from '@wcl-threat/shared/src/types'
@@ -28,11 +29,12 @@ describe('Hateful Strike', () => {
 
   function createMockContext(actors: ActorContext): ThreatContext {
     return {
-      event: {
+      event: createDamageEvent({
         sourceID: PATCHWERK_ID,
+        sourceIsFriendly: false,
         targetID: 1,
-        type: 'damage',
-      } as DamageEvent,
+        targetIsFriendly: true,
+      }) as DamageEvent,
       amount: 5000,
       sourceAuras: new Set(),
       targetAuras: new Set(),

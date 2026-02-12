@@ -139,10 +139,11 @@ export interface Enemy {
 export interface ThreatModifier {
   source: ModifierSource
   name: string
+  /** If specified, modifier only applies when event abilityGameID is in this set. */
   spellIds?: Set<number>
   /** Multiplier value, e.g., 1.3 */
   value: number
-  /** If specified, modifier only applies to these spell schools. Omit for all schools. */
+  /** If specified, also restricts to these spell schools. Omit for all schools. */
   schools?: Set<SpellSchool>
 }
 
