@@ -31,6 +31,8 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
     )
   }
 
+  const totalAmount = summary.totalDamage + summary.totalHealing
+
   return (
     <div className="grid gap-4 md:grid-cols-[280px_minmax(0,1fr)]">
       <div className="space-y-2 rounded-md border border-border bg-panel p-3">
@@ -79,6 +81,12 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
                 </tr>
               </thead>
               <tbody>
+                <tr className="border-b border-border bg-black/5 font-medium">
+                  <td className="px-2 py-2">Total</td>
+                  <td className="px-2 py-2">{formatNumber(totalAmount)}</td>
+                  <td className="px-2 py-2">{formatNumber(summary.totalThreat)}</td>
+                  <td className="px-2 py-2">{formatTps(summary.totalTps)}</td>
+                </tr>
                 {rows.map((row) => (
                   <tr className="border-b border-border" key={row.key}>
                     <td className="px-2 py-2">{row.abilityName}</td>

@@ -10,12 +10,14 @@ import { PlayerSummaryTable } from '../components/player-summary-table'
 import { SectionCard } from '../components/section-card'
 import { TargetSelector } from '../components/target-selector'
 import { ThreatChart } from '../components/threat-chart'
+import { buildBossKillNavigationFights } from '../lib/fight-navigation'
 import {
+  buildFightTargetOptions,
   buildFocusedPlayerSummary,
   buildFocusedPlayerThreatRows,
   buildThreatSeries,
   resolveSeriesWindowBounds,
-  selectDefaultTargetId,
+  selectDefaultTarget,
 } from '../lib/threat-aggregation'
 import { buildFightRankingsUrl, buildReportUrl } from '../lib/wcl-url'
 import { useFightData } from '../hooks/use-fight-data'
@@ -77,9 +79,17 @@ export const FightPage: FC = () => {
       ),
     [fightData?.actors],
   )
-  const validTargetIds = useMemo(
-    () => new Set((fightData?.enemies ?? []).map((enemy) => enemy.id)),
-    [fightData?.enemies],
+  const targetOptions = useMemo(
+    () =>
+      buildFightTargetOptions({
+        enemies: fightData?.enemies ?? [],
+        events: eventsData?.events ?? [],
+      }),
+    [eventsData?.events, fightData?.enemies],
+  )
+  const validTargetKeys = useMemo(
+    () => new Set(targetOptions.map((target) => target.key)),
+    [targetOptions],
   )
 
   const durationMs = useMemo(() => {
@@ -93,22 +103,51 @@ export const FightPage: FC = () => {
 
   const queryState = useFightQueryState({
     validPlayerIds,
-    validTargetIds,
+    validTargetKeys,
     maxDurationMs: durationMs,
   })
 
-  const defaultTargetId = useMemo(
-    () => selectDefaultTargetId(eventsData?.events ?? [], validTargetIds),
-    [eventsData?.events, validTargetIds],
+  const defaultTarget = useMemo(
+    () => selectDefaultTarget(eventsData?.events ?? [], validTargetKeys),
+    [eventsData?.events, validTargetKeys],
   )
 
-  const selectedTargetId = useMemo(
-    () => queryState.state.targetId ?? defaultTargetId ?? fightData?.enemies[0]?.id ?? null,
-    [defaultTargetId, fightData?.enemies, queryState.state.targetId],
+  const selectedTarget = useMemo(
+    () => {
+      if (
+        queryState.state.targetId !== null &&
+        queryState.state.targetInstance !== null
+      ) {
+        return {
+          id: queryState.state.targetId,
+          instance: queryState.state.targetInstance,
+        }
+      }
+
+      if (defaultTarget) {
+        return defaultTarget
+      }
+
+      const firstTarget = targetOptions[0]
+      if (!firstTarget) {
+        return null
+      }
+
+      return {
+        id: firstTarget.id,
+        instance: firstTarget.instance,
+      }
+    },
+    [
+      defaultTarget,
+      queryState.state.targetId,
+      queryState.state.targetInstance,
+      targetOptions,
+    ],
   )
 
   const allSeries = useMemo(() => {
-    if (!selectedTargetId || !eventsData || !fightData || !reportData) {
+    if (!selectedTarget || !eventsData || !fightData || !reportData) {
       return []
     }
 
@@ -118,13 +157,13 @@ export const FightPage: FC = () => {
       abilities: reportData.abilities,
       fightStartTime: fightData.startTime,
       fightEndTime: fightData.endTime,
-      targetId: selectedTargetId,
+      target: selectedTarget,
     })
   }, [
     eventsData,
     fightData,
     reportData,
-    selectedTargetId,
+    selectedTarget,
   ])
 
   const visibleSeries = useMemo(
@@ -157,7 +196,7 @@ export const FightPage: FC = () => {
 
   const focusedPlayerSummary = useMemo(
     () => {
-      if (selectedTargetId === null) {
+      if (selectedTarget === null) {
         return null
       }
 
@@ -165,7 +204,7 @@ export const FightPage: FC = () => {
         events: eventsData?.events ?? [],
         actors: fightData?.actors ?? [],
         fightStartTime: fightData?.startTime ?? 0,
-        targetId: selectedTargetId,
+        target: selectedTarget,
         focusedPlayerId,
         windowStartMs: selectedWindowStartMs,
         windowEndMs: selectedWindowEndMs,
@@ -176,7 +215,7 @@ export const FightPage: FC = () => {
       fightData?.actors,
       fightData?.startTime,
       focusedPlayerId,
-      selectedTargetId,
+      selectedTarget,
       selectedWindowEndMs,
       selectedWindowStartMs,
     ],
@@ -184,7 +223,7 @@ export const FightPage: FC = () => {
 
   const focusedPlayerRows = useMemo(
     () => {
-      if (selectedTargetId === null) {
+      if (selectedTarget === null) {
         return []
       }
 
@@ -193,7 +232,7 @@ export const FightPage: FC = () => {
         actors: fightData?.actors ?? [],
         abilities: reportData?.abilities ?? [],
         fightStartTime: fightData?.startTime ?? 0,
-        targetId: selectedTargetId,
+        target: selectedTarget,
         focusedPlayerId,
         windowStartMs: selectedWindowStartMs,
         windowEndMs: selectedWindowEndMs,
@@ -205,15 +244,15 @@ export const FightPage: FC = () => {
       fightData?.startTime,
       focusedPlayerId,
       reportData?.abilities,
-      selectedTargetId,
+      selectedTarget,
       selectedWindowEndMs,
       selectedWindowStartMs,
     ],
   )
 
   const handleTargetChange = useCallback(
-    (targetId: number) => {
-      queryState.setTargetId(targetId)
+    (target: { id: number; instance: number }) => {
+      queryState.setTarget(target)
     },
     [queryState],
   )
@@ -275,6 +314,7 @@ export const FightPage: FC = () => {
   const threatConfigLabel = reportData.threatConfig
     ? `${reportData.threatConfig.displayName} (${reportData.threatConfig.version})`
     : 'No supported config'
+  const bossKillFights = buildBossKillNavigationFights(reportData.fights)
 
   return (
     <div className="space-y-5">
@@ -291,14 +331,16 @@ export const FightPage: FC = () => {
           <Link className="underline" to={`/report/${reportId}`}>
             Back to report
           </Link>
+          <span className="text-muted">Warcraft Logs:</span>
           <a
             className="underline"
             href={buildReportUrl(locationState?.host ?? reportHost, reportId)}
             rel="noreferrer"
             target="_blank"
           >
-            Open report on Warcraft Logs
+            Report
           </a>
+          <span className="text-muted">|</span>
           <a
             className="underline"
             href={buildFightRankingsUrl(
@@ -309,20 +351,47 @@ export const FightPage: FC = () => {
             rel="noreferrer"
             target="_blank"
           >
-            Open this fight on Warcraft Logs
+            Fight
           </a>
         </div>
       </SectionCard>
 
+      <div className="rounded-xl border border-border bg-panel px-4 py-3 shadow-sm">
+        <nav aria-label="Fight quick switch">
+          {bossKillFights.length > 0 ? (
+            <ul className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              {bossKillFights.map((fight, fightIndex) => {
+                const isCurrentFight = fight.id === fightId
+                const fightLabel = fight.name
+
+                return (
+                  <li className="inline-flex items-center gap-2" key={fight.id}>
+                    {fightIndex > 0 ? <span className="text-muted">|</span> : null}
+                    {isCurrentFight ? (
+                      <span className="font-medium">{fightLabel}</span>
+                    ) : (
+                      <Link className="underline" to={`/report/${reportId}/fight/${fight.id}${location.search}`}>
+                        {fightLabel}
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No boss kills found in this report.</p>
+          )}
+        </nav>
+      </div>
+
       <SectionCard
         title="Threat timeline"
-        subtitle="Player threat lines with a scrollable legend sorted by total threat. Click a line to focus a player. Selected target is synced with URL query params for deep linking."
         headerRight={
-          selectedTargetId ? (
+          selectedTarget ? (
             <div className="border-l border-border pl-3">
               <TargetSelector
-                enemies={fightData.enemies}
-                selectedTargetId={selectedTargetId}
+                targets={targetOptions}
+                selectedTarget={selectedTarget}
                 onChange={handleTargetChange}
               />
             </div>
@@ -331,7 +400,7 @@ export const FightPage: FC = () => {
           )
         }
       >
-        {selectedTargetId === null ? (
+        {selectedTarget === null ? (
           <p className="text-sm text-muted">No valid targets available for this fight.</p>
         ) : visibleSeries.length === 0 ? (
           <p className="text-sm text-muted">No threat points are available for this target.</p>

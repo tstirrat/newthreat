@@ -17,6 +17,7 @@ export function toReportActorSummary(actor: ReportActor): ReportActorSummary {
   if (actor.type === 'Pet') {
     return {
       id: actor.id,
+      gameID: actor.gameID,
       name: actor.name,
       type: actor.type,
       petOwner: actor.petOwner,
@@ -25,6 +26,7 @@ export function toReportActorSummary(actor: ReportActor): ReportActorSummary {
 
   return {
     id: actor.id,
+    gameID: actor.gameID,
     name: actor.name,
     type: actor.type,
     subType: actor.subType,

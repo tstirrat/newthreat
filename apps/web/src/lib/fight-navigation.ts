@@ -55,6 +55,30 @@ const compareByFightOrder = (
   return leftOrder - rightOrder
 }
 
+/** Return boss kill fights in the same order they appear in the report timeline. */
+export function buildBossKillNavigationFights(
+  fights: ReportFightSummary[],
+): BossFightSummary[] {
+  const fightOrder = new Map(fights.map((fight, index) => [fight.id, index]))
+
+  const knownBossNames = new Set(
+    fights
+      .filter(isBossFightForNavigation)
+      .map((fight) => normalizeEncounterNameForNavigation(fight.name)),
+  )
+
+  const isBossFightFromKnownEncounterName = (fight: ReportFightSummary): boolean =>
+    knownBossNames.has(normalizeEncounterNameForNavigation(fight.name))
+
+  return fights
+    .filter(
+      (fight) =>
+        fight.kill &&
+        (isBossFightForNavigation(fight) || isBossFightFromKnownEncounterName(fight)),
+    )
+    .sort((left, right) => compareByFightOrder(left, right, fightOrder))
+}
+
 /** Group report fights for boss-first fight navigation rendering. */
 export function buildFightNavigationGroups(
   fights: ReportFightSummary[],

@@ -28,8 +28,9 @@ test('pasting a valid link opens the report page with expected summary data', as
   await expect(page.getByText('Owner: ThreatOfficer')).toBeVisible()
   await expect(page.getByText('Fights: 4')).toBeVisible()
   await expect(page.getByText('Players: 3')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Patchwerk', exact: true })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Grobbulus', exact: true })).toBeVisible()
+  const fightNavigation = page.getByRole('region', { name: 'Fight navigation' })
+  await expect(fightNavigation.getByText('Patchwerk')).toBeVisible()
+  await expect(fightNavigation.getByText('Grobbulus')).toBeVisible()
 })
 
 test('pasting an invalid link shows a parse error', async ({ page }) => {

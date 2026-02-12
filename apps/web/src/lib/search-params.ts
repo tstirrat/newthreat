@@ -37,6 +37,30 @@ export function parseTargetIdParam(
   return parsed
 }
 
+/** Parse target ID + instance from query params and validate against known target keys. */
+export function parseTargetSelectionParams(
+  targetIdRaw: string | null,
+  targetInstanceRaw: string | null,
+  validTargetKeys: Set<string>,
+): { targetId: number; targetInstance: number } | null {
+  const targetId = parseInteger(targetIdRaw)
+  if (!targetId) {
+    return null
+  }
+
+  const parsedTargetInstance = parseInteger(targetInstanceRaw)
+  const targetInstance = parsedTargetInstance ?? 0
+  const key = `${targetId}:${targetInstance}`
+  if (!validTargetKeys.has(key)) {
+    return null
+  }
+
+  return {
+    targetId,
+    targetInstance,
+  }
+}
+
 /** Parse and validate a chart window from query params. */
 export function parseWindowParams(
   startRaw: string | null,
@@ -61,18 +85,22 @@ export function parseWindowParams(
 export function resolveFightQueryState({
   searchParams,
   validPlayerIds,
-  validTargetIds,
+  validTargetKeys,
   maxDurationMs,
 }: {
   searchParams: URLSearchParams
   validPlayerIds: Set<number>
-  validTargetIds: Set<number>
+  validTargetKeys: Set<string>
   maxDurationMs: number
 }): FightQueryState {
   const players = parsePlayersParam(searchParams.get('players')).filter((id) =>
     validPlayerIds.has(id),
   )
-  const targetId = parseTargetIdParam(searchParams.get('targetId'), validTargetIds)
+  const parsedTargetSelection = parseTargetSelectionParams(
+    searchParams.get('targetId'),
+    searchParams.get('targetInstance'),
+    validTargetKeys,
+  )
   const { startMs, endMs } = parseWindowParams(
     searchParams.get('startMs'),
     searchParams.get('endMs'),
@@ -81,7 +109,8 @@ export function resolveFightQueryState({
 
   return {
     players,
-    targetId,
+    targetId: parsedTargetSelection?.targetId ?? null,
+    targetInstance: parsedTargetSelection?.targetInstance ?? null,
     startMs,
     endMs,
   }
@@ -105,8 +134,24 @@ export function applyFightQueryState(
   if (state.targetId !== undefined) {
     if (state.targetId === null) {
       next.delete('targetId')
+      next.delete('targetInstance')
     } else {
       next.set('targetId', String(state.targetId))
+      if (
+        state.targetInstance === undefined ||
+        state.targetInstance === null ||
+        state.targetInstance === 0
+      ) {
+        next.delete('targetInstance')
+      } else {
+        next.set('targetInstance', String(state.targetInstance))
+      }
+    }
+  } else if (state.targetInstance !== undefined) {
+    if (state.targetInstance === null || state.targetInstance === 0) {
+      next.delete('targetInstance')
+    } else if (next.get('targetId')) {
+      next.set('targetInstance', String(state.targetInstance))
     }
   }
 

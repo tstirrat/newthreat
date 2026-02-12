@@ -9,15 +9,20 @@ test.beforeEach(async ({ page }) => {
   await setupThreatApiMocks(page)
 })
 
-test('shows bosses with wipes and exposes trash fights', async ({ page }) => {
+test('shows only boss kills in report order', async ({ page }) => {
   await page.goto(`/report/${e2eReportId}`)
 
-  await expect(page.getByRole('link', { name: 'Patchwerk', exact: true })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'wipe 1' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Grobbulus', exact: true })).toBeVisible()
+  const fightNavigation = page.getByRole('region', { name: 'Fight navigation' })
+  const bossKillLinks = fightNavigation.getByRole('link', { name: /Kill \(/ })
 
-  await page.getByLabel('Show trash fights (1)').click()
-  await expect(page.getByRole('link', { name: '#40' })).toBeVisible()
+  await expect(bossKillLinks).toHaveCount(2)
+  await expect(fightNavigation.getByText('Patchwerk')).toBeVisible()
+  await expect(fightNavigation.getByText('Grobbulus')).toBeVisible()
+  await expect(bossKillLinks.nth(0)).toContainText('Kill (2:00)')
+  await expect(bossKillLinks.nth(1)).toContainText('Kill (1:15)')
+
+  await expect(fightNavigation.getByText('Naxxramas Trash')).toHaveCount(0)
+  await expect(fightNavigation.getByText('wipe 1')).toHaveCount(0)
 })
 
 test('choosing a fight navigates to the threat chart page', async ({ page }) => {
@@ -42,5 +47,5 @@ test('choosing a player + boss from player navigation goes to the expected chart
 
   await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}/fight/26`))
   await expect(page).toHaveURL(/players=1/)
-  await expect(page.getByLabel('Target')).toHaveValue('100')
+  await expect(page.getByLabel('Target')).toHaveValue('100:0')
 })

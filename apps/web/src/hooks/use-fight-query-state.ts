@@ -8,23 +8,23 @@ import {
   applyFightQueryState,
   resolveFightQueryState,
 } from '../lib/search-params'
-import type { FightQueryState } from '../types/app'
+import type { FightQueryState, FightTarget } from '../types/app'
 
 export interface UseFightQueryStateResult {
   state: FightQueryState
   setPlayers: (players: number[]) => void
-  setTargetId: (targetId: number | null) => void
+  setTarget: (target: FightTarget | null) => void
   setWindow: (startMs: number | null, endMs: number | null) => void
 }
 
 /** Manage fight query params with parsing + normalization rules. */
 export function useFightQueryState({
   validPlayerIds,
-  validTargetIds,
+  validTargetKeys,
   maxDurationMs,
 }: {
   validPlayerIds: Set<number>
-  validTargetIds: Set<number>
+  validTargetKeys: Set<string>
   maxDurationMs: number
 }): UseFightQueryStateResult {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -35,10 +35,10 @@ export function useFightQueryState({
       resolveFightQueryState({
         searchParams: new URLSearchParams(searchParamsString),
         validPlayerIds,
-        validTargetIds,
+        validTargetKeys,
         maxDurationMs,
       }),
-    [maxDurationMs, searchParamsString, validPlayerIds, validTargetIds],
+    [maxDurationMs, searchParamsString, validPlayerIds, validTargetKeys],
   )
 
   const setPlayers = useCallback(
@@ -50,10 +50,13 @@ export function useFightQueryState({
     [setSearchParams],
   )
 
-  const setTargetId = useCallback(
-    (targetId: number | null): void => {
+  const setTarget = useCallback(
+    (target: FightTarget | null): void => {
       setSearchParams((currentSearchParams) =>
-        applyFightQueryState(currentSearchParams, { targetId }),
+        applyFightQueryState(currentSearchParams, {
+          targetId: target?.id ?? null,
+          targetInstance: target?.instance ?? null,
+        }),
       )
     },
     [setSearchParams],
@@ -72,9 +75,9 @@ export function useFightQueryState({
     () => ({
       state,
       setPlayers,
-      setTargetId,
+      setTarget,
       setWindow,
     }),
-    [setPlayers, setTargetId, setWindow, state],
+    [setPlayers, setTarget, setWindow, state],
   )
 }

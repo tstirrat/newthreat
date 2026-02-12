@@ -7,12 +7,12 @@ export default defineConfig({
   testDir: './src/pages',
   testMatch: '**/*.spec.ts',
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:9090',
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'pnpm --filter @wcl-threat/web dev',
-    port: 5173,
+    command: 'pnpm --filter @wcl-threat/web dev --port 9090',
+    port: 9090,
     reuseExistingServer: true,
     timeout: 120000,
   },

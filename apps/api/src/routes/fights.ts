@@ -72,10 +72,23 @@ fightsRoutes.get('/:id', async (c) => {
     .map((actor: ReportActor) => toReportActorSummary(actor))
 
   // Build enemies from fight-level enemyNPCs + enemyPets
+  const enemyGameIdByActorId = new Map(
+    [...(fight.enemyNPCs ?? []), ...(fight.enemyPets ?? [])].map((enemy) => [
+      enemy.id,
+      enemy.gameID,
+    ]),
+  )
   const enemies = [...(fight.enemyNPCs ?? []), ...(fight.enemyPets ?? [])]
     .map((npc) => reportActors.get(npc.id))
     .filter(exists)
-    .map((enemy: ReportActor) => toReportActorSummary(enemy))
+    .map((enemy: ReportActor) => {
+      const summary = toReportActorSummary(enemy)
+
+      return {
+        ...summary,
+        gameID: summary.gameID ?? enemyGameIdByActorId.get(enemy.id),
+      }
+    })
 
   const cacheControl =
     c.env.ENVIRONMENT === 'development'

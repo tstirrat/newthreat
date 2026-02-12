@@ -9,6 +9,7 @@ export type ReportActorSubType = PlayerClass | 'Boss' | 'NPC'
 
 export interface ReportActorSummary {
   id: number
+  gameID?: number
   name: string
   type: ReportActorType
   subType?: ReportActorSubType

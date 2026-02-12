@@ -10,6 +10,8 @@ import type {
   ReportActorSummary,
 } from '../types/api'
 import type {
+  FightTarget,
+  FightTargetOption,
   FocusedPlayerSummary,
   FocusedPlayerThreatRow,
   PlayerSummaryRow,
@@ -71,6 +73,8 @@ interface ActorStateVisuals {
   invulnerabilityWindows: ThreatStateWindow[]
 }
 
+const defaultTargetInstance = 0
+
 function resolveActorClass(
   actor: ReportActorSummary,
   actorsById: Map<number, ReportActorSummary>,
@@ -101,6 +105,28 @@ function buildActorLabel(
   }
 
   return actor.name
+}
+
+function buildTargetKey(target: FightTarget): string {
+  return `${target.id}:${target.instance}`
+}
+
+function buildTargetLabel({
+  name,
+  displayId,
+  instance,
+  hasMultipleInstances,
+}: {
+  name: string
+  displayId: number
+  instance: number
+  hasMultipleInstances: boolean
+}): string {
+  const formattedId = hasMultipleInstances
+    ? `${displayId}.${instance}`
+    : String(displayId)
+
+  return `${name} (${formattedId})`
 }
 
 function formatModifiers(
@@ -225,13 +251,13 @@ function collectStateTransitionsByActor({
   fightStartTime,
   firstTimestamp,
   fightEndMs,
-  targetId,
+  target,
 }: {
   sortedEvents: AugmentedEventsResponse['events']
   fightStartTime: number
   firstTimestamp: number
   fightEndMs: number
-  targetId: number
+  target: FightTarget
 }): Map<number, ThreatStateTransition[]> {
   const transitionsByActor = new Map<number, ThreatStateTransition[]>()
   let sequence = 0
@@ -256,7 +282,8 @@ function collectStateTransitionsByActor({
 
       if (
         effect.state.kind === 'fixate' &&
-        effect.state.targetId !== targetId
+        (effect.state.targetId !== target.id ||
+          (effect.state.targetInstance ?? defaultTargetInstance) !== target.instance)
       ) {
         return
       }
@@ -398,36 +425,161 @@ function buildActorStateVisuals(
   }
 }
 
+/** Build selectable fight targets keyed by enemy id + instance id. */
+export function buildFightTargetOptions({
+  enemies,
+  events,
+}: {
+  enemies: ReportActorSummary[]
+  events: AugmentedEventsResponse['events']
+}): FightTargetOption[] {
+  const enemiesById = new Map(enemies.map((enemy) => [enemy.id, enemy]))
+  const observedInstancesByEnemyId = new Map<number, Set<number>>()
+  const targetMap = new Map<string, FightTargetOption>()
+
+  const addObservedInstance = ({
+    enemyId,
+    instance,
+  }: {
+    enemyId: number
+    instance: number
+  }): void => {
+    if (!enemiesById.has(enemyId)) {
+      return
+    }
+
+    const existing = observedInstancesByEnemyId.get(enemyId)
+    if (existing) {
+      existing.add(instance)
+      return
+    }
+
+    observedInstancesByEnemyId.set(enemyId, new Set([instance]))
+  }
+
+  const upsertTarget = (target: FightTarget): void => {
+    const enemy = enemiesById.get(target.id)
+    if (!enemy) {
+      return
+    }
+
+    const key = buildTargetKey(target)
+    if (targetMap.has(key)) {
+      return
+    }
+
+    targetMap.set(key, {
+      id: target.id,
+      instance: target.instance,
+      key,
+      name: enemy.name,
+      label: enemy.name,
+    })
+  }
+
+  events.forEach((event) => {
+    if (enemiesById.has(event.sourceID)) {
+      addObservedInstance({
+        enemyId: event.sourceID,
+        instance: event.sourceInstance ?? defaultTargetInstance,
+      })
+    }
+
+    if (enemiesById.has(event.targetID)) {
+      addObservedInstance({
+        enemyId: event.targetID,
+        instance: event.targetInstance ?? defaultTargetInstance,
+      })
+    }
+
+    ;(event.threat.changes ?? []).forEach((change) => {
+      addObservedInstance({
+        enemyId: change.targetId,
+        instance: change.targetInstance ?? defaultTargetInstance,
+      })
+    })
+  })
+
+  enemies.forEach((enemy) => {
+    const observedInstances =
+      observedInstancesByEnemyId.get(enemy.id) ??
+      new Set([defaultTargetInstance])
+    const displayId = enemy.id
+
+    ;[...observedInstances]
+      .sort((left, right) => left - right)
+      .forEach((instance) => {
+        upsertTarget({
+          id: enemy.id,
+          instance,
+        })
+
+        const key = buildTargetKey({
+          id: enemy.id,
+          instance,
+        })
+        const existing = targetMap.get(key)
+        if (!existing) {
+          return
+        }
+
+        existing.label = buildTargetLabel({
+          name: enemy.name,
+          displayId,
+          instance,
+          hasMultipleInstances: observedInstances.size > 1,
+        })
+      })
+  })
+
+  return [...targetMap.values()]
+}
+
 /** Pick default target by highest accumulated threat in the fight. */
-export function selectDefaultTargetId(
+export function selectDefaultTarget(
   events: AugmentedEventsResponse['events'],
-  validTargetIds: Set<number>,
-): number | null {
-  if (validTargetIds.size === 0) {
+  validTargetKeys: Set<string>,
+): FightTarget | null {
+  if (validTargetKeys.size === 0) {
     return null
   }
 
   const sourceTargetState = new Map<string, number>()
-  const targetTotals = new Map<number, number>()
+  const targetTotals = new Map<string, number>()
 
   events.forEach((event) => {
     event.threat.changes?.forEach((change) => {
-      if (!validTargetIds.has(change.targetId)) {
+      const target = {
+        id: change.targetId,
+        instance: change.targetInstance ?? defaultTargetInstance,
+      }
+      const targetKey = buildTargetKey(target)
+      if (!validTargetKeys.has(targetKey)) {
         return
       }
 
-      const sourceTargetKey = `${change.sourceId}:${change.targetId}:${change.targetInstance}`
+      const sourceTargetKey = `${change.sourceId}:${targetKey}`
       const previous = sourceTargetState.get(sourceTargetKey) ?? 0
       const next = change.total
       sourceTargetState.set(sourceTargetKey, next)
 
-      const runningTotal = targetTotals.get(change.targetId) ?? 0
-      targetTotals.set(change.targetId, runningTotal + (next - previous))
+      const runningTotal = targetTotals.get(targetKey) ?? 0
+      targetTotals.set(targetKey, runningTotal + (next - previous))
     })
   })
 
   const sorted = [...targetTotals.entries()].sort((a, b) => b[1] - a[1])
-  return sorted[0]?.[0] ?? [...validTargetIds][0] ?? null
+  const fallbackTargetKey = [...validTargetKeys][0] ?? null
+  const selectedTargetKey = sorted[0]?.[0] ?? fallbackTargetKey
+  if (!selectedTargetKey) {
+    return null
+  }
+
+  const [idRaw, instanceRaw] = selectedTargetKey.split(':')
+  return {
+    id: Number(idRaw),
+    instance: Number(instanceRaw),
+  }
 }
 
 /** Build chartable threat series for a target from augmented events. */
@@ -437,14 +589,14 @@ export function buildThreatSeries({
   abilities,
   fightStartTime,
   fightEndTime,
-  targetId,
+  target,
 }: {
   events: AugmentedEventsResponse['events']
   actors: ReportActorSummary[]
   abilities: ReportAbilitySummary[]
   fightStartTime: number
   fightEndTime: number
-  targetId: number
+  target: FightTarget
 }): ThreatSeries[] {
   const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
   const abilityById = createAbilityMap(abilities)
@@ -460,7 +612,7 @@ export function buildThreatSeries({
     fightStartTime,
     firstTimestamp,
     fightEndMs,
-    targetId,
+    target,
   })
 
   const accumulators = new Map<number, SeriesAccumulator>()
@@ -503,7 +655,10 @@ export function buildThreatSeries({
     const healingDone = event.type === 'heal' ? Math.max(0, event.amount ?? 0) : 0
 
     event.threat.changes?.forEach((change) => {
-      if (change.targetId !== targetId) {
+      if (
+        change.targetId !== target.id ||
+        (change.targetInstance ?? defaultTargetInstance) !== target.instance
+      ) {
         return
       }
 
@@ -656,7 +811,7 @@ export function buildFocusedPlayerSummary({
   events,
   actors,
   fightStartTime,
-  targetId,
+  target,
   focusedPlayerId,
   windowStartMs,
   windowEndMs,
@@ -664,7 +819,7 @@ export function buildFocusedPlayerSummary({
   events: AugmentedEventsResponse['events']
   actors: ReportActorSummary[]
   fightStartTime: number
-  targetId: number
+  target: FightTarget
   focusedPlayerId: number | null
   windowStartMs: number
   windowEndMs: number
@@ -696,7 +851,10 @@ export function buildFocusedPlayerSummary({
       }
 
       const hasMatchingChange = (event.threat.changes ?? []).some(
-        (change) => change.targetId === targetId && sourceIds.has(change.sourceId),
+        (change) =>
+          change.targetId === target.id &&
+          (change.targetInstance ?? defaultTargetInstance) === target.instance &&
+          sourceIds.has(change.sourceId),
       )
       if (!hasMatchingChange) {
         return acc
@@ -704,7 +862,10 @@ export function buildFocusedPlayerSummary({
 
       const threatDelta = (event.threat.changes ?? [])
         .filter(
-          (change) => change.targetId === targetId && sourceIds.has(change.sourceId),
+          (change) =>
+            change.targetId === target.id &&
+            (change.targetInstance ?? defaultTargetInstance) === target.instance &&
+            sourceIds.has(change.sourceId),
         )
         .reduce((sum, change) => sum + change.amount, 0)
 
@@ -741,7 +902,7 @@ export function buildFocusedPlayerThreatRows({
   actors,
   abilities,
   fightStartTime,
-  targetId,
+  target,
   focusedPlayerId,
   windowStartMs,
   windowEndMs,
@@ -750,7 +911,7 @@ export function buildFocusedPlayerThreatRows({
   actors: ReportActorSummary[]
   abilities: ReportAbilitySummary[]
   fightStartTime: number
-  targetId: number
+  target: FightTarget
   focusedPlayerId: number | null
   windowStartMs: number
   windowEndMs: number
@@ -784,7 +945,10 @@ export function buildFocusedPlayerThreatRows({
 
     const matchingThreat = (event.threat.changes ?? [])
       .filter(
-        (change) => change.targetId === targetId && sourceIds.has(change.sourceId),
+        (change) =>
+          change.targetId === target.id &&
+          (change.targetInstance ?? defaultTargetInstance) === target.instance &&
+          sourceIds.has(change.sourceId),
       )
       .reduce((sum, change) => sum + change.amount, 0)
     if (matchingThreat === 0) {

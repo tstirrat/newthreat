@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyFightQueryState,
   parsePlayersParam,
-  parseTargetIdParam,
+  parseTargetSelectionParams,
   parseWindowParams,
   resolveFightQueryState,
 } from './search-params'
@@ -16,10 +16,18 @@ describe('search-params', () => {
     expect(parsePlayersParam('1,2,abc,3')).toEqual([1, 2, 3])
   })
 
-  it('validates target ID against valid targets', () => {
-    const valid = new Set([10, 20])
-    expect(parseTargetIdParam('10', valid)).toBe(10)
-    expect(parseTargetIdParam('30', valid)).toBeNull()
+  it('validates target selection against valid target keys', () => {
+    const valid = new Set(['10:0', '10:1'])
+
+    expect(parseTargetSelectionParams('10', null, valid)).toEqual({
+      targetId: 10,
+      targetInstance: 0,
+    })
+    expect(parseTargetSelectionParams('10', '1', valid)).toEqual({
+      targetId: 10,
+      targetInstance: 1,
+    })
+    expect(parseTargetSelectionParams('10', '3', valid)).toBeNull()
   })
 
   it('parses valid windows and rejects invalid windows', () => {
@@ -51,12 +59,13 @@ describe('search-params', () => {
       resolveFightQueryState({
         searchParams: params,
         validPlayerIds: new Set([1, 2]),
-        validTargetIds: new Set([20]),
+        validTargetKeys: new Set(['20:0']),
         maxDurationMs: 1000,
       }),
     ).toEqual({
       players: [1, 2],
       targetId: 20,
+      targetInstance: 0,
       startMs: 100,
       endMs: 200,
     })
@@ -66,12 +75,14 @@ describe('search-params', () => {
     const next = applyFightQueryState(new URLSearchParams(), {
       players: [1, 2],
       targetId: 99,
+      targetInstance: 2,
       startMs: 10,
       endMs: 80,
     })
 
     expect(next.toString()).toContain('players=1%2C2')
     expect(next.toString()).toContain('targetId=99')
+    expect(next.toString()).toContain('targetInstance=2')
     expect(next.toString()).toContain('startMs=10')
     expect(next.toString()).toContain('endMs=80')
   })

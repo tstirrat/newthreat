@@ -99,7 +99,7 @@ export const ReportPage: FC = () => {
 
       <SectionCard
         title="Fight navigation"
-        subtitle="Browse every fight in this report using direct links."
+        subtitle="Browse boss kills in report order using direct links."
       >
         <FightsList fights={data.fights} reportId={reportId} />
       </SectionCard>

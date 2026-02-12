@@ -5,17 +5,18 @@ import { describe, expect, it } from 'vitest'
 
 import { getClassColor } from './class-colors'
 import {
+  buildFightTargetOptions,
   buildThreatSeries,
   buildFocusedPlayerSummary,
   buildFocusedPlayerThreatRows,
   filterSeriesByPlayers,
-  selectDefaultTargetId,
+  selectDefaultTarget,
 } from './threat-aggregation'
 import type { ReportAbilitySummary, ReportActorSummary } from '../types/api'
 import type { ThreatSeries } from '../types/app'
 
 describe('threat-aggregation', () => {
-  it('selects target with highest accumulated threat', () => {
+  it('selects target instance with highest accumulated threat', () => {
     const events = [
       {
         threat: {
@@ -23,7 +24,7 @@ describe('threat-aggregation', () => {
             {
               sourceId: 1,
               targetId: 10,
-              targetInstance: 0,
+              targetInstance: 1,
               operator: 'add',
               amount: 100,
               total: 100,
@@ -36,8 +37,8 @@ describe('threat-aggregation', () => {
           changes: [
             {
               sourceId: 1,
-              targetId: 20,
-              targetInstance: 0,
+              targetId: 10,
+              targetInstance: 2,
               operator: 'add',
               amount: 200,
               total: 200,
@@ -58,7 +59,64 @@ describe('threat-aggregation', () => {
       }
     }>
 
-    expect(selectDefaultTargetId(events as never, new Set([10, 20]))).toBe(20)
+    expect(selectDefaultTarget(events as never, new Set(['10:1', '10:2']))).toEqual({
+      id: 10,
+      instance: 2,
+    })
+  })
+
+  it('formats target labels using id or id.instance based on instance count', () => {
+    const options = buildFightTargetOptions({
+      enemies: [
+        {
+          id: 10,
+          name: 'Deathknight Understudy',
+          type: 'NPC',
+          subType: 'NPC',
+        },
+        {
+          id: 20,
+          name: 'Grand Widow',
+          type: 'NPC',
+          subType: 'Boss',
+        },
+      ],
+      events: [
+        {
+          sourceID: 10,
+          sourceInstance: 3,
+          targetID: 1,
+          targetInstance: 0,
+          threat: {
+            changes: [],
+          },
+        },
+        {
+          sourceID: 10,
+          sourceInstance: 2,
+          targetID: 1,
+          targetInstance: 0,
+          threat: {
+            changes: [],
+          },
+        },
+        {
+          sourceID: 20,
+          sourceInstance: 0,
+          targetID: 1,
+          targetInstance: 0,
+          threat: {
+            changes: [],
+          },
+        },
+      ] as never,
+    })
+
+    expect(options.map((option) => option.label)).toEqual([
+      'Deathknight Understudy (10.2)',
+      'Deathknight Understudy (10.3)',
+      'Grand Widow (20)',
+    ])
   })
 
   it('filters pet lines by owner when player filter is applied', () => {
@@ -393,7 +451,10 @@ describe('threat-aggregation', () => {
       abilities,
       fightStartTime: 1000,
       fightEndTime: 1500,
-      targetId: 10,
+      target: {
+        id: 10,
+        instance: 0,
+      },
     })
 
     expect(series).toHaveLength(1)
@@ -520,7 +581,10 @@ describe('threat-aggregation', () => {
         events: events as never,
         actors,
         fightStartTime: 1000,
-        targetId: 10,
+        target: {
+          id: 10,
+          instance: 0,
+        },
         focusedPlayerId: 1,
         windowStartMs: 0,
         windowEndMs: 1500,
@@ -664,7 +728,10 @@ describe('threat-aggregation', () => {
       actors,
       abilities,
       fightStartTime: 1000,
-      targetId: 10,
+      target: {
+        id: 10,
+        instance: 0,
+      },
       focusedPlayerId: 1,
       windowStartMs: 0,
       windowEndMs: 1000,

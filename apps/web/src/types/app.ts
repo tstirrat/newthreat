@@ -25,8 +25,20 @@ export interface ExampleReportLink {
 export interface FightQueryState {
   players: number[]
   targetId: number | null
+  targetInstance: number | null
   startMs: number | null
   endMs: number | null
+}
+
+export interface FightTarget {
+  id: number
+  instance: number
+}
+
+export interface FightTargetOption extends FightTarget {
+  key: string
+  name: string
+  label: string
 }
 
 export interface ThreatPoint {

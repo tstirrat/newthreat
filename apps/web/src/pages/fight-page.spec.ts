@@ -70,6 +70,23 @@ test('defaults to the main boss and shows expected players in the legend', async
   await page.goto(svgFightUrl)
   await expect(page).toHaveURL(/renderer=svg/)
 
+  const fightHeader = page.getByRole('region', { name: 'Patchwerk (Fight #26)' })
+  await expect(fightHeader.getByText('Warcraft Logs:')).toBeVisible()
+  await expect(fightHeader.getByRole('link', { name: 'Report', exact: true })).toBeVisible()
+  await expect(fightHeader.getByRole('link', { name: 'Fight', exact: true })).toBeVisible()
+
+  const fightQuickSwitch = page.getByRole('navigation', { name: 'Fight quick switch' })
+  await expect(fightQuickSwitch.getByText('Patchwerk')).toBeVisible()
+  await expect(
+    fightQuickSwitch.getByRole('link', { name: 'Grobbulus' }),
+  ).toBeVisible()
+  await expect(fightQuickSwitch.getByText('Naxxramas Trash')).toHaveCount(0)
+  await expect(
+    page.getByText(
+      'Player threat lines with a scrollable legend sorted by total threat. Click a line to focus a player. Selected target is synced with URL query params for deep linking.',
+    ),
+  ).toHaveCount(0)
+
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -91,7 +108,7 @@ test('defaults to the main boss and shows expected players in the legend', async
     )
     .toBe('svg')
 
-  await expect(page.getByLabel('Target')).toHaveValue('100')
+  await expect(page.getByLabel('Target')).toHaveValue('100:0')
   await expect(
     page.locator('main svg text', { hasText: 'Aegistank' }),
   ).toBeVisible()
@@ -123,8 +140,8 @@ test('supports legend toggling, isolate on double click, and target switching', 
   await aegistankLegend.dblclick()
   await page.getByRole('button', { name: 'Clear isolate' }).click()
 
-  await page.getByLabel('Target').selectOption('102')
-  await expect(page.getByLabel('Target')).toHaveValue('102')
+  await page.getByLabel('Target').selectOption('102:0')
+  await expect(page.getByLabel('Target')).toHaveValue('102:0')
   await expect(page).toHaveURL(/targetId=102/)
 })
 
@@ -132,6 +149,28 @@ test('clicking a chart point focuses a player and shows total threat values', as
   page,
 }) => {
   await page.goto(svgFightUrl)
+  await expect(page).toHaveURL(/renderer=svg/)
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const chartContainer = document.querySelector('.echarts-for-react')
+        if (!chartContainer) {
+          return 'missing'
+        }
+
+        if (chartContainer.querySelector('svg')) {
+          return 'svg'
+        }
+
+        if (chartContainer.querySelector('canvas')) {
+          return 'canvas'
+        }
+
+        return 'none'
+      }),
+    )
+    .toBe('svg')
 
   await expect(
     page.getByText('Click a chart line to focus a player.'),
@@ -145,5 +184,12 @@ test('clicking a chart point focuses a player and shows total threat values', as
   const summaryRegion = page.getByRole('region', { name: 'Focused player summary' })
   await expect(summaryRegion.getByText('Aegistank')).toBeVisible()
   await expect(summaryRegion.getByText('Total threat')).toBeVisible()
-  await expect(summaryRegion.getByText('550')).toBeVisible()
+
+  const breakdownTable = summaryRegion.getByRole('table', {
+    name: 'Focused player threat breakdown',
+  })
+  const totalRow = breakdownTable.getByRole('row').nth(1)
+
+  await expect(totalRow.getByRole('cell').first()).toHaveText('Total')
+  await expect(totalRow.getByRole('cell').nth(2)).toHaveText('550')
 })

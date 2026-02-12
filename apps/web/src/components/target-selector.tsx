@@ -3,20 +3,21 @@
  */
 import { useId, type FC } from 'react'
 
-import type { ReportActorSummary } from '../types/api'
+import type { FightTarget, FightTargetOption } from '../types/app'
 
 export type TargetSelectorProps = {
-  enemies: ReportActorSummary[]
-  selectedTargetId: number
-  onChange: (targetId: number) => void
+  targets: FightTargetOption[]
+  selectedTarget: FightTarget
+  onChange: (target: FightTarget) => void
 }
 
 export const TargetSelector: FC<TargetSelectorProps> = ({
-  enemies,
-  selectedTargetId,
+  targets,
+  selectedTarget,
   onChange,
 }) => {
   const selectId = useId()
+  const selectedValue = `${selectedTarget.id}:${selectedTarget.instance}`
 
   return (
     <label className="flex items-center gap-2 text-sm" htmlFor={selectId}>
@@ -24,12 +25,18 @@ export const TargetSelector: FC<TargetSelectorProps> = ({
       <select
         className="rounded-md border border-border bg-panel px-3 py-2"
         id={selectId}
-        value={selectedTargetId}
-        onChange={(event) => onChange(Number(event.target.value))}
+        value={selectedValue}
+        onChange={(event) => {
+          const [idRaw, instanceRaw] = event.target.value.split(':')
+          onChange({
+            id: Number(idRaw),
+            instance: Number(instanceRaw),
+          })
+        }}
       >
-        {enemies.map((enemy) => (
-          <option key={enemy.id} value={enemy.id}>
-            {enemy.name} ({enemy.id})
+        {targets.map((target) => (
+          <option key={target.key} value={target.key}>
+            {target.label}
           </option>
         ))}
       </select>

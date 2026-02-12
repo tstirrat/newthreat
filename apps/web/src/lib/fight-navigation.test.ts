@@ -3,7 +3,10 @@
  */
 import type { ReportFightSummary } from '../types/api'
 
-import { buildFightNavigationGroups } from './fight-navigation'
+import {
+  buildBossKillNavigationFights,
+  buildFightNavigationGroups,
+} from './fight-navigation'
 
 const createFight = (
   overrides: Partial<ReportFightSummary> & Pick<ReportFightSummary, 'id' | 'name'>,
@@ -140,5 +143,50 @@ describe('buildFightNavigationGroups', () => {
     expect(grouped.bossEncounters[0]?.primaryKill.id).toBe(61)
     expect(grouped.bossEncounters[0]?.wipes.map((fight) => fight.id)).toEqual([60])
     expect(grouped.trashFights).toHaveLength(0)
+  })
+})
+
+describe('buildBossKillNavigationFights', () => {
+  it('returns only boss kills in report order', () => {
+    const fights = [
+      createFight({ id: 70, encounterID: 7001, name: 'Boss A', kill: false }),
+      createFight({ id: 71, encounterID: 7001, name: 'Boss A', kill: true }),
+      createFight({ id: 72, name: 'Trash', kill: true }),
+      createFight({ id: 73, encounterID: 7002, name: 'Boss B', kill: true }),
+      createFight({ id: 74, encounterID: 7003, name: 'Boss C', kill: false }),
+    ]
+
+    const bossKills = buildBossKillNavigationFights(fights)
+
+    expect(bossKills.map((fight) => fight.id)).toEqual([71, 73])
+  })
+
+  it('includes kill fights inferred as boss encounters by matching known boss names', () => {
+    const fights = [
+      createFight({
+        id: 80,
+        encounterID: 8001,
+        name: 'Ragnaros',
+        kill: false,
+      }),
+      createFight({
+        id: 81,
+        encounterID: null,
+        name: 'Ragnaros',
+        kill: true,
+        bossPercentage: null,
+        fightPercentage: null,
+      }),
+      createFight({
+        id: 82,
+        encounterID: null,
+        name: 'Lava Pack',
+        kill: true,
+      }),
+    ]
+
+    const bossKills = buildBossKillNavigationFights(fights)
+
+    expect(bossKills.map((fight) => fight.id)).toEqual([81])
   })
 })
