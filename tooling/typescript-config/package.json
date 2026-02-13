@@ -2,6 +2,9 @@
   "name": "@wcl-threat/typescript-config",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "fmt": "prettier --write ."
+  },
   "files": [
     "base.json",
     "worker.json",

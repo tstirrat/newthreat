@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "fmt": "turbo fmt",
     "test": "turbo test",
     "test:watch": "turbo test:watch",
     "lint": "turbo lint",

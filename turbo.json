@@ -24,6 +24,10 @@
     "typecheck": {
       "dependsOn": ["^build"]
     },
+    "fmt": {
+      "dependsOn": ["^fmt"],
+      "cache": false
+    },
     "clean": {
       "cache": false
     }

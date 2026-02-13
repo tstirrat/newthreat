@@ -7,6 +7,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "fixtures:download": "node ./scripts/download-config-fixture.mjs",
+    "fmt": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "vitest run",

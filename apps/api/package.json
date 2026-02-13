@@ -8,6 +8,7 @@
     "build": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
+    "fmt": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "vitest run",
