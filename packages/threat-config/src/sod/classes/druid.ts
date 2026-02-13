@@ -46,7 +46,7 @@ export const druidConfig: ClassThreatConfig = {
       source: 'class',
       name: 'Moonkin Form',
       value: Mods.Moonkin,
-      schools: new Set([SpellSchool.Arcane, SpellSchool.Nature]),
+      schoolMask: SpellSchool.Arcane | SpellSchool.Nature,
     }),
     [Spells.T1_Tank_6pc]: (ctx) => ({
       source: 'gear',

@@ -1,7 +1,7 @@
 /**
  * Season of Discovery Paladin Threat Configuration Tests
  */
-import { checkExists } from '@wcl-threat/shared'
+import { SpellSchool, checkExists } from '@wcl-threat/shared'
 import type { GearItem } from '@wcl-threat/wcl-types'
 import { describe, expect, it } from 'vitest'
 
@@ -60,7 +60,7 @@ describe('sod paladin config', () => {
             targetInstance: 0,
             abilityGameID: 1,
           },
-          new Set([Spells.EngraveHandOfReckoning, Spells.RighteousFury]),
+          new Set([Spells.EngraveHandOfReckoning, Spells.RighteousFurySoD]),
         ),
       ),
     )
@@ -101,11 +101,37 @@ describe('sod paladin config', () => {
             targetInstance: 0,
             abilityGameID: 1,
           },
-          new Set([Spells.RighteousFury]),
+          new Set([Spells.RighteousFurySoD]),
         ),
       ),
     )
 
     expect(withRighteousFury.value).toBeCloseTo(1.1875, 6)
+    expect(withRighteousFury.schoolMask).toBe(SpellSchool.Holy)
+  })
+
+  it('returns SoD Righteous Fury modifier with holy schoolMask', () => {
+    const righteousFuryModifier =
+      paladinConfig.auraModifiers[Spells.RighteousFurySoD]
+    const result = checkExists(
+      righteousFuryModifier?.(
+        createDamageContext(
+          {
+            timestamp: 1000,
+            sourceID: 1,
+            sourceIsFriendly: true,
+            sourceInstance: 0,
+            targetID: 99,
+            targetIsFriendly: false,
+            targetInstance: 0,
+            abilityGameID: 1,
+          },
+          new Set([Spells.RighteousFurySoD]),
+        ),
+      ),
+    )
+
+    expect(result.value).toBe(1.6)
+    expect(result.schoolMask).toBe(SpellSchool.Holy)
   })
 })

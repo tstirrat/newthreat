@@ -103,13 +103,13 @@ export const mageConfig: ClassThreatConfig = {
       source: 'talent',
       name: 'Arcane Subtlety (Rank 1)',
       value: 1 - Mods.ArcaneSubtlety,
-      schools: new Set([SpellSchool.Arcane]),
+      schoolMask: SpellSchool.Arcane,
     }),
     [Spells.ArcaneSubtletyRank2]: () => ({
       source: 'talent',
       name: 'Arcane Subtlety (Rank 2)',
       value: 1 - Mods.ArcaneSubtlety * 2,
-      schools: new Set([SpellSchool.Arcane]),
+      schoolMask: SpellSchool.Arcane,
     }),
 
     // Burning Soul - Fire spell threat reduction
@@ -117,13 +117,13 @@ export const mageConfig: ClassThreatConfig = {
       source: 'talent',
       name: 'Burning Soul (Rank 1)',
       value: 1 - Mods.BurningSoul,
-      schools: new Set([SpellSchool.Fire]),
+      schoolMask: SpellSchool.Fire,
     }),
     [Spells.BurningSoulRank2]: () => ({
       source: 'talent',
       name: 'Burning Soul (Rank 2)',
       value: 1 - Mods.BurningSoul * 2,
-      schools: new Set([SpellSchool.Fire]),
+      schoolMask: SpellSchool.Fire,
     }),
 
     // Frost Channeling - Frost spell threat reduction
@@ -131,19 +131,19 @@ export const mageConfig: ClassThreatConfig = {
       source: 'talent',
       name: 'Frost Channeling (Rank 1)',
       value: 1 - Mods.FrostChanneling,
-      schools: new Set([SpellSchool.Frost]),
+      schoolMask: SpellSchool.Frost,
     }),
     [Spells.FrostChannelingRank2]: () => ({
       source: 'talent',
       name: 'Frost Channeling (Rank 2)',
       value: 1 - Mods.FrostChanneling * 2,
-      schools: new Set([SpellSchool.Frost]),
+      schoolMask: SpellSchool.Frost,
     }),
     [Spells.FrostChannelingRank3]: () => ({
       source: 'talent',
       name: 'Frost Channeling (Rank 3)',
       value: 1 - Mods.FrostChanneling * 3,
-      schools: new Set([SpellSchool.Frost]),
+      schoolMask: SpellSchool.Frost,
     }),
   },
 

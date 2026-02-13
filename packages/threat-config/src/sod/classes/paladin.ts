@@ -2,6 +2,7 @@
  * Paladin Threat Configuration - Season of Discovery
  */
 import {
+  type AuraModifierFn,
   type ClassThreatConfig,
   SpellSchool,
   type ThreatContext,
@@ -19,7 +20,7 @@ export const Spells = {
   ...EraSpells,
   HandOfReckoning: 407631,
   EngraveHandOfReckoning: 410001,
-  RighteousFury: 407627, // SoD override
+  RighteousFurySoD: 407627, // SoD override
 } as const
 
 const Runes = {
@@ -40,17 +41,20 @@ const Mods = {
 
 const RIGHTEOUS_FURY_AURA_IDS = [
   EraSpells.RighteousFury,
-  Spells.RighteousFury,
+  Spells.RighteousFurySoD,
 ] as const
 
-function buildImprovedRighteousFuryModifier(multiplier: number, name: string) {
+function buildImprovedRighteousFuryModifier(
+  multiplier: number,
+  name: string,
+): AuraModifierFn {
   return (ctx: ThreatContext) => ({
     source: 'talent',
     name,
     value: hasRighteousFuryAura(ctx.sourceAuras, RIGHTEOUS_FURY_AURA_IDS)
       ? multiplier
       : 1,
-    schools: new Set([SpellSchool.Holy]),
+    schoolMask: SpellSchool.Holy,
   })
 }
 
@@ -70,10 +74,11 @@ export const paladinConfig: ClassThreatConfig = {
 
   auraModifiers: {
     ...eraPaladinConfig.auraModifiers,
-    [Spells.RighteousFury]: () => ({
+    [Spells.RighteousFurySoD]: () => ({
       source: 'buff',
       name: 'Righteous Fury',
       value: Mods.RighteousFury,
+      schoolMask: SpellSchool.Holy,
     }),
     [Spells.ImprovedRighteousFuryR1]: buildImprovedRighteousFuryModifier(
       1.696 / 1.6,
@@ -90,7 +95,7 @@ export const paladinConfig: ClassThreatConfig = {
     [Spells.EngraveHandOfReckoning]: (ctx) => ({
       source: 'gear',
       name: 'Engrave Gloves - Hand of Reckoning',
-      value: ctx.sourceAuras.has(Spells.RighteousFury)
+      value: ctx.sourceAuras.has(Spells.RighteousFurySoD)
         ? Mods.HandOfReckoning
         : 1,
     }),

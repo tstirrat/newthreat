@@ -58,7 +58,7 @@ export interface ThreatPoint {
 
 export interface ThreatPointModifier {
   name: string
-  schools: string[]
+  schoolLabels: string[]
   value: number
 }
 

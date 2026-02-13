@@ -19,6 +19,10 @@ Use the correct Warcraft Logs host for the game branch you are inspecting:
 When querying combatant/talent payloads, pick the host intentionally. Payload shape
 and talent metadata can differ by host/version.
 
+Events queries use the implied WCL default `useAbilityIDs: true`, so event payloads
+include `abilityGameID` and do not include nested `ability` objects. Resolve spell
+metadata (name, school/type, icon) through `report.masterData.abilities`.
+
 ## Workspace Layout
 
 ```

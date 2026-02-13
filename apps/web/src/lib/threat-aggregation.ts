@@ -15,8 +15,8 @@ import type {
   FocusedPlayerSummary,
   FocusedPlayerThreatRow,
   PlayerSummaryRow,
-  ThreatSeries,
   ThreatPointModifier,
+  ThreatSeries,
   ThreatStateVisualKind,
   ThreatStateVisualSegment,
   ThreatStateWindow,
@@ -146,7 +146,7 @@ function normalizeThreatModifiers(
     | Array<{
         name: string
         value: number
-        schools?: unknown
+        schoolMask?: unknown
       }>
     | undefined,
 ): ThreatPointModifier[] {
@@ -155,20 +155,14 @@ function normalizeThreatModifiers(
   }
 
   return modifiers.map((modifier) => {
-    const fromSchoolsField = (() => {
-      if (modifier.schools instanceof Set) {
-        return [...modifier.schools]
+    const fromSchoolMaskField = (() => {
+      const value = Number(modifier.schoolMask)
+      if (!Number.isFinite(value)) {
+        return []
       }
 
-      if (Array.isArray(modifier.schools)) {
-        return modifier.schools
-      }
-
-      return []
+      return resolveSchoolLabelsFromMask(value)
     })()
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value))
-      .flatMap((value) => resolveSchoolLabelsFromMask(value))
 
     const schoolMatch = modifier.name.match(/\((?<school>[^)]+)\)$/i)
     const fromName =
@@ -176,7 +170,7 @@ function normalizeThreatModifiers(
       knownSpellSchools.has(schoolMatch.groups.school.trim().toLowerCase())
         ? [schoolMatch.groups.school.trim().toLowerCase()]
         : []
-    const schools = [...new Set([...fromSchoolsField, ...fromName])]
+    const schoolLabels = [...new Set([...fromSchoolMaskField, ...fromName])]
     const normalizedName =
       schoolMatch && fromName.length > 0
         ? modifier.name.slice(0, schoolMatch.index).trim()
@@ -184,7 +178,7 @@ function normalizeThreatModifiers(
 
     return {
       name: normalizedName,
-      schools,
+      schoolLabels,
       value: modifier.value,
     }
   })
@@ -727,7 +721,9 @@ export function buildThreatSeries({
     const spellSchool =
       abilitySchoolLabels.length > 0 ? abilitySchoolLabels.join('/') : null
     const formula = event.threat.calculation.formula
-    const modifiers = normalizeThreatModifiers(event.threat.calculation.modifiers)
+    const modifiers = normalizeThreatModifiers(
+      event.threat.calculation.modifiers,
+    )
     const amount = event.threat.calculation.amount
     const baseThreat = event.threat.calculation.baseThreat
     const modifiedThreat = event.threat.calculation.modifiedThreat

@@ -252,6 +252,66 @@ describe('processEvents', () => {
     })
   })
 
+  it('uses abilitySchoolMap for school-scoped modifiers', () => {
+    const RIGHTEOUS_FURY = 25780
+    const paladinActor: Actor = {
+      id: 7,
+      name: 'PaladinTank',
+      class: 'paladin',
+    }
+    const actorMap = new Map<number, Actor>([[paladinActor.id, paladinActor]])
+    const config = createMockThreatConfig({
+      classes: {
+        paladin: {
+          baseThreatFactor: 1,
+          auraModifiers: {
+            [RIGHTEOUS_FURY]: () => ({
+              source: 'stance',
+              name: 'Righteous Fury',
+              value: 1.6,
+              schoolMask: SpellSchool.Holy,
+            }),
+          },
+          abilities: {},
+        },
+      },
+    })
+
+    const events: WCLEvent[] = [
+      createApplyBuffEvent({
+        sourceID: paladinActor.id,
+        targetID: paladinActor.id,
+        sourceIsFriendly: true,
+        targetIsFriendly: true,
+        abilityGameID: RIGHTEOUS_FURY,
+      }),
+      createDamageEvent({
+        sourceID: paladinActor.id,
+        targetID: bossEnemy.id,
+        targetIsFriendly: false,
+        abilityGameID: SPELLS.MOCK_ABILITY_1,
+        amount: 100,
+      }),
+    ]
+
+    const result = processEvents({
+      rawEvents: events,
+      actorMap,
+      abilitySchoolMap: new Map([[SPELLS.MOCK_ABILITY_1, SpellSchool.Nature]]),
+      enemies: [bossEnemy],
+      config,
+    })
+
+    const damageEvent = result.augmentedEvents.find((event) => {
+      return event.type === 'damage'
+    })
+    expect(
+      damageEvent?.threat.calculation.modifiers.find(
+        (modifier) => modifier.name === 'Righteous Fury',
+      ),
+    ).toBeUndefined()
+  })
+
   describe('encounter preprocessors', () => {
     it('applies a threat wipe special on first boss cast after long gaps', () => {
       const CAST_GAP_MS = 30000
@@ -625,7 +685,7 @@ describe('calculateModifiedThreat', () => {
             source: 'stance',
             name: 'Righteous Fury',
             value: 1.6,
-            schools: new Set([SpellSchool.Holy]),
+            schoolMask: SpellSchool.Holy,
           }),
         },
         abilities: {},

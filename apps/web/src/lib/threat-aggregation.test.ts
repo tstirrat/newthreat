@@ -166,6 +166,89 @@ describe('threat-aggregation', () => {
     expect(filtered.map((entry) => entry.actorId)).toEqual([5])
   })
 
+  it('maps modifier schoolMask values to school labels', () => {
+    const actors: ReportActorSummary[] = [
+      {
+        id: 1,
+        name: 'Paladin',
+        type: 'Player',
+        subType: 'Paladin',
+      },
+      {
+        id: 10,
+        name: 'Boss',
+        type: 'NPC',
+        subType: 'Boss',
+      },
+    ]
+    const abilities: ReportAbilitySummary[] = [
+      {
+        gameID: 100,
+        icon: null,
+        name: 'Damage Shield',
+        type: '8',
+      },
+    ]
+    const events = [
+      {
+        timestamp: 1000,
+        type: 'damage',
+        sourceID: 1,
+        sourceIsFriendly: true,
+        targetID: 10,
+        targetIsFriendly: false,
+        abilityGameID: 100,
+        amount: 200,
+        threat: {
+          changes: [
+            {
+              sourceId: 1,
+              targetId: 10,
+              targetInstance: 0,
+              operator: 'add',
+              amount: 200,
+              total: 200,
+            },
+          ],
+          calculation: {
+            formula: 'damage',
+            amount: 200,
+            baseThreat: 200,
+            modifiedThreat: 200,
+            isSplit: false,
+            modifiers: [
+              {
+                name: 'Righteous Fury',
+                value: 1.6,
+                schoolMask: 2,
+              },
+            ],
+          },
+        },
+      },
+    ]
+
+    const series = buildThreatSeries({
+      events: events as never,
+      actors,
+      abilities,
+      fightStartTime: 1000,
+      fightEndTime: 2000,
+      target: {
+        id: 10,
+        instance: 0,
+      },
+    })
+
+    expect(series[0]?.points[1]?.modifiers).toEqual([
+      {
+        name: 'Righteous Fury',
+        schoolLabels: ['holy'],
+        value: 1.6,
+      },
+    ])
+  })
+
   it('builds state visual segments and fixate windows for the selected target', () => {
     const actors: ReportActorSummary[] = [
       {

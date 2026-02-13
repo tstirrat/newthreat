@@ -145,8 +145,8 @@ export interface ThreatModifier {
   spellIds?: Set<number>
   /** Multiplier value, e.g., 1.3 */
   value: number
-  /** If specified, also restricts to these spell schools. Omit for all schools. */
-  schools?: Set<SpellSchool>
+  /** If specified, restricts modifier to events whose school intersects this bitmask. */
+  schoolMask?: number
 }
 
 // ============================================================================

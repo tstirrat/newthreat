@@ -122,7 +122,7 @@ describe('getActiveModifiers', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('filters modifiers by schools if present - matched', () => {
+  it('filters modifiers by schoolMask if present - matched', () => {
     const ctx = createMockContext({
       sourceAuras: new Set([10]),
       spellSchoolMask: SpellSchool.Holy,
@@ -133,16 +133,37 @@ describe('getActiveModifiers', () => {
         name: 'Holy Mod',
         value: 1.3,
         source: 'buff' as const,
-        schools: new Set([SpellSchool.Holy]),
+        schoolMask: SpellSchool.Holy,
       }),
     }
 
     const result = getActiveModifiers(ctx, modifiers)
     expect(result).toHaveLength(1)
     expect(result[0]?.name).toBe('Holy Mod')
+    expect(result[0]?.schoolMask).toBe(SpellSchool.Holy)
   })
 
-  it('filters modifiers by schools if present - not matched', () => {
+  it('matches schoolMask when modifier includes multiple schools', () => {
+    const ctx = createMockContext({
+      sourceAuras: new Set([10]),
+      spellSchoolMask: SpellSchool.Nature,
+    })
+
+    const modifiers = {
+      10: () => ({
+        name: 'Nature or Arcane Mod',
+        value: 1.2,
+        source: 'buff' as const,
+        schoolMask: SpellSchool.Nature | SpellSchool.Arcane,
+      }),
+    }
+
+    const result = getActiveModifiers(ctx, modifiers)
+    expect(result).toHaveLength(1)
+    expect(result[0]?.name).toBe('Nature or Arcane Mod')
+  })
+
+  it('filters modifiers by schoolMask if present - not matched', () => {
     const ctx = createMockContext({
       sourceAuras: new Set([10]),
       spellSchoolMask: SpellSchool.Physical,
@@ -153,7 +174,7 @@ describe('getActiveModifiers', () => {
         name: 'Holy Mod',
         value: 1.3,
         source: 'buff' as const,
-        schools: new Set([SpellSchool.Holy]),
+        schoolMask: SpellSchool.Holy,
       }),
     }
 
@@ -161,7 +182,7 @@ describe('getActiveModifiers', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('excludes school-scoped modifiers when event school is unknown', () => {
+  it('excludes schoolMask-scoped modifiers when event school is unknown', () => {
     const ctx = createMockContext({
       sourceAuras: new Set([10]),
       spellSchoolMask: 0,
@@ -172,7 +193,7 @@ describe('getActiveModifiers', () => {
         name: 'Holy Mod',
         value: 1.3,
         source: 'buff' as const,
-        schools: new Set([SpellSchool.Holy]),
+        schoolMask: SpellSchool.Holy,
       }),
     }
 

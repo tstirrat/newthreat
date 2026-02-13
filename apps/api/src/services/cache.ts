@@ -133,6 +133,7 @@ export const CacheKeys = {
   report: (code: string) => `wcl:report:${code}`,
   fights: (code: string) => `wcl:fights:${code}`,
   events: (code: string, fightId: number) => `wcl:events:${code}:${fightId}`,
+  augmentedSchemaVersion: 'v2',
   augmentedEvents: (code: string, fightId: number, configVersion: string) =>
-    `augmented:${code}:${fightId}:${configVersion}`,
+    `augmented:${CacheKeys.augmentedSchemaVersion}:${code}:${fightId}:${configVersion}`,
 }

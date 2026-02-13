@@ -61,7 +61,21 @@ describe('Mage Config', () => {
       expect(modifier.name).toBe('Arcane Subtlety (Rank 2)')
       expect(modifier.value).toBe(0.6)
       expect(modifier.source).toBe('talent')
-      expect(modifier.schools?.has(SpellSchool.Arcane)).toBe(true)
+      expect(modifier.schoolMask).toBe(SpellSchool.Arcane)
+    })
+
+    it('returns Burning Soul rank 2 modifier with fire schoolMask', () => {
+      const modifierFn = mageConfig.auraModifiers[Spells.BurningSoulRank2]
+      expect(modifierFn).toBeDefined()
+
+      const modifier = modifierFn!(
+        createMockContext({ spellSchoolMask: SpellSchool.Fire }),
+      )
+
+      expect(modifier.name).toBe('Burning Soul (Rank 2)')
+      expect(modifier.value).toBe(0.9)
+      expect(modifier.source).toBe('talent')
+      expect(modifier.schoolMask).toBe(SpellSchool.Fire)
     })
   })
 

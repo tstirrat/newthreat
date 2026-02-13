@@ -181,7 +181,7 @@ export const paladinConfig: ClassThreatConfig = {
       name: 'Righteous Fury',
 
       value: Mods.RighteousFury,
-      schools: new Set([SpellSchool.Holy]),
+      schoolMask: SpellSchool.Holy,
     }),
 
     // Improved Righteous Fury increases RF's holy multiplier.
@@ -191,7 +191,7 @@ export const paladinConfig: ClassThreatConfig = {
       value: hasRighteousFuryAura(ctx.sourceAuras)
         ? Mods.ImprovedRighteousFuryR1 / Mods.RighteousFury
         : 1,
-      schools: new Set([SpellSchool.Holy]),
+      schoolMask: SpellSchool.Holy,
     }),
 
     [Spells.ImprovedRighteousFuryR2]: (ctx) => ({
@@ -200,7 +200,7 @@ export const paladinConfig: ClassThreatConfig = {
       value: hasRighteousFuryAura(ctx.sourceAuras)
         ? Mods.ImprovedRighteousFuryR2 / Mods.RighteousFury
         : 1,
-      schools: new Set([SpellSchool.Holy]),
+      schoolMask: SpellSchool.Holy,
     }),
 
     [Spells.ImprovedRighteousFuryR3]: (ctx) => ({
@@ -209,7 +209,7 @@ export const paladinConfig: ClassThreatConfig = {
       value: hasRighteousFuryAura(ctx.sourceAuras)
         ? Mods.ImprovedRighteousFuryR3 / Mods.RighteousFury
         : 1,
-      schools: new Set([SpellSchool.Holy]),
+      schoolMask: SpellSchool.Holy,
     }),
 
     [Spells.VengeanceR1]: () => ({

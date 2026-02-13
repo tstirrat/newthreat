@@ -1,7 +1,7 @@
 /**
  * Season of Discovery Druid Threat Configuration Tests
  */
-import { checkExists } from '@wcl-threat/shared'
+import { SpellSchool, checkExists } from '@wcl-threat/shared'
 import { describe, expect, it } from 'vitest'
 
 import { createDamageContext } from '../../test/helpers/context'
@@ -114,8 +114,9 @@ describe('sod druid config', () => {
     )
 
     expect(moonkinResult.value).toBe(0.7)
-    expect(moonkinResult.schools?.has(8)).toBe(true)
-    expect(moonkinResult.schools?.has(64)).toBe(true)
+    expect(moonkinResult.schoolMask).toBe(
+      SpellSchool.Nature | SpellSchool.Arcane,
+    )
     expect(t1OutsideBearForm.value).toBe(1)
     expect(t1InBearForm.value).toBeCloseTo(1.1538461538)
     expect(lacerateDotResult.value).toBe(350)

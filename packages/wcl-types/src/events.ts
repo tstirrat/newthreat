@@ -209,7 +209,6 @@ export interface GearItem {
 export interface CombatantInfoAura {
   source: number
   abilityGameID?: number
-  ability?: number
   stacks: number
   icon: string
   name?: string | null

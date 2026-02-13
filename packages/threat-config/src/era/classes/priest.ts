@@ -119,19 +119,19 @@ export const priestConfig: ClassThreatConfig = {
       source: 'talent',
       name: 'Shadow Affinity (Rank 1)',
       value: 1 - Mods.ShadowAffinity,
-      schools: new Set([SpellSchool.Shadow]),
+      schoolMask: SpellSchool.Shadow,
     }),
     [Spells.ShadowAffinityRank2]: () => ({
       source: 'talent',
       name: 'Shadow Affinity (Rank 2)',
       value: 1 - Mods.ShadowAffinity * 2,
-      schools: new Set([SpellSchool.Shadow]),
+      schoolMask: SpellSchool.Shadow,
     }),
     [Spells.ShadowAffinityRank3]: () => ({
       source: 'talent',
       name: 'Shadow Affinity (Rank 3)',
       value: 1 - Mods.ShadowAffinity * 3,
-      schools: new Set([SpellSchool.Shadow]),
+      schoolMask: SpellSchool.Shadow,
     }),
   },
 

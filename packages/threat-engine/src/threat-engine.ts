@@ -631,19 +631,7 @@ function getStateKind(
 }
 
 function getAbilityName(event: WCLEvent): string | undefined {
-  const fallback =
-    'abilityGameID' in event ? `Spell ${event.abilityGameID}` : undefined
-
-  if (!('ability' in event)) {
-    return fallback
-  }
-
-  const ability = event.ability as { name?: unknown } | undefined
-  if (!ability || typeof ability.name !== 'string') {
-    return fallback
-  }
-
-  return ability.name
+  return 'abilityGameID' in event ? `Spell ${event.abilityGameID}` : undefined
 }
 
 /**

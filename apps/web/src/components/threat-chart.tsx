@@ -584,15 +584,13 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         const amountColor =
           rawEventType === 'heal' ? '#22c55e' : resolveSchoolColor(spellSchool)
         const modifierLines = visibleModifiers.map((modifier) => {
-          const schoolsLabel = modifier.schools
+          const schoolsLabel = modifier.schoolLabels
             .filter((school) => school !== 'physical')
             .join('/')
           const rowSchool =
-            modifier.schools.length === 1
-              ? (modifier.schools[0] ?? null)
-              : modifier.schools.length === 0
-                ? spellSchool
-                : null
+            modifier.schoolLabels.length === 1
+              ? (modifier.schoolLabels[0] ?? null)
+              : null
           const color = resolveSchoolColor(rowSchool)
           const schoolSuffix =
             schoolsLabel.length > 0 ? ` (${escapeHtml(schoolsLabel)})` : ''
@@ -610,12 +608,12 @@ export const ThreatChart: FC<ThreatChartProps> = ({
           `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><span>Threat: ${formatSignedThreat(threatDelta)}${splitCount > 1 ? ` / ${splitCount}` : ''}</span><span>&sum; ${formatTooltipNumber(totalThreat)}</span></div>`,
           ...(visibleModifiers.length > 0
             ? [
-                '<div style="padding-left:2ch;">',
                 `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><span>Multipliers:</span><span>&sum; ${formatTooltipNumber(modifiersTotal)}</span></div>`,
+                '<div style="padding-left:2ch;">',
+                ...modifierLines,
+                '</div>',
               ]
             : []),
-          ...modifierLines,
-          ...(visibleModifiers.length > 0 ? ['</div>'] : []),
           ...(auraLine ? [auraLine] : []),
           '</div>',
         ].join('')

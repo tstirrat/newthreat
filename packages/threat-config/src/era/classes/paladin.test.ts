@@ -118,9 +118,7 @@ describe('Paladin Config', () => {
 
       expect(modifier.name).toBe('Righteous Fury')
       expect(modifier.value).toBe(1.6)
-      expect(modifier.schools).toBeDefined()
-      expect(modifier.schools?.has(SpellSchool.Holy)).toBe(true)
-      expect(modifier.schools?.size).toBe(1)
+      expect(modifier.schoolMask).toBe(SpellSchool.Holy)
     })
 
     it('returns Blessing of Salvation modifier', () => {
@@ -151,7 +149,7 @@ describe('Paladin Config', () => {
 
       expect(withoutRighteousFury.value).toBe(1)
       expect(withRighteousFury.value).toBeCloseTo(1.1875, 6)
-      expect(withRighteousFury.schools?.has(SpellSchool.Holy)).toBe(true)
+      expect(withRighteousFury.schoolMask).toBe(SpellSchool.Holy)
     })
 
     it('returns Vengeance rank 5 threat reduction', () => {

@@ -72,7 +72,7 @@ describe('Priest Config', () => {
 
       expect(modifier.name).toBe('Shadow Affinity (Rank 3)')
       expect(modifier.value).toBeCloseTo(0.75, 6)
-      expect(modifier.schools?.has(SpellSchool.Shadow)).toBe(true)
+      expect(modifier.schoolMask).toBe(SpellSchool.Shadow)
     })
   })
 
