@@ -61,8 +61,6 @@ export const paladinConfig: ClassThreatConfig = {
         ? Mods.HandOfReckoning
         : 1,
     }),
-    // TODO: Vengeance
-    // TODO: Improved RF
   },
 
   abilities: {

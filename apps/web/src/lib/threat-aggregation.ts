@@ -16,6 +16,7 @@ import type {
   FocusedPlayerThreatRow,
   PlayerSummaryRow,
   ThreatSeries,
+  ThreatPointModifier,
   ThreatStateVisualKind,
   ThreatStateVisualSegment,
   ThreatStateWindow,
@@ -23,6 +24,16 @@ import type {
 import { getActorColor, getClassColor } from './class-colors'
 
 const trackableActorTypes = new Set(['Player', 'Pet'])
+const spellSchoolByMask = {
+  1: 'physical',
+  2: 'holy',
+  4: 'fire',
+  8: 'nature',
+  16: 'frost',
+  32: 'shadow',
+  64: 'arcane',
+} as const
+const knownSpellSchools = new Set(Object.values(spellSchoolByMask))
 
 interface SeriesAccumulator {
   actorId: number
@@ -130,16 +141,53 @@ function buildTargetLabel({
   return `${name} (${formattedId})`
 }
 
-function formatModifiers(
-  modifiers: Array<{ name: string; value: number }> | undefined,
-): string {
+function normalizeThreatModifiers(
+  modifiers:
+    | Array<{
+        name: string
+        value: number
+        schools?: unknown
+      }>
+    | undefined,
+): ThreatPointModifier[] {
   if (!modifiers?.length) {
-    return 'none'
+    return []
   }
 
-  return modifiers
-    .map((modifier) => `${modifier.name} x${modifier.value.toFixed(2)}`)
-    .join(', ')
+  return modifiers.map((modifier) => {
+    const fromSchoolsField = (() => {
+      if (modifier.schools instanceof Set) {
+        return [...modifier.schools]
+      }
+
+      if (Array.isArray(modifier.schools)) {
+        return modifier.schools
+      }
+
+      return []
+    })()
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value))
+      .flatMap((value) => resolveSchoolLabelsFromMask(value))
+
+    const schoolMatch = modifier.name.match(/\((?<school>[^)]+)\)$/i)
+    const fromName =
+      schoolMatch?.groups?.school &&
+      knownSpellSchools.has(schoolMatch.groups.school.trim().toLowerCase())
+        ? [schoolMatch.groups.school.trim().toLowerCase()]
+        : []
+    const schools = [...new Set([...fromSchoolsField, ...fromName])]
+    const normalizedName =
+      schoolMatch && fromName.length > 0
+        ? modifier.name.slice(0, schoolMatch.index).trim()
+        : modifier.name
+
+    return {
+      name: normalizedName,
+      schools,
+      value: modifier.value,
+    }
+  })
 }
 
 function createAbilityMap(
@@ -150,6 +198,28 @@ function createAbilityMap(
       .filter((ability) => ability.gameID !== null)
       .map((ability) => [ability.gameID as number, ability]),
   )
+}
+
+function parseAbilitySchoolMask(type: string | null): number {
+  if (!type) {
+    return 0
+  }
+
+  const mask = Number.parseInt(type, 10)
+  if (!Number.isFinite(mask)) {
+    return 0
+  }
+
+  return mask
+}
+
+function resolveSchoolLabelsFromMask(mask: number): string[] {
+  return [1, 2, 4, 8, 16, 32, 64]
+    .filter((schoolMask) => (mask & schoolMask) !== 0)
+    .map(
+      (schoolMask) =>
+        spellSchoolByMask[schoolMask as keyof typeof spellSchoolByMask],
+    )
 }
 
 function resolveRelativeTimeMs(
@@ -649,8 +719,15 @@ export function buildThreatSeries({
       abilityId !== null
         ? (abilityById.get(abilityId)?.name ?? `Ability #${abilityId}`)
         : 'Unknown ability'
+    const abilitySchoolMask =
+      abilityId !== null
+        ? parseAbilitySchoolMask(abilityById.get(abilityId)?.type ?? null)
+        : 0
+    const abilitySchoolLabels = resolveSchoolLabelsFromMask(abilitySchoolMask)
+    const spellSchool =
+      abilitySchoolLabels.length > 0 ? abilitySchoolLabels.join('/') : null
     const formula = event.threat.calculation.formula
-    const modifiers = formatModifiers(event.threat.calculation.modifiers)
+    const modifiers = normalizeThreatModifiers(event.threat.calculation.modifiers)
     const amount = event.threat.calculation.amount
     const baseThreat = event.threat.calculation.baseThreat
     const modifiedThreat = event.threat.calculation.modifiedThreat
@@ -691,10 +768,11 @@ export function buildThreatSeries({
           amount: 0,
           baseThreat: 0,
           modifiedThreat: 0,
+          spellSchool: null,
           eventType: 'start',
           abilityName: 'Encounter start',
           formula: 'n/a',
-          modifiers: 'none',
+          modifiers: [],
         })
       }
 
@@ -706,6 +784,7 @@ export function buildThreatSeries({
         amount,
         baseThreat,
         modifiedThreat,
+        spellSchool,
         eventType: event.type,
         abilityName,
         formula,

@@ -49,10 +49,17 @@ export interface ThreatPoint {
   amount: number
   baseThreat: number
   modifiedThreat: number
+  spellSchool: string | null
   eventType: string
   abilityName: string
   formula: string
-  modifiers: string
+  modifiers: ThreatPointModifier[]
+}
+
+export interface ThreatPointModifier {
+  name: string
+  schools: string[]
+  value: number
 }
 
 export type ThreatStateVisualKind = 'fixate' | 'aggroLoss' | 'invulnerable'

@@ -17,14 +17,14 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer, SVGRenderer } from 'echarts/renderers'
 import { type FC, useEffect, useMemo, useRef, useState } from 'react'
 
-import { formatNumber, formatTimelineTime } from '../lib/format'
+import { formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
 import {
   buildAuraMarkArea,
   buildThreatStateVisualMaps,
   resolveThreatStateStatus,
 } from '../lib/threat-chart-visuals'
-import type { ThreatSeries } from '../types/app'
+import type { ThreatPointModifier, ThreatSeries } from '../types/app'
 
 echarts.use([
   LineChart,
@@ -60,7 +60,8 @@ interface TooltipPointPayload {
   eventType: string
   formula: string
   modifiedThreat: number
-  modifiers: string
+  spellSchool: string | null
+  modifiers: ThreatPointModifier[]
   threatDelta: number
   timeMs: number
   totalThreat: number
@@ -127,19 +128,45 @@ function escapeHtml(value: string): string {
 
 function formatSignedThreat(value: number): string {
   const prefix = value >= 0 ? '+' : '-'
-  return `${prefix}${formatNumber(Math.abs(value))}`
+  return `${prefix}${formatTooltipNumber(Math.abs(value))}`
 }
 
-function formatTooltipModifiers(modifiers: string): string[] {
-  const normalized = modifiers.trim()
-  if (!normalized || normalized === 'none') {
-    return []
+function formatTooltipNumber(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function resolveSchoolColor(school: string | null): string | null {
+  if (!school || school === 'physical' || school.includes('/')) {
+    return null
   }
 
-  return normalized
-    .split(', ')
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0)
+  const bySchool: Record<string, string> = {
+    holy: '#f59e0b',
+    fire: '#ef4444',
+    nature: '#22c55e',
+    frost: '#38bdf8',
+    shadow: '#a78bfa',
+    arcane: '#06b6d4',
+  }
+
+  return bySchool[school] ?? null
+}
+
+function resolveSplitCount(modifiedThreat: number, threatDelta: number): number {
+  if (modifiedThreat === 0 || threatDelta === 0) {
+    return 1
+  }
+
+  const ratio = Math.abs(modifiedThreat / threatDelta)
+  const rounded = Math.round(ratio)
+  if (!Number.isFinite(ratio) || rounded <= 1) {
+    return 1
+  }
+
+  return Math.abs(ratio - rounded) < 0.001 ? rounded : 1
 }
 
 export type ThreatChartProps = {
@@ -485,14 +512,19 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         )
         const actorColor = escapeHtml(String(payload.actorColor ?? '#94a3b8'))
         const abilityName = escapeHtml(payload.abilityName ?? 'Unknown ability')
-        const modifiers = formatTooltipModifiers(payload.modifiers ?? 'none')
-        const formula = escapeHtml(payload.formula ?? 'n/a')
+        const modifiers = payload.modifiers ?? []
         const timeMs = Number(payload.timeMs ?? 0)
         const totalThreat = Number(payload.totalThreat ?? 0)
         const threatDelta = Number(payload.threatDelta ?? 0)
         const amount = Number(payload.amount ?? 0)
-        const baseThreat = Number(payload.baseThreat ?? 0)
-        const eventType = escapeHtml(payload.eventType ?? 'unknown')
+        const modifiedThreat = Number(payload.modifiedThreat ?? 0)
+        const spellSchool = payload.spellSchool?.toLowerCase() ?? null
+        const rawEventType = String(payload.eventType ?? 'unknown').toLowerCase()
+        const eventType = escapeHtml(rawEventType)
+        const abilityEventSuffix =
+          rawEventType === 'damage' || rawEventType === 'heal'
+            ? ''
+            : ` (${eventType})`
         const actorId = Number(payload.actorId ?? 0)
         const sourceSeries =
           series.find((item) => item.actorId === actorId) ?? null
@@ -505,28 +537,64 @@ export const ThreatChart: FC<ThreatChartProps> = ({
           auraStatus.color && auraStatus.label
             ? `Aura: <strong style="color:${statusColor};">${statusLabel}</strong>`
             : null
-        const multipliersLines =
-          modifiers.length === 0
-            ? ['Multipliers: none']
-            : [
-                'Multipliers:',
-                ...modifiers.map(
-                  (modifier) => `&nbsp;&nbsp;&bull; ${escapeHtml(modifier)}`,
-                ),
-              ]
+        const splitCount = resolveSplitCount(modifiedThreat, threatDelta)
+        const visibleModifiers = modifiers.filter(
+          (modifier) =>
+            Number.isFinite(modifier.value) && Math.abs(modifier.value - 1) > 0.0005,
+        )
+        const modifiersTotal = visibleModifiers.reduce((total, modifier) => {
+          if (!Number.isFinite(modifier.value)) {
+            return total
+          }
+
+          return total * modifier.value
+        }, 1)
+        const amountSchool =
+          spellSchool && spellSchool !== 'physical'
+          ? ` (${escapeHtml(spellSchool)})`
+          : ''
+        const amountColor =
+          rawEventType === 'heal'
+            ? '#22c55e'
+            : resolveSchoolColor(spellSchool)
+        const modifierLines = visibleModifiers.map((modifier) => {
+          const schoolsLabel = modifier.schools
+            .filter((school) => school !== 'physical')
+            .join('/')
+          const rowSchool =
+            modifier.schools.length === 1
+              ? modifier.schools[0] ?? null
+              : modifier.schools.length === 0
+                ? spellSchool
+                : null
+          const color = resolveSchoolColor(rowSchool)
+          const schoolSuffix =
+            schoolsLabel.length > 0
+              ? ` (${escapeHtml(schoolsLabel)})`
+              : ''
+          const value = Number.isFinite(modifier.value)
+            ? formatTooltipNumber(modifier.value)
+            : '-'
+          return `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;${color ? `color:${color};` : ''}"><span>${escapeHtml(modifier.name)}${schoolSuffix}</span><span>${value}</span></div>`
+        })
 
         return [
-          `<strong style="color:${actorColor};">${actorName}</strong>`,
-          `Time: ${formatTimelineTime(timeMs)}`,
-          `Ability: ${abilityName} [${eventType}]`,
-          `Amount: ${formatNumber(amount)}`,
-          `Formula: ${formula}`,
-          `Base Threat: ${formatNumber(baseThreat)}`,
-          `Threat Applied To Target: ${formatSignedThreat(threatDelta)}`,
-          `Cumulative Threat: ${formatNumber(totalThreat)}`,
-          ...multipliersLines,
+          '<div style="min-width:280px;font-size:12px;line-height:1.2;">',
+          `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><strong>${abilityName}${abilityEventSuffix}</strong><strong style="color:${actorColor};">${actorName}</strong></div>`,
+          `<div style="line-height:1.2;">T: ${formatTimelineTime(timeMs)}</div>`,
+          `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;${amountColor ? `color:${amountColor};` : ''}"><span>Amt: ${formatTooltipNumber(amount)}${amountSchool}</span><span>${escapeHtml(payload.formula ?? 'n/a')}</span></div>`,
+          `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><span>Threat: ${formatSignedThreat(threatDelta)}${splitCount > 1 ? ` / ${splitCount}` : ''}</span><span>&sum; ${formatTooltipNumber(totalThreat)}</span></div>`,
+          ...(visibleModifiers.length > 0
+            ? [
+                '<div style="padding-left:2ch;">',
+                `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><span>Multipliers:</span><span>&sum; ${formatTooltipNumber(modifiersTotal)}</span></div>`,
+              ]
+            : []),
+          ...modifierLines,
+          ...(visibleModifiers.length > 0 ? ['</div>'] : []),
           ...(auraLine ? [auraLine] : []),
-        ].join('<br/>')
+          '</div>',
+        ].join('')
       },
     },
     xAxis: {
