@@ -3,14 +3,10 @@
  */
 import type { FC } from 'react'
 
-export interface InitialAura {
-  spellId: number
-  name: string
-  stacks: number
-}
+import type { InitialAuraDisplay } from '../types/app'
 
 export type InitialAurasProps = {
-  auras: InitialAura[]
+  auras: InitialAuraDisplay[]
 }
 
 function buildWowheadUrl(spellId: number): string {
@@ -28,13 +24,16 @@ export const InitialAuras: FC<InitialAurasProps> = ({ auras }) => {
         Initial auras
       </div>
       <div className="flex flex-wrap gap-1">
-        {auras.map((aura) => (
+        {auras.map((aura, index) => (
           <a
-            key={aura.spellId}
+            key={`${aura.spellId}-${index}`}
+            data-wowhead={`spell=${aura.spellId}&domain=classic`}
             href={buildWowheadUrl(aura.spellId)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded bg-black/10 px-2 py-1 text-xs hover:bg-black/20"
+            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-black/20 ${
+              aura.isNotable ? 'bg-yellow-950/40' : 'bg-black/10'
+            }`}
             title={`${aura.name}${aura.stacks > 1 ? ` (${aura.stacks})` : ''}`}
           >
             <span>{aura.name}</span>

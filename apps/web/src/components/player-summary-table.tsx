@@ -4,15 +4,22 @@
 import type { FC } from 'react'
 
 import { formatNumber } from '../lib/format'
-import type { FocusedPlayerSummary, FocusedPlayerThreatRow } from '../types/app'
-import type { InitialAura } from './initial-auras'
+import type {
+  FocusedPlayerSummary,
+  FocusedPlayerThreatRow,
+  InitialAuraDisplay,
+} from '../types/app'
 import { InitialAuras } from './initial-auras'
 import { PlayerName } from './player-name'
 
 export type PlayerSummaryTableProps = {
   summary: FocusedPlayerSummary | null
   rows: FocusedPlayerThreatRow[]
-  initialAuras: InitialAura[]
+  initialAuras: InitialAuraDisplay[]
+}
+
+function buildWowheadSpellUrl(spellId: number): string {
+  return `https://www.wowhead.com/classic/spell=${spellId}`
 }
 
 function formatTps(value: number): string {
@@ -111,7 +118,21 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
                 </tr>
                 {rows.map((row) => (
                   <tr className="border-b border-border" key={row.key}>
-                    <td className="px-2 py-2">{row.abilityName}</td>
+                    <td className="px-2 py-2">
+                      {row.abilityId === null ? (
+                        row.abilityName
+                      ) : (
+                        <a
+                          className="underline decoration-dotted underline-offset-2"
+                          data-wowhead={`spell=${row.abilityId}&domain=classic`}
+                          href={buildWowheadSpellUrl(row.abilityId)}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {row.abilityName}
+                        </a>
+                      )}
+                    </td>
                     <td className="px-2 py-2">{formatNumber(row.amount)}</td>
                     <td className="px-2 py-2">{formatNumber(row.threat)}</td>
                     <td className="px-2 py-2">{formatTps(row.tps)}</td>

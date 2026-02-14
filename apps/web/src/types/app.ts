@@ -121,3 +121,10 @@ export interface FocusedPlayerThreatRow {
   threat: number
   tps: number
 }
+
+export interface InitialAuraDisplay {
+  spellId: number
+  name: string
+  stacks: number
+  isNotable: boolean
+}

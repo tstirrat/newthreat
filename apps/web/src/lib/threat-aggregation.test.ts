@@ -933,7 +933,7 @@ describe('threat-aggregation', () => {
       ])
     })
 
-    it('filters initial auras to only show notable ones', () => {
+    it('sorts notable initial auras first and keeps non-notable auras below', () => {
       const events = [
         {
           timestamp: 1000,
@@ -984,8 +984,30 @@ describe('threat-aggregation', () => {
 
       const result = buildInitialAurasDisplay(events, 1, config)
       expect(result).toEqual([
-        { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
-        { abilityGameID: 12303, name: 'Defiance', stacks: 5 },
+        {
+          spellId: 71,
+          name: 'Defensive Stance',
+          stacks: 1,
+          isNotable: true,
+        },
+        {
+          spellId: 12303,
+          name: 'Defiance',
+          stacks: 5,
+          isNotable: true,
+        },
+        {
+          spellId: 25289,
+          name: 'Battle Shout',
+          stacks: 1,
+          isNotable: false,
+        },
+        {
+          spellId: 9999,
+          name: 'Non-Notable Buff',
+          stacks: 1,
+          isNotable: false,
+        },
       ])
     })
 
@@ -1002,10 +1024,75 @@ describe('threat-aggregation', () => {
       expect(result).toEqual([])
     })
 
-    it('returns empty array when threat config is null', () => {
-      const events = [] as never
+    it('returns all initial auras as non-notable when threat config is null', () => {
+      const events = [
+        {
+          timestamp: 1000,
+          type: 'combatantinfo',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 0,
+          targetIsFriendly: false,
+          auras: [{ abilityGameID: 71, name: 'Defensive Stance', stacks: 1 }],
+          threat: {
+            changes: [],
+            calculation: {
+              formula: 'none',
+              amount: 0,
+              baseThreat: 0,
+              modifiedThreat: 0,
+              isSplit: false,
+              modifiers: [],
+            },
+          },
+        },
+      ] as never
+
       const result = buildInitialAurasDisplay(events, 1, null)
-      expect(result).toEqual([])
+      expect(result).toEqual([
+        {
+          spellId: 71,
+          name: 'Defensive Stance',
+          stacks: 1,
+          isNotable: false,
+        },
+      ])
+    })
+
+    it('filters out auras without a valid spell id', () => {
+      const events = [
+        {
+          timestamp: 1000,
+          type: 'combatantinfo',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          targetID: 0,
+          targetIsFriendly: false,
+          auras: [
+            { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
+            { ability: 12303, name: 'Defiance', stacks: 5 },
+            { name: 'Missing Spell', stacks: 1 },
+            { abilityGameID: 0, name: 'Zero Spell', stacks: 1 },
+          ],
+          threat: {
+            changes: [],
+            calculation: {
+              formula: 'none',
+              amount: 0,
+              baseThreat: 0,
+              modifiedThreat: 0,
+              isSplit: false,
+              modifiers: [],
+            },
+          },
+        },
+      ] as never
+
+      const result = getInitialAuras(events, 1)
+      expect(result).toEqual([
+        { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
+        { ability: 12303, name: 'Defiance', stacks: 5 },
+      ])
     })
   })
 })

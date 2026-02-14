@@ -14,6 +14,7 @@ import type {
   FightTargetOption,
   FocusedPlayerSummary,
   FocusedPlayerThreatRow,
+  InitialAuraDisplay,
   PlayerSummaryRow,
   ThreatPointModifier,
   ThreatSeries,
@@ -86,6 +87,23 @@ interface ActorStateVisuals {
 }
 
 const defaultTargetInstance = 0
+
+function getAuraSpellId(aura: CombatantInfoAura): number | null {
+  const abilityGameId =
+    typeof aura.abilityGameID === 'number' ? aura.abilityGameID : null
+  if (abilityGameId && abilityGameId > 0) {
+    return abilityGameId
+  }
+
+  const legacyAura = aura as CombatantInfoAura & { ability?: number }
+  const ability =
+    typeof legacyAura.ability === 'number' ? legacyAura.ability : null
+  if (ability && ability > 0) {
+    return ability
+  }
+
+  return null
+}
 
 function resolveActorClass(
   actor: ReportActorSummary,
@@ -1259,10 +1277,10 @@ export function getInitialAuras(
       }
     ).auras ?? []
 
-  return auras.filter((aura) => aura.abilityGameID !== 0)
+  return auras.filter((aura) => getAuraSpellId(aura) !== null)
 }
 
-/** Get filtered notable initial auras for display. */
+/** Build initial aura display rows with notable auras sorted to the top. */
 export function buildInitialAurasDisplay(
   events: AugmentedEvent[],
   focusedPlayerId: number | null,
@@ -1275,15 +1293,32 @@ export function buildInitialAurasDisplay(
       }
     >
   } | null,
-): CombatantInfoAura[] {
-  if (focusedPlayerId === null || !threatConfig) {
+): InitialAuraDisplay[] {
+  if (focusedPlayerId === null) {
     return []
   }
 
-  const notableAuraIds = getNotableAuraIds(threatConfig)
+  const notableAuraIds = threatConfig
+    ? getNotableAuraIds(threatConfig)
+    : new Set<SpellId>()
   const initialAuras = getInitialAuras(events, focusedPlayerId)
 
-  return initialAuras.filter((aura) =>
-    notableAuraIds.has(aura.abilityGameID ?? aura.ability ?? 0),
-  )
+  return initialAuras
+    .map((aura) => {
+      const spellId = getAuraSpellId(aura)
+      if (spellId === null) {
+        return null
+      }
+
+      const fallbackName = `Spell ${spellId}`
+
+      return {
+        spellId,
+        name: aura.name?.trim() ? aura.name : fallbackName,
+        stacks: aura.stacks > 0 ? aura.stacks : 1,
+        isNotable: notableAuraIds.has(spellId),
+      }
+    })
+    .filter((aura): aura is InitialAuraDisplay => aura !== null)
+    .sort((left, right) => Number(right.isNotable) - Number(left.isNotable))
 }
