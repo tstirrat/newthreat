@@ -808,6 +808,11 @@ function buildAugmentedEvent(
     base.talents = event.talents
   }
 
+  if ('x' in event && 'y' in event) {
+    base.x = event.x
+    base.y = event.y
+  }
+
   return base
 }
 

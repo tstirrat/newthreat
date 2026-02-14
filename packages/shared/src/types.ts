@@ -418,6 +418,9 @@ export interface AugmentedEvent {
   auras?: CombatantInfoAura[]
   talents?: TalentPoints
 
+  x?: number
+  y?: number
+
   /** Augmented threat data (present only when event is threat-relevant) */
   threat?: ThreatResult
 }

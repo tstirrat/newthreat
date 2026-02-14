@@ -63,6 +63,8 @@ export interface BaseWCLEvent {
   targetID: number
   sourceInstance?: number // For multi-instance enemies
   targetInstance?: number
+  x?: number // X coordinate (requires includeResources: true in query)
+  y?: number // Y coordinate (requires includeResources: true in query)
 }
 
 export interface DamageEvent extends BaseWCLEvent {

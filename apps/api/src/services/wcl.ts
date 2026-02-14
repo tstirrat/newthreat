@@ -237,6 +237,7 @@ export class WCLClient {
                 startTime: $startTime
                 endTime: $endTime
                 limit: 10000
+                includeResources: true
               ) {
                 data
                 nextPageTimestamp
