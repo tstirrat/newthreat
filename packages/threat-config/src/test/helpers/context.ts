@@ -14,6 +14,13 @@ import type {
   DamageEvent,
 } from '@wcl-threat/wcl-types'
 
+type LegacyFriendlyFlagOverrides = {
+  sourceIsFriendly?: boolean
+  targetIsFriendly?: boolean
+}
+
+type EventOverrides<TEvent> = Partial<TEvent> & LegacyFriendlyFlagOverrides
+
 export function createContext(
   event: ThreatContext['event'],
   sourceAuras: Set<number> = new Set(),
@@ -32,21 +39,21 @@ export function createContext(
 }
 
 export function createDamageContext(
-  overrides: Partial<DamageEvent> = {},
+  overrides: EventOverrides<DamageEvent> = {},
   sourceAuras: Set<number> = new Set(),
 ): ThreatContext {
   return createContext(createDamageEvent(overrides), sourceAuras)
 }
 
 export function createCastContext(
-  overrides: Partial<CastEvent> = {},
+  overrides: EventOverrides<CastEvent> = {},
   sourceAuras: Set<number> = new Set(),
 ): ThreatContext {
   return createContext(createCastEvent(overrides), sourceAuras)
 }
 
 export function createApplyDebuffContext(
-  overrides: Partial<ApplyDebuffEvent> = {},
+  overrides: EventOverrides<ApplyDebuffEvent> = {},
   sourceAuras: Set<number> = new Set(),
 ): ThreatContext {
   return createContext(createApplyDebuffEvent(overrides), sourceAuras)

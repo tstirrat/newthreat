@@ -76,6 +76,11 @@ export interface MockWCLResponses {
     }
   }
   events?: unknown[]
+  eventsPages?: Array<{
+    startTime?: number | null
+    data: unknown[]
+    nextPageTimestamp: number | null
+  }>
 }
 
 const defaultTokenResponse = {
@@ -143,14 +148,21 @@ export function createMockFetch(responses: MockWCLResponses = {}) {
 
         // Events query
         if (query?.includes('GetEvents') || query?.includes('events(')) {
+          const requestStartTime =
+            (body.variables?.startTime as number | null | undefined) ?? null
+          const pagedResponse = responses.eventsPages?.find(
+            (page) => (page.startTime ?? null) === requestStartTime,
+          )
+
           return new Response(
             JSON.stringify({
               data: {
                 reportData: {
                   report: {
                     events: {
-                      data: responses.events ?? [],
-                      nextPageTimestamp: null,
+                      data: pagedResponse?.data ?? responses.events ?? [],
+                      nextPageTimestamp:
+                        pagedResponse?.nextPageTimestamp ?? null,
                     },
                   },
                 },

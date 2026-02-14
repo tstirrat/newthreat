@@ -38,11 +38,7 @@ const createArlokkPreprocessor: EncounterPreprocessorFactory = (ctx) => {
   return (preprocessCtx) => {
     const event = preprocessCtx.event
 
-    if (
-      event.type !== 'cast' ||
-      event.sourceIsFriendly ||
-      !arlokkSourceIds.has(event.sourceID)
-    ) {
+    if (event.type !== 'cast' || !arlokkSourceIds.has(event.sourceID)) {
       return undefined
     }
 

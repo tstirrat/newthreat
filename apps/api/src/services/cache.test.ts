@@ -160,12 +160,20 @@ describe('CacheKeys', () => {
   })
 
   it('generates correct events key', () => {
-    expect(CacheKeys.events('ABC123', 5)).toBe('wcl:events:ABC123:5')
+    expect(CacheKeys.events('ABC123', 5)).toBe(
+      'wcl:events:v2:ABC123:5:start:full:end:full',
+    )
+  })
+
+  it('generates correct events key with explicit time bounds', () => {
+    expect(CacheKeys.events('ABC123', 5, 1000, 2000)).toBe(
+      'wcl:events:v2:ABC123:5:start:1000:end:2000',
+    )
   })
 
   it('generates correct augmented events key', () => {
     expect(CacheKeys.augmentedEvents('ABC123', 5, 'v1.2.0')).toBe(
-      'augmented:ABC123:5:v1.2.0',
+      'augmented:v2:ABC123:5:v1.2.0',
     )
   })
 })

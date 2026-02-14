@@ -14,6 +14,7 @@ import type {
 
 export interface BuildThreatEngineInput {
   actorMap: Map<number, Actor>
+  friendlyActorIds: Set<number>
   enemies: Enemy[]
   abilitySchoolMap: Map<number, number>
 }
@@ -119,6 +120,13 @@ function buildActorMap(
   ])
 }
 
+function buildFriendlyActorIds(fight: ReportFight): Set<number> {
+  const friendlyPlayerIds = fight.friendlyPlayers ?? []
+  const friendlyPetIds = (fight.friendlyPets ?? []).map((pet) => pet.id)
+
+  return new Set([...friendlyPlayerIds, ...friendlyPetIds])
+}
+
 function buildEnemies(
   fight: ReportFight,
   actors: ReportActor[],
@@ -174,6 +182,7 @@ export function buildThreatEngineInput(
 
   return {
     actorMap: buildActorMap(fight, actors),
+    friendlyActorIds: buildFriendlyActorIds(fight),
     enemies: buildEnemies(fight, actors, rawEvents),
     abilitySchoolMap: buildAbilitySchoolMap(abilities),
   }

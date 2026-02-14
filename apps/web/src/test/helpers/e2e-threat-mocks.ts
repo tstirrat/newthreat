@@ -284,7 +284,9 @@ function calculationFor({
   baseThreat: number
   formula: string
   modifiedThreat: number
-}): AugmentedEventsResponse['events'][number]['threat']['calculation'] {
+}): NonNullable<
+  AugmentedEventsResponse['events'][number]['threat']
+>['calculation'] {
   return {
     amount,
     baseThreat,
@@ -302,9 +304,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 23922,
       amount: 600,
       sourceID: 1,
-      sourceIsFriendly: true,
       targetID: 100,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 600,
@@ -330,9 +330,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 11267,
       amount: 500,
       sourceID: 2,
-      sourceIsFriendly: true,
       targetID: 100,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 500,
@@ -358,9 +356,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 75,
       amount: 300,
       sourceID: 3,
-      sourceIsFriendly: true,
       targetID: 100,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 300,
@@ -386,9 +382,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 25258,
       amount: 240,
       sourceID: 1,
-      sourceIsFriendly: true,
       targetID: 100,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 240,
@@ -414,9 +408,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 23922,
       amount: 300,
       sourceID: 1,
-      sourceIsFriendly: true,
       targetID: 102,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 300,
@@ -442,9 +434,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 11267,
       amount: 360,
       sourceID: 2,
-      sourceIsFriendly: true,
       targetID: 102,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 360,
@@ -470,9 +460,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 23922,
       amount: 400,
       sourceID: 1,
-      sourceIsFriendly: true,
       targetID: 100,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 400,
@@ -498,7 +486,6 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 2054,
       amount: 200,
       sourceID: 3,
-      sourceIsFriendly: true,
       targetID: 3,
       targetIsFriendly: true,
       threat: {
@@ -526,9 +513,7 @@ const patchwerkEvents: AugmentedEventsResponse = {
       abilityGameID: 24599,
       amount: 200,
       sourceID: 4,
-      sourceIsFriendly: true,
       targetID: 100,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 200,
@@ -572,9 +557,7 @@ const grobbulusEvents: AugmentedEventsResponse = {
       abilityGameID: 23922,
       amount: 500,
       sourceID: 1,
-      sourceIsFriendly: true,
       targetID: 101,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 500,
@@ -600,9 +583,7 @@ const grobbulusEvents: AugmentedEventsResponse = {
       abilityGameID: 11267,
       amount: 520,
       sourceID: 2,
-      sourceIsFriendly: true,
       targetID: 101,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 520,
@@ -628,9 +609,7 @@ const grobbulusEvents: AugmentedEventsResponse = {
       abilityGameID: 75,
       amount: 420,
       sourceID: 3,
-      sourceIsFriendly: true,
       targetID: 101,
-      targetIsFriendly: false,
       threat: {
         calculation: calculationFor({
           amount: 420,
@@ -721,7 +700,9 @@ export async function setupThreatApiMocks(page: Page): Promise<void> {
       return
     }
 
-    const fightMatch = url.pathname.match(/^\/v1\/reports\/([^/]+)\/fights\/(\d+)$/)
+    const fightMatch = url.pathname.match(
+      /^\/v1\/reports\/([^/]+)\/fights\/(\d+)$/,
+    )
     if (fightMatch) {
       const requestedReportId = fightMatch[1]
       const fightId = Number.parseInt(fightMatch[2] ?? '', 10)

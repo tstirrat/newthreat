@@ -54,6 +54,7 @@ export interface ThreatPoint {
   abilityName: string
   formula: string
   modifiers: ThreatPointModifier[]
+  markerKind?: ThreatPointMarkerKind
 }
 
 export interface ThreatPointModifier {
@@ -61,6 +62,8 @@ export interface ThreatPointModifier {
   schoolLabels: string[]
   value: number
 }
+
+export type ThreatPointMarkerKind = 'bossMelee'
 
 export type ThreatStateVisualKind = 'fixate' | 'aggroLoss' | 'invulnerable'
 

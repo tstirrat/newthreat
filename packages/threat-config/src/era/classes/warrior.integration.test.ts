@@ -53,6 +53,10 @@ describe('anniversary warrior integration', () => {
       fightStartTime,
       maxLines: fixture.metadata.maxSnapshotLines ?? 600,
       includeEvent: (event) => {
+        if (!event.threat) {
+          return false
+        }
+
         const hasThreat =
           (event.threat.changes?.length ?? 0) > 0 ||
           event.threat.calculation.modifiedThreat !== 0

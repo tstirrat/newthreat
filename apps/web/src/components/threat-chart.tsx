@@ -24,7 +24,11 @@ import {
   buildThreatStateVisualMaps,
   resolveThreatStateStatus,
 } from '../lib/threat-chart-visuals'
-import type { ThreatPointModifier, ThreatSeries } from '../types/app'
+import type {
+  ThreatPointMarkerKind,
+  ThreatPointModifier,
+  ThreatSeries,
+} from '../types/app'
 
 echarts.use([
   LineChart,
@@ -65,6 +69,7 @@ interface TooltipPointPayload {
   threatDelta: number
   timeMs: number
   totalThreat: number
+  markerKind?: ThreatPointMarkerKind
 }
 
 interface SeriesChartPoint extends TooltipPointPayload {
@@ -74,6 +79,27 @@ interface SeriesChartPoint extends TooltipPointPayload {
 
 const doubleClickThresholdMs = 320
 const tooltipSnapDistancePx = 10
+const bossMeleeMarkerColor = '#ef4444'
+
+function resolvePointColor(
+  point: SeriesChartPoint | undefined,
+  seriesColor: string,
+): string {
+  if (point?.markerKind === 'bossMelee') {
+    console.log('[resolvePointColor] Boss melee marker detected!', point)
+    return bossMeleeMarkerColor
+  }
+
+  return seriesColor
+}
+
+function resolvePointSize(point: SeriesChartPoint | undefined): number {
+  if (point?.markerKind === 'bossMelee') {
+    return 8
+  }
+
+  return 6
+}
 
 function resetLegendSelection(
   chart: ReturnType<ReactEChartsCore['getEchartsInstance']>,
@@ -543,6 +569,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         const threatDelta = Number(payload.threatDelta ?? 0)
         const amount = Number(payload.amount ?? 0)
         const modifiedThreat = Number(payload.modifiedThreat ?? 0)
+        const markerKind = payload.markerKind ?? null
         const spellSchool = payload.spellSchool?.toLowerCase() ?? null
         const rawEventType = String(
           payload.eventType ?? 'unknown',
@@ -563,6 +590,10 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         const auraLine =
           auraStatus.color && auraStatus.label
             ? `Aura: <strong style="color:${statusColor};">${statusLabel}</strong>`
+            : null
+        const markerLine =
+          markerKind === 'bossMelee'
+            ? `Marker: <strong style="color:${bossMeleeMarkerColor};">Boss melee</strong>`
             : null
         const splitCount = resolveSplitCount(modifiedThreat, threatDelta)
         const visibleModifiers = modifiers.filter(
@@ -615,6 +646,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
               ]
             : []),
           ...(auraLine ? [auraLine] : []),
+          ...(markerLine ? [markerLine] : []),
           '</div>',
         ].join('')
       },
@@ -698,12 +730,15 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         smooth: false,
         symbol: 'circle',
         showSymbol: true,
-        symbolSize: 6,
+        symbolSize: (params: { data?: SeriesChartPoint }) =>
+          resolvePointSize(params.data as SeriesChartPoint),
         triggerLineEvent: true,
         animation: false,
         itemStyle: {
-          color: item.color,
-          borderColor: item.color,
+          color: (params: { data?: SeriesChartPoint }) =>
+            resolvePointColor(params.data as SeriesChartPoint, item.color),
+          borderColor: (params: { data?: SeriesChartPoint }) =>
+            resolvePointColor(params.data as SeriesChartPoint, item.color),
         },
         emphasis: {
           focus: 'series',

@@ -261,9 +261,7 @@ describe('Druid Config', () => {
           timestamp: 0,
           type: 'combatantinfo',
           sourceID: 1,
-          sourceIsFriendly: true,
           targetID: 1,
-          targetIsFriendly: true,
         },
         sourceActor: { id: 1, name: 'TestDruid', class: 'druid' },
         talentPoints: [0, 0, 0],
@@ -290,9 +288,7 @@ describe('Druid Config', () => {
             timestamp: 0,
             type: 'combatantinfo',
             sourceID: 1,
-            sourceIsFriendly: true,
             targetID: 1,
-            targetIsFriendly: true,
             auras: [
               {
                 source: 1,
@@ -316,9 +312,7 @@ describe('Druid Config', () => {
             timestamp: 0,
             type: 'combatantinfo',
             sourceID: 1,
-            sourceIsFriendly: true,
             targetID: 1,
-            targetIsFriendly: true,
             auras: [
               {
                 source: 1,
@@ -352,9 +346,7 @@ describe('Druid Config', () => {
             timestamp: 0,
             type: 'combatantinfo',
             sourceID: 1,
-            sourceIsFriendly: true,
             targetID: 1,
-            targetIsFriendly: true,
             auras: [
               {
                 source: 1,

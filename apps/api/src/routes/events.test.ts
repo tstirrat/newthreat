@@ -16,9 +16,7 @@ const mockEvents = [
     timestamp: 1000,
     type: 'damage',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 25,
-    targetIsFriendly: false,
     ability: {
       guid: 23922,
       name: 'Shield Slam',
@@ -38,9 +36,7 @@ const mockEvents = [
     timestamp: 2000,
     type: 'heal',
     sourceID: 2,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     ability: {
       guid: 25314,
       name: 'Greater Heal',
@@ -56,9 +52,7 @@ const mockEvents = [
     timestamp: 3000,
     type: 'applybuff',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     ability: {
       guid: 71,
       name: 'Defensive Stance',
@@ -116,8 +110,8 @@ describe('Events API', () => {
 
       expect(damageEvent).toBeDefined()
       expect(damageEvent!.threat).toBeDefined()
-      expect(damageEvent!.threat.calculation).toBeDefined()
-      expect(damageEvent!.threat.changes).toBeDefined()
+      expect(damageEvent!.threat!.calculation).toBeDefined()
+      expect(damageEvent!.threat!.changes).toBeDefined()
     })
 
     it('includes threat data for heal events', async () => {
@@ -157,6 +151,43 @@ describe('Events API', () => {
 
       expect(res.headers.get('Cache-Control')).toContain('immutable')
       expect(res.headers.get('X-Game-Version')).toBe('2')
+    })
+
+    it('fetches and merges paginated event pages from WCL', async () => {
+      const pageOneEvents = mockEvents.slice(0, 2)
+      const pageTwoEvent = {
+        ...mockEvents[2],
+        timestamp: 65000,
+      }
+
+      mockFetch({
+        report: reportData,
+        eventsPages: [
+          {
+            startTime: null,
+            data: pageOneEvents,
+            nextPageTimestamp: 30000,
+          },
+          {
+            startTime: 30000,
+            data: [pageTwoEvent],
+            nextPageTimestamp: null,
+          },
+        ],
+      })
+
+      const res = await app.request(
+        'http://localhost/v1/reports/PAGINATION123/fights/1/events?refresh=1',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(200)
+
+      const data: AugmentedEventsResponse = await res.json()
+      expect(data.events).toHaveLength(3)
+      expect(data.summary.totalEvents).toBe(3)
+      expect(data.events.some((event) => event.timestamp === 65000)).toBe(true)
     })
 
     it('returns 404 for non-existent fight', async () => {
@@ -350,13 +381,13 @@ describe('Events API', () => {
       )
 
       expect(healEvent).toBeDefined()
-      expect(healEvent!.threat.calculation.isSplit).toBe(true)
-      expect(healEvent!.threat.changes).toBeDefined()
+      expect(healEvent!.threat!.calculation.isSplit).toBe(true)
+      expect(healEvent!.threat!.changes).toBeDefined()
 
       // Fight 1 (Patchwerk) should only have threat split to Patchwerk (id 25),
       // NOT Grobbulus (id 26) which is in fight 2
-      expect(healEvent!.threat.changes).toHaveLength(1)
-      expect(healEvent!.threat.changes?.[0]?.targetId).toBe(25)
+      expect(healEvent!.threat!.changes).toHaveLength(1)
+      expect(healEvent!.threat!.changes?.[0]?.targetId).toBe(25)
     })
   })
 })

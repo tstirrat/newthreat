@@ -19,7 +19,24 @@ import type {
   RemoveBuffStackEvent,
   RemoveDebuffEvent,
   RemoveDebuffStackEvent,
+  ResourceChangeEvent,
 } from '@wcl-threat/wcl-types'
+
+type LegacyFriendlyFlagOverrides = {
+  sourceIsFriendly?: boolean
+  targetIsFriendly?: boolean
+}
+
+type EventOverrides<TEvent> = Partial<TEvent> & LegacyFriendlyFlagOverrides
+
+function sanitizeEventOverrides<TEvent>(
+  overrides: EventOverrides<TEvent>,
+): Partial<TEvent> {
+  const sanitized = { ...overrides }
+  delete sanitized.sourceIsFriendly
+  delete sanitized.targetIsFriendly
+  return sanitized as Partial<TEvent>
+}
 
 /**
  * Create a damage event with default values
@@ -32,15 +49,13 @@ import type {
  * - Basic ability (id: 1)
  */
 export function createDamageEvent(
-  overrides: Partial<DamageEvent> = {},
+  overrides: EventOverrides<DamageEvent> = {},
 ): DamageEvent {
   return {
     timestamp: 1000,
     type: 'damage',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 99,
-    targetIsFriendly: false,
     abilityGameID: 1,
     amount: 100,
     absorbed: 0,
@@ -50,7 +65,7 @@ export function createDamageEvent(
     hitType: 'hit',
     tick: false,
     multistrike: false,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -65,20 +80,20 @@ export function createDamageEvent(
  * - overheal: 0
  * - Basic heal ability (id: 1)
  */
-export function createHealEvent(overrides: Partial<HealEvent> = {}): HealEvent {
+export function createHealEvent(
+  overrides: EventOverrides<HealEvent> = {},
+): HealEvent {
   return {
     timestamp: 1000,
     type: 'heal',
     sourceID: 2,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     abilityGameID: 1,
     amount: 1000,
     absorbed: 0,
     overheal: 0,
     tick: false,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -95,20 +110,37 @@ export function createHealEvent(overrides: Partial<HealEvent> = {}): HealEvent {
  * - Basic ability (id: 1)
  */
 export function createEnergizeEvent(
-  overrides: Partial<EnergizeEvent> = {},
+  overrides: EventOverrides<EnergizeEvent> = {},
 ): EnergizeEvent {
   return {
     timestamp: 1000,
     type: 'energize',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     abilityGameID: 1,
     resourceChange: 20,
     resourceChangeType: 'rage',
     waste: 0,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
+  }
+}
+
+/**
+ * Create a resourcechange event with default values
+ */
+export function createResourceChangeEvent(
+  overrides: EventOverrides<ResourceChangeEvent> = {},
+): ResourceChangeEvent {
+  return {
+    timestamp: 1000,
+    type: 'resourcechange',
+    sourceID: 1,
+    targetID: 1,
+    abilityGameID: 1,
+    resourceChange: 20,
+    resourceChangeType: 'rage',
+    waste: 0,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -122,17 +154,15 @@ export function createEnergizeEvent(
  * - Basic buff ability (id: 1)
  */
 export function createApplyBuffEvent(
-  overrides: Partial<ApplyBuffEvent> = {},
+  overrides: EventOverrides<ApplyBuffEvent> = {},
 ): ApplyBuffEvent {
   return {
     timestamp: 1000,
     type: 'applybuff',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     abilityGameID: 1,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -146,17 +176,15 @@ export function createApplyBuffEvent(
  * - Basic buff ability (id: 1)
  */
 export function createRemoveBuffEvent(
-  overrides: Partial<RemoveBuffEvent> = {},
+  overrides: EventOverrides<RemoveBuffEvent> = {},
 ): RemoveBuffEvent {
   return {
     timestamp: 2000,
     type: 'removebuff',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     abilityGameID: 1,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -164,17 +192,15 @@ export function createRemoveBuffEvent(
  * Create a refreshbuff event with default values
  */
 export function createRefreshBuffEvent(
-  overrides: Partial<RefreshBuffEvent> = {},
+  overrides: EventOverrides<RefreshBuffEvent> = {},
 ): RefreshBuffEvent {
   return {
     timestamp: 1500,
     type: 'refreshbuff',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     abilityGameID: 1,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -182,18 +208,16 @@ export function createRefreshBuffEvent(
  * Create an applybuffstack event with default values
  */
 export function createApplyBuffStackEvent(
-  overrides: Partial<ApplyBuffStackEvent> = {},
+  overrides: EventOverrides<ApplyBuffStackEvent> = {},
 ): ApplyBuffStackEvent {
   return {
     timestamp: 1500,
     type: 'applybuffstack',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     abilityGameID: 1,
     stacks: 2,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -201,18 +225,16 @@ export function createApplyBuffStackEvent(
  * Create a removebuffstack event with default values
  */
 export function createRemoveBuffStackEvent(
-  overrides: Partial<RemoveBuffStackEvent> = {},
+  overrides: EventOverrides<RemoveBuffStackEvent> = {},
 ): RemoveBuffStackEvent {
   return {
     timestamp: 1500,
     type: 'removebuffstack',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 1,
-    targetIsFriendly: true,
     abilityGameID: 1,
     stacks: 0,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -226,17 +248,15 @@ export function createRemoveBuffStackEvent(
  * - Basic buff ability (id: 1)
  */
 export function createApplyDebuffEvent(
-  overrides: Partial<ApplyDebuffEvent> = {},
+  overrides: EventOverrides<ApplyDebuffEvent> = {},
 ): ApplyDebuffEvent {
   return {
     timestamp: 1000,
     type: 'applydebuff',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 2,
-    targetIsFriendly: false,
     abilityGameID: 1,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -250,17 +270,15 @@ export function createApplyDebuffEvent(
  * - Basic buff ability (id: 1)
  */
 export function createRemoveDebuffEvent(
-  overrides: Partial<RemoveDebuffEvent> = {},
+  overrides: EventOverrides<RemoveDebuffEvent> = {},
 ): RemoveDebuffEvent {
   return {
     timestamp: 1000,
     type: 'removedebuff',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 2,
-    targetIsFriendly: false,
     abilityGameID: 1,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -268,17 +286,15 @@ export function createRemoveDebuffEvent(
  * Create a refreshdebuff event with default values
  */
 export function createRefreshDebuffEvent(
-  overrides: Partial<RefreshDebuffEvent> = {},
+  overrides: EventOverrides<RefreshDebuffEvent> = {},
 ): RefreshDebuffEvent {
   return {
     timestamp: 1500,
     type: 'refreshdebuff',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 2,
-    targetIsFriendly: false,
     abilityGameID: 1,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -286,18 +302,16 @@ export function createRefreshDebuffEvent(
  * Create an applydebuffstack event with default values
  */
 export function createApplyDebuffStackEvent(
-  overrides: Partial<ApplyDebuffStackEvent> = {},
+  overrides: EventOverrides<ApplyDebuffStackEvent> = {},
 ): ApplyDebuffStackEvent {
   return {
     timestamp: 1500,
     type: 'applydebuffstack',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 2,
-    targetIsFriendly: false,
     abilityGameID: 1,
     stacks: 2,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 
@@ -305,18 +319,16 @@ export function createApplyDebuffStackEvent(
  * Create a removedebuffstack event with default values
  */
 export function createRemoveDebuffStackEvent(
-  overrides: Partial<RemoveDebuffStackEvent> = {},
+  overrides: EventOverrides<RemoveDebuffStackEvent> = {},
 ): RemoveDebuffStackEvent {
   return {
     timestamp: 1500,
     type: 'removedebuffstack',
     sourceID: 1,
-    sourceIsFriendly: true,
     targetID: 2,
-    targetIsFriendly: false,
     abilityGameID: 1,
     stacks: 0,
-    ...overrides,
+    ...sanitizeEventOverrides(overrides),
   }
 }
 

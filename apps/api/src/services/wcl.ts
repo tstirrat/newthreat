@@ -211,19 +211,23 @@ export class WCLClient {
     fightId: number,
     startTime?: number,
     endTime?: number,
+    options: { bypassCache?: boolean } = {},
   ): Promise<unknown[]> {
+    const { bypassCache = false } = options
     // Check cache
-    const cacheKey = CacheKeys.events(code, fightId)
-    const cached = await this.cache.get<unknown[]>(cacheKey)
-    if (cached) {
-      return cached
+    const cacheKey = CacheKeys.events(code, fightId, startTime, endTime)
+    if (!bypassCache) {
+      const cached = await this.cache.get<unknown[]>(cacheKey)
+      if (cached) {
+        return cached
+      }
     }
 
     const allEvents: unknown[] = []
-    let nextPageTimestamp: number | null = startTime ?? null
+    let requestStartTime: number | undefined = startTime
 
     // Paginate through all events
-    do {
+    while (true) {
       const query = `
         query GetEvents($code: String!, $fightId: Int!, $startTime: Float, $endTime: Float) {
           reportData {
@@ -245,14 +249,19 @@ export class WCLClient {
       const data = await this.query<WCLEventsResponse['data']>(query, {
         code,
         fightId,
-        startTime: nextPageTimestamp,
+        startTime: requestStartTime,
         endTime,
       })
 
       const events = data.reportData.report.events
       allEvents.push(...events.data)
-      nextPageTimestamp = events.nextPageTimestamp
-    } while (nextPageTimestamp !== null)
+      const nextPageTimestamp = events.nextPageTimestamp
+      if (!nextPageTimestamp) {
+        break
+      }
+
+      requestStartTime = nextPageTimestamp
+    }
 
     // Cache permanently
     await this.cache.set(cacheKey, allEvents)

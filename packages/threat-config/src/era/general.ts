@@ -34,7 +34,7 @@ export const baseThreat: BaseThreatConfig = {
    */
   energize: (ctx) => {
     const event = ctx.event
-    if (event.type !== 'energize') {
+    if (event.type !== 'energize' && event.type !== 'resourcechange') {
       return { formula: '0', value: 0, splitAmongEnemies: false }
     }
 

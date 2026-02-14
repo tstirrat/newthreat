@@ -3,8 +3,6 @@
  *
  * GET /reports/:code/fights/:id/events - Get events with threat calculations
  */
-import { Hono } from 'hono'
-
 import {
   getSupportedGameVersions,
   resolveConfigOrNull,
@@ -14,12 +12,13 @@ import {
   processEvents,
 } from '@wcl-threat/threat-engine'
 import type { WCLEvent } from '@wcl-threat/wcl-types'
+import { Hono } from 'hono'
 
 import {
   fightNotFound,
-  invalidGameVersion,
   invalidConfigVersion,
   invalidFightId,
+  invalidGameVersion,
   reportNotFound,
 } from '../middleware/error'
 import { CacheKeys, createCache } from '../services/cache'
@@ -40,6 +39,8 @@ eventsRoutes.get('/', async (c) => {
   const code = c.req.param('code')!
   const idParam = c.req.param('id')!
   const configVersionParam = c.req.query('configVersion')
+  const refreshParam = c.req.query('refresh')
+  const bypassAugmentedCache = refreshParam === '1' || refreshParam === 'true'
 
   // Validate fight ID
   const fightId = parseInt(idParam, 10)
@@ -91,7 +92,9 @@ eventsRoutes.get('/', async (c) => {
   // Check augmented cache
   const augmentedCache = createCache(c.env, 'augmented')
   const cacheKey = CacheKeys.augmentedEvents(code, fightId, configVersion)
-  const cached = await augmentedCache.get<AugmentedEventsResponse>(cacheKey)
+  const cached = bypassAugmentedCache
+    ? null
+    : await augmentedCache.get<AugmentedEventsResponse>(cacheKey)
 
   if (cached) {
     const cacheControl =
@@ -108,19 +111,29 @@ eventsRoutes.get('/', async (c) => {
   }
 
   // Fetch raw events from WCL
-  const rawEvents = (await wcl.getEvents(code, fightId)) as WCLEvent[]
+  const rawEvents = (await wcl.getEvents(
+    code,
+    fightId,
+    fight.startTime,
+    fight.endTime,
+    {
+      bypassCache: bypassAugmentedCache,
+    },
+  )) as WCLEvent[]
 
-  const { actorMap, enemies, abilitySchoolMap } = buildThreatEngineInput({
-    fight,
-    actors: report.masterData.actors,
-    abilities: report.masterData.abilities,
-    rawEvents,
-  })
+  const { actorMap, friendlyActorIds, enemies, abilitySchoolMap } =
+    buildThreatEngineInput({
+      fight,
+      actors: report.masterData.actors,
+      abilities: report.masterData.abilities,
+      rawEvents,
+    })
 
   // Process events and calculate threat using the threat engine
   const { augmentedEvents, eventCounts } = processEvents({
     rawEvents,
     actorMap,
+    friendlyActorIds,
     abilitySchoolMap,
     enemies,
     encounterId: fight.encounterID ?? null,

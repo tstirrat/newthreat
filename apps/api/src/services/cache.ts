@@ -132,7 +132,14 @@ export const CacheKeys = {
   wclToken: () => 'wcl:token',
   report: (code: string) => `wcl:report:${code}`,
   fights: (code: string) => `wcl:fights:${code}`,
-  events: (code: string, fightId: number) => `wcl:events:${code}:${fightId}`,
+  wclEventsSchemaVersion: 'v2',
+  events: (
+    code: string,
+    fightId: number,
+    startTime?: number,
+    endTime?: number,
+  ) =>
+    `wcl:events:${CacheKeys.wclEventsSchemaVersion}:${code}:${fightId}:start:${startTime ?? 'full'}:end:${endTime ?? 'full'}`,
   augmentedSchemaVersion: 'v2',
   augmentedEvents: (code: string, fightId: number, configVersion: string) =>
     `augmented:${CacheKeys.augmentedSchemaVersion}:${code}:${fightId}:${configVersion}`,

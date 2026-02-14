@@ -35,6 +35,7 @@ const THREAT_EVENT_TYPES = new Set<WCLEvent['type']>([
   'damage',
   'heal',
   'energize',
+  'resourcechange',
   'cast',
   'applybuff',
   'refreshbuff',
@@ -47,6 +48,7 @@ const THREAT_EVENT_TYPES = new Set<WCLEvent['type']>([
   'removedebuff',
   'removedebuffstack',
 ])
+const BOSS_MELEE_SPELL_ID = 1
 
 const NO_THREAT_FORMULA_RESULT: ThreatFormulaResult = {
   formula: '0',
@@ -63,6 +65,8 @@ export interface ProcessEventsInput {
   rawEvents: WCLEvent[]
   /** Map of actor IDs to actor metadata */
   actorMap: Map<number, Actor>
+  /** Friendly actor IDs in the current fight (players + pets) */
+  friendlyActorIds?: Set<number>
   /** Ability school bitmasks indexed by ability ID */
   abilitySchoolMap?: Map<number, number>
   /** List of all enemies in the fight */
@@ -80,6 +84,11 @@ export interface ProcessEventsOutput {
   eventCounts: Record<string, number>
 }
 
+type FriendlyResolvedEvent = WCLEvent & {
+  sourceIsFriendly: boolean
+  targetIsFriendly: boolean
+}
+
 /**
  * Process raw WCL events and calculate threat
  *
@@ -93,6 +102,7 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
   const {
     rawEvents,
     actorMap,
+    friendlyActorIds,
     abilitySchoolMap,
     enemies,
     encounterId: inputEncounterId,
@@ -114,22 +124,28 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
         })
       : undefined
 
-  for (const event of rawEvents) {
+  for (const rawEvent of rawEvents) {
+    const event = resolveEventFriendliness({
+      event: rawEvent,
+      actorMap,
+      friendlyActorIds,
+    })
+
     // Update fight state (auras, gear, combatant info)
     fightState.processEvent(event, config)
 
     // Count event types
     eventCounts[event.type] = (eventCounts[event.type] ?? 0) + 1
 
-    // Include combatantinfo events as zero-threat events (needed for frontend aura data)
-    if (event.type === 'combatantinfo') {
+    if (isTrackedBossMeleeEvent(event)) {
       const zeroCalculation: ThreatCalculation = {
-        formula: 'none',
-        amount: 0,
+        formula: '0 (boss melee marker)',
+        amount: event.amount,
         baseThreat: 0,
         modifiedThreat: 0,
         isSplit: false,
         modifiers: [],
+        effects: [{ type: 'eventMarker', marker: 'bossMelee' }],
       }
       augmentedEvents.push(buildAugmentedEvent(event, zeroCalculation, []))
       continue
@@ -236,7 +252,10 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
           changes.length > 0 ? changes : undefined,
         ),
       )
+      continue
     }
+
+    augmentedEvents.push(buildAugmentedEvent(event))
   }
 
   return {
@@ -249,7 +268,7 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
 function applyThreat(
   fightState: FightState,
   calculation: ThreatCalculation,
-  event: WCLEvent,
+  event: FriendlyResolvedEvent,
   enemies: Enemy[],
   threatRecipientOverride?: number,
 ): ThreatChange[] {
@@ -301,11 +320,20 @@ function applyThreat(
     }
   } else if (calculation.modifiedThreat !== 0) {
     // single target event
+    const targetInstance = event.targetInstance ?? 0
+    const isEnemyTarget = enemies.some(
+      (enemy) =>
+        enemy.id === event.targetID && enemy.instance === targetInstance,
+    )
+    if (!isEnemyTarget) {
+      return changes
+    }
+
     const change = applyThreatDelta(
       fightState,
       threatRecipient,
       event.targetID,
-      event.targetInstance ?? 0,
+      targetInstance,
       calculation.modifiedThreat,
     )
     if (change) {
@@ -382,7 +410,7 @@ function applyCustomThreatEffect(
 function applyModifyThreatEffect(
   fightState: FightState,
   effect: Extract<ThreatEffect, { type: 'modifyThreat' }>,
-  event: WCLEvent,
+  event: FriendlyResolvedEvent,
 ): ThreatChange[] {
   if (effect.target === 'all') {
     // Friendly source abilities (e.g., Vanish, Feign Death):
@@ -478,21 +506,91 @@ function buildDeathThreatWipeChanges(
   }))
 }
 
+function resolveFriendlyFlag({
+  explicit,
+  actorId,
+  actorMap,
+  friendlyActorIds,
+}: {
+  explicit: boolean | undefined
+  actorId: number
+  actorMap: Map<number, Actor>
+  friendlyActorIds?: Set<number>
+}): boolean {
+  if (typeof explicit === 'boolean') {
+    return explicit
+  }
+
+  if (friendlyActorIds) {
+    return friendlyActorIds.has(actorId)
+  }
+
+  // Fallback for direct unit tests that pass only actorMap:
+  // class-bearing actors are friendly players.
+  const actor = actorMap.get(actorId)
+  if (!actor) {
+    return false
+  }
+
+  return actor.class !== null
+}
+
+function resolveEventFriendliness({
+  event,
+  actorMap,
+  friendlyActorIds,
+}: {
+  event: WCLEvent
+  actorMap: Map<number, Actor>
+  friendlyActorIds?: Set<number>
+}): FriendlyResolvedEvent {
+  return {
+    ...event,
+    sourceIsFriendly: resolveFriendlyFlag({
+      explicit: event.sourceIsFriendly,
+      actorId: event.sourceID,
+      actorMap,
+      friendlyActorIds,
+    }),
+    targetIsFriendly: resolveFriendlyFlag({
+      explicit: event.targetIsFriendly,
+      actorId: event.targetID,
+      actorMap,
+      friendlyActorIds,
+    }),
+  }
+}
+
 /**
  * Determine if an event should have threat calculated
  */
-function shouldCalculateThreat(event: WCLEvent): boolean {
-  // Always process death events (for threat wipe tracking)
-  if (event.type === 'death') {
-    return true
-  }
-  if (event.type === 'damage' && event.targetIsFriendly) {
+function shouldCalculateThreat(event: FriendlyResolvedEvent): boolean {
+  if (!isThreatRelevantToPlayers(event)) {
     return false
   }
   if (event.targetID === ENVIRONMENT_TARGET_ID) {
     return false
   }
+  // Death events can wipe threat (friendly death) and should always be evaluated.
+  if (event.type === 'death') {
+    return true
+  }
   return THREAT_EVENT_TYPES.has(event.type)
+}
+
+function isThreatRelevantToPlayers(event: FriendlyResolvedEvent): boolean {
+  return event.sourceIsFriendly || event.targetIsFriendly
+}
+
+function isTrackedBossMeleeEvent(
+  event: FriendlyResolvedEvent,
+): event is Extract<FriendlyResolvedEvent, { type: 'damage' }> {
+  return (
+    event.type === 'damage' &&
+    event.abilityGameID === BOSS_MELEE_SPELL_ID &&
+    !event.sourceIsFriendly &&
+    event.targetIsFriendly
+  )
 }
 
 function getSpellSchoolMaskForEvent(
@@ -639,25 +737,25 @@ function getAbilityName(event: WCLEvent): string | undefined {
  */
 function buildAugmentedEvent(
   event: WCLEvent,
-  calculation: ThreatCalculation,
-  changes: ThreatChange[] | undefined,
+  calculation?: ThreatCalculation,
+  changes?: ThreatChange[] | undefined,
 ): AugmentedEvent {
-  // Add cumulative threat values from fight state
-  const threatWithCumulative: ThreatResult = {
-    calculation,
-    changes,
-  }
-
   const base: AugmentedEvent = {
     timestamp: event.timestamp,
     type: event.type,
     sourceID: event.sourceID,
-    sourceIsFriendly: event.sourceIsFriendly,
     targetID: event.targetID,
-    targetIsFriendly: event.targetIsFriendly,
     sourceInstance: event.sourceInstance,
     targetInstance: event.targetInstance,
-    threat: threatWithCumulative,
+  }
+
+  if (calculation) {
+    // Add cumulative threat values from fight state
+    const threatWithCumulative: ThreatResult = {
+      calculation,
+      changes,
+    }
+    base.threat = threatWithCumulative
   }
 
   // Add event-specific fields
@@ -744,7 +842,8 @@ export function calculateModifiedThreat(
   // Ability formulas can explicitly opt in/out of player multipliers.
   // Default keeps existing energize behavior (no multipliers) unless overridden.
   const shouldApplyPlayerMultipliers =
-    formulaResult.applyPlayerMultipliers ?? event.type !== 'energize'
+    formulaResult.applyPlayerMultipliers ??
+    (event.type !== 'energize' && event.type !== 'resourcechange')
   const allModifiers: ThreatModifier[] = shouldApplyPlayerMultipliers
     ? [
         ...getClassModifiers(options.sourceActor.class, config),
@@ -810,6 +909,7 @@ function getEventAmount(event: WCLEvent): number {
       return Math.max(0, event.amount - overheal)
     }
     case 'energize':
+    case 'resourcechange':
       // Only actual resource gained generates threat (exclude waste)
       return Math.max(0, event.resourceChange - event.waste)
     default:
@@ -846,6 +946,7 @@ function getFormulaResult(ctx: ThreatContext, config: ThreatConfig) {
     case 'heal':
       return config.baseThreat.heal(ctx) ?? NO_THREAT_FORMULA_RESULT
     case 'energize':
+    case 'resourcechange':
       return config.baseThreat.energize(ctx) ?? NO_THREAT_FORMULA_RESULT
     default:
       return NO_THREAT_FORMULA_RESULT

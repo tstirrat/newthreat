@@ -17,6 +17,7 @@ export type EventType =
   | 'removedebuff'
   | 'removedebuffstack'
   | 'energize'
+  | 'resourcechange'
   | 'cast'
   | 'begincast'
   | 'interrupt'
@@ -59,9 +60,7 @@ export interface BaseWCLEvent {
   timestamp: number // Relative to fight start (ms)
   type: EventType
   sourceID: number
-  sourceIsFriendly: boolean
   targetID: number
-  targetIsFriendly: boolean
   sourceInstance?: number // For multi-instance enemies
   targetInstance?: number
 }
@@ -161,6 +160,14 @@ export interface EnergizeEvent extends BaseWCLEvent {
   waste: number
 }
 
+export interface ResourceChangeEvent extends BaseWCLEvent {
+  type: 'resourcechange'
+  abilityGameID: number
+  resourceChange: number
+  resourceChangeType: ResourceType
+  waste: number
+}
+
 export interface CastEvent extends BaseWCLEvent {
   type: 'cast'
   abilityGameID: number
@@ -233,7 +240,12 @@ export interface CombatantInfoEvent extends BaseWCLEvent {
 }
 
 /** Union type for WCL events */
-export type WCLEvent =
+type LegacyFriendlinessFlags = {
+  sourceIsFriendly?: boolean
+  targetIsFriendly?: boolean
+}
+
+export type WCLEvent = (
   | DamageEvent
   | HealEvent
   | ApplyBuffEvent
@@ -247,6 +259,7 @@ export type WCLEvent =
   | RemoveDebuffEvent
   | RemoveDebuffStackEvent
   | EnergizeEvent
+  | ResourceChangeEvent
   | CastEvent
   | BeginCastEvent
   | InterruptEvent
@@ -254,3 +267,5 @@ export type WCLEvent =
   | ResurrectEvent
   | SummonEvent
   | CombatantInfoEvent
+) &
+  LegacyFriendlinessFlags

@@ -249,6 +249,163 @@ describe('threat-aggregation', () => {
     ])
   })
 
+  it('adds boss melee markers to the struck player series for the selected target', () => {
+    const actors: ReportActorSummary[] = [
+      {
+        id: 1,
+        name: 'Tank',
+        type: 'Player',
+        subType: 'Warrior',
+      },
+      {
+        id: 2,
+        name: 'Healer',
+        type: 'Player',
+        subType: 'Priest',
+      },
+      {
+        id: 10,
+        name: 'Boss',
+        type: 'NPC',
+        subType: 'Boss',
+      },
+    ]
+    const abilities: ReportAbilitySummary[] = [
+      {
+        gameID: 1,
+        icon: null,
+        name: 'Melee',
+        type: '1',
+      },
+      {
+        gameID: 100,
+        icon: null,
+        name: 'Shield Slam',
+        type: '1',
+      },
+    ]
+    const events = [
+      {
+        timestamp: 1000,
+        type: 'damage',
+        sourceID: 1,
+        sourceIsFriendly: true,
+        targetID: 10,
+        targetIsFriendly: false,
+        abilityGameID: 100,
+        amount: 200,
+        threat: {
+          changes: [
+            {
+              sourceId: 1,
+              targetId: 10,
+              targetInstance: 0,
+              operator: 'add',
+              amount: 200,
+              total: 200,
+            },
+          ],
+          calculation: {
+            formula: 'damage',
+            amount: 200,
+            baseThreat: 200,
+            modifiedThreat: 200,
+            isSplit: false,
+            modifiers: [],
+          },
+        },
+      },
+      {
+        timestamp: 1200,
+        type: 'damage',
+        sourceID: 10,
+        sourceIsFriendly: false,
+        targetID: 1,
+        targetIsFriendly: true,
+        abilityGameID: 9999,
+        amount: 700,
+        threat: {
+          changes: [],
+          calculation: {
+            formula: '0 (boss melee marker)',
+            amount: 700,
+            baseThreat: 0,
+            modifiedThreat: 0,
+            isSplit: false,
+            modifiers: [],
+            effects: [
+              {
+                type: 'eventMarker',
+                marker: 'bossMelee',
+              },
+            ],
+          },
+        },
+      },
+      {
+        timestamp: 1300,
+        type: 'damage',
+        sourceID: 10,
+        sourceIsFriendly: false,
+        targetID: 2,
+        targetIsFriendly: true,
+        abilityGameID: 9998,
+        amount: 550,
+        threat: {
+          changes: [],
+          calculation: {
+            formula: '0 (boss melee marker)',
+            amount: 550,
+            baseThreat: 0,
+            modifiedThreat: 0,
+            isSplit: false,
+            modifiers: [],
+            effects: [
+              {
+                type: 'eventMarker',
+                marker: 'bossMelee',
+              },
+            ],
+          },
+        },
+      },
+    ]
+
+    const series = buildThreatSeries({
+      events: events as never,
+      actors,
+      abilities,
+      fightStartTime: 1000,
+      fightEndTime: 2000,
+      target: {
+        id: 10,
+        instance: 0,
+      },
+    })
+
+    const tankSeries = series.find((entry) => entry.actorId === 1)
+    const healerSeries = series.find((entry) => entry.actorId === 2)
+
+    expect(tankSeries?.points).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          timeMs: 200,
+          totalThreat: 200,
+          markerKind: 'bossMelee',
+        }),
+      ]),
+    )
+    expect(healerSeries?.points).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          timeMs: 300,
+          totalThreat: 0,
+          markerKind: 'bossMelee',
+        }),
+      ]),
+    )
+  })
+
   it('builds state visual segments and fixate windows for the selected target', () => {
     const actors: ReportActorSummary[] = [
       {

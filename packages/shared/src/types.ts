@@ -210,6 +210,7 @@ export interface ThreatStatePayload {
 export type ThreatEffect =
   | { type: 'modifyThreat'; multiplier: number; target: 'target' | 'all' }
   | { type: 'state'; state: ThreatStatePayload }
+  | { type: 'eventMarker'; marker: 'bossMelee' }
   | { type: 'customThreat'; changes: ThreatChange[] }
   | { type: 'installInterceptor'; interceptor: EventInterceptor }
 
@@ -395,9 +396,7 @@ export interface AugmentedEvent {
   timestamp: number
   type: EventType
   sourceID: number
-  sourceIsFriendly: boolean
   targetID: number
-  targetIsFriendly: boolean
   sourceInstance?: number
   targetInstance?: number
   abilityGameID?: number
@@ -419,6 +418,6 @@ export interface AugmentedEvent {
   auras?: CombatantInfoAura[]
   talents?: TalentPoints
 
-  /** Augmented threat data */
-  threat: ThreatResult
+  /** Augmented threat data (present only when event is threat-relevant) */
+  threat?: ThreatResult
 }

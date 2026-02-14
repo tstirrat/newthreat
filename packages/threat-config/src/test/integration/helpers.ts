@@ -149,16 +149,18 @@ export function runConfigFixture(
       zone: fixture.report.zone,
       fights: fixture.report.fights,
     })
-  const { actorMap, enemies, abilitySchoolMap } = buildThreatEngineInput({
-    fight,
-    actors: fixture.report.masterData.actors,
-    abilities: fixture.report.masterData.abilities,
-    rawEvents: fixture.events,
-  })
+  const { actorMap, friendlyActorIds, enemies, abilitySchoolMap } =
+    buildThreatEngineInput({
+      fight,
+      actors: fixture.report.masterData.actors,
+      abilities: fixture.report.masterData.abilities,
+      rawEvents: fixture.events,
+    })
 
   const { augmentedEvents } = processEvents({
     rawEvents: fixture.events,
     actorMap,
+    friendlyActorIds,
     abilitySchoolMap,
     enemies,
     encounterId: fight.encounterID ?? null,
@@ -215,11 +217,12 @@ function formatFormula(formula: string): string {
 }
 
 function formatModifiers(event: AugmentedEvent): string {
-  if (event.threat.calculation.modifiers.length === 0) {
+  const modifiers = event.threat?.calculation.modifiers ?? []
+  if (modifiers.length === 0) {
     return '-'
   }
 
-  return [...event.threat.calculation.modifiers]
+  return [...modifiers]
     .sort((a, b) => {
       const nameCompare = a.name.localeCompare(b.name)
       if (nameCompare !== 0) {
@@ -256,7 +259,7 @@ function shouldIncludeWithDefaultFilter(
     return true
   }
 
-  return (event.threat.changes ?? []).some(
+  return (event.threat?.changes ?? []).some(
     (change) => change.sourceId === focusActorId,
   )
 }
@@ -270,7 +273,7 @@ function resolveSourceActorId(
   }
 
   for (const event of events) {
-    const sourceId = event.threat.changes?.[0]?.sourceId
+    const sourceId = event.threat?.changes?.[0]?.sourceId
     if (sourceId !== undefined) {
       return sourceId
     }
@@ -293,7 +296,7 @@ function resolveTargetKey(
   }
 
   const totalsByTarget = events
-    .flatMap((event) => event.threat.changes ?? [])
+    .flatMap((event) => event.threat?.changes ?? [])
     .filter(
       (change) => sourceActorId === null || change.sourceId === sourceActorId,
     )
@@ -325,6 +328,10 @@ function shouldIncludeDefault(
   event: AugmentedEvent,
   focusActorId: number | undefined,
 ): boolean {
+  if (!event.threat) {
+    return false
+  }
+
   const hasThreat =
     (event.threat.changes?.length ?? 0) > 0 ||
     event.threat.calculation.modifiedThreat !== 0
@@ -382,7 +389,12 @@ export function buildThreatSnapshotLines(
 
   const allRows = filteredEvents
     .map((event) => {
-      const matchingSourceChanges = (event.threat.changes ?? []).filter(
+      const threat = event.threat
+      if (!threat) {
+        return null
+      }
+
+      const matchingSourceChanges = (threat.changes ?? []).filter(
         (change) => sourceActorId === null || change.sourceId === sourceActorId,
       )
 
@@ -399,15 +411,15 @@ export function buildThreatSnapshotLines(
       const splitCount = matchingSourceChanges.length
       const toTarget =
         splitCount > 1
-          ? `${formatThreat(event.threat.calculation.modifiedThreat)} / ${splitCount} = ${formatThreat(targetChange.amount)}`
+          ? `${formatThreat(threat.calculation.modifiedThreat)} / ${splitCount} = ${formatThreat(targetChange.amount)}`
           : formatThreat(targetChange.amount)
 
       return {
         time: formatRelativeTime(event.timestamp, fightStartTime),
         spell: formatSpellName(event, abilityNameMap),
-        amount: formatThreat(event.threat.calculation.amount),
-        formula: formatFormula(event.threat.calculation.formula),
-        threat: formatThreat(event.threat.calculation.modifiedThreat),
+        amount: formatThreat(threat.calculation.amount),
+        formula: formatFormula(threat.calculation.formula),
+        threat: formatThreat(threat.calculation.modifiedThreat),
         toTarget,
         total: formatThreat(targetChange.total),
         modifiers: formatModifiers(event),
@@ -515,7 +527,7 @@ export function buildActorThreatTotals(
   actorMap: Map<number, Actor>,
 ): ThreatActorTotal[] {
   const totals = augmentedEvents
-    .flatMap((event) => event.threat.changes ?? [])
+    .flatMap((event) => event.threat?.changes ?? [])
     .reduce((result, change) => {
       result.set(
         change.sourceId,

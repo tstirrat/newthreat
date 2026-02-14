@@ -62,6 +62,7 @@ Framework: Vitest.
 - Web package uses Vitest + React Testing Library for component/integration tests.
 - Custom snapshot tests are allowed for `@wcl-threat/threat-engine`, `@wcl-threat/threat-config`, or any tests that assert final augmented events payloads; these are most commonly used in `@wcl-threat/threat-config`.
 - End-to-end tests are in Playwright.
+- Prefer shared event factory helpers (`createDamageEvent`, `createHealEvent`, and other `createXEvent` helpers) when building test events. Use raw event payload objects only when absolutely necessary for a scenario the helpers cannot express.
 
 ```bash
 # All tests

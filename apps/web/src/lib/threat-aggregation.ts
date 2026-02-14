@@ -25,6 +25,7 @@ import type {
 import { getActorColor, getClassColor } from './class-colors'
 
 const trackableActorTypes = new Set(['Player', 'Pet'])
+const bossMeleeSpellId = 1
 const spellSchoolByMask = {
   1: 'physical',
   2: 'holy',
@@ -87,6 +88,50 @@ interface ActorStateVisuals {
 }
 
 const defaultTargetInstance = 0
+
+function ensureEncounterStartPoint(
+  accumulator: SeriesAccumulator,
+  fightStartTime: number,
+): void {
+  if (accumulator.points.length > 0) {
+    return
+  }
+
+  accumulator.points.push({
+    timestamp: fightStartTime,
+    timeMs: 0,
+    totalThreat: 0,
+    threatDelta: 0,
+    amount: 0,
+    baseThreat: 0,
+    modifiedThreat: 0,
+    spellSchool: null,
+    eventType: 'start',
+    abilityName: 'Encounter start',
+    formula: 'n/a',
+    modifiers: [],
+  })
+}
+
+function isBossMeleeMarkerEventForTarget({
+  event,
+  target,
+}: {
+  event: AugmentedEventsResponse['events'][number]
+  target: FightTarget
+}): boolean {
+  const hasBossMeleeMarker = (event.threat?.calculation.effects ?? []).some(
+    (effect) => effect.type === 'eventMarker' && effect.marker === 'bossMelee',
+  )
+  const isLegacyBossMeleeEvent =
+    event.type === 'damage' && event.abilityGameID === bossMeleeSpellId
+
+  return (
+    (hasBossMeleeMarker || isLegacyBossMeleeEvent) &&
+    event.sourceID === target.id &&
+    (event.sourceInstance ?? defaultTargetInstance) === target.instance
+  )
+}
 
 function getAuraSpellId(aura: CombatantInfoAura): number | null {
   const abilityGameId =
@@ -352,7 +397,7 @@ function collectStateTransitionsByActor({
       resolveRelativeTimeMs(event.timestamp, fightStartTime, firstTimestamp),
       fightEndMs,
     )
-    ;(event.threat.calculation.effects ?? []).forEach((effect) => {
+    ;(event.threat?.calculation.effects ?? []).forEach((effect) => {
       if (effect.type !== 'state') {
         return
       }
@@ -577,7 +622,7 @@ export function buildFightTargetOptions({
       })
     }
 
-    ;(event.threat.changes ?? []).forEach((change) => {
+    ;(event.threat?.changes ?? []).forEach((change) => {
       addObservedInstance({
         enemyId: change.targetId,
         instance: change.targetInstance ?? defaultTargetInstance,
@@ -633,7 +678,7 @@ export function selectDefaultTarget(
   const targetTotals = new Map<string, number>()
 
   events.forEach((event) => {
-    event.threat.changes?.forEach((change) => {
+    event.threat?.changes?.forEach((change) => {
       const target = {
         id: change.targetId,
         instance: change.targetInstance ?? defaultTargetInstance,
@@ -738,13 +783,13 @@ export function buildThreatSeries({
     const abilitySchoolLabels = resolveSchoolLabelsFromMask(abilitySchoolMask)
     const spellSchool =
       abilitySchoolLabels.length > 0 ? abilitySchoolLabels.join('/') : null
-    const formula = event.threat.calculation.formula
+    const formula = event.threat?.calculation.formula ?? 'n/a'
     const modifiers = normalizeThreatModifiers(
-      event.threat.calculation.modifiers,
+      event.threat?.calculation.modifiers,
     )
-    const amount = event.threat.calculation.amount
-    const baseThreat = event.threat.calculation.baseThreat
-    const modifiedThreat = event.threat.calculation.modifiedThreat
+    const amount = event.threat?.calculation.amount ?? 0
+    const baseThreat = event.threat?.calculation.baseThreat ?? 0
+    const modifiedThreat = event.threat?.calculation.modifiedThreat ?? 0
     const timeMs = resolveRelativeTimeMs(
       event.timestamp,
       fightStartTime,
@@ -755,7 +800,30 @@ export function buildThreatSeries({
     const healingDone =
       event.type === 'heal' ? Math.max(0, event.amount ?? 0) : 0
 
-    event.threat.changes?.forEach((change) => {
+    if (isBossMeleeMarkerEventForTarget({ event, target })) {
+      const targetActor = actorsById.get(event.targetID)
+      const targetAccumulator = accumulators.get(event.targetID)
+      if (targetActor?.type === 'Player' && targetAccumulator) {
+        ensureEncounterStartPoint(targetAccumulator, fightStartTime)
+        targetAccumulator.points.push({
+          timestamp: event.timestamp,
+          timeMs,
+          totalThreat: targetAccumulator.totalThreat,
+          threatDelta: 0,
+          amount: Math.max(0, event.amount ?? 0),
+          baseThreat: 0,
+          modifiedThreat: 0,
+          spellSchool,
+          eventType: event.type,
+          abilityName,
+          formula: event.threat?.calculation.formula ?? 'n/a',
+          modifiers: [],
+          markerKind: 'bossMelee',
+        })
+      }
+    }
+
+    event.threat?.changes?.forEach((change) => {
       if (
         change.targetId !== target.id ||
         (change.targetInstance ?? defaultTargetInstance) !== target.instance
@@ -773,22 +841,7 @@ export function buildThreatSeries({
       accumulator.totalDamage += damageDone
       accumulator.totalHealing += healingDone
 
-      if (accumulator.points.length === 0) {
-        accumulator.points.push({
-          timestamp: fightStartTime,
-          timeMs: 0,
-          totalThreat: 0,
-          threatDelta: 0,
-          amount: 0,
-          baseThreat: 0,
-          modifiedThreat: 0,
-          spellSchool: null,
-          eventType: 'start',
-          abilityName: 'Encounter start',
-          formula: 'n/a',
-          modifiers: [],
-        })
-      }
+      ensureEncounterStartPoint(accumulator, fightStartTime)
 
       accumulator.points.push({
         timestamp: event.timestamp,
@@ -959,7 +1012,7 @@ export function buildFocusedPlayerSummary({
         return acc
       }
 
-      const hasMatchingChange = (event.threat.changes ?? []).some(
+      const hasMatchingChange = (event.threat?.changes ?? []).some(
         (change) =>
           change.targetId === target.id &&
           (change.targetInstance ?? defaultTargetInstance) ===
@@ -970,7 +1023,7 @@ export function buildFocusedPlayerSummary({
         return acc
       }
 
-      const threatDelta = (event.threat.changes ?? [])
+      const threatDelta = (event.threat?.changes ?? [])
         .filter(
           (change) =>
             change.targetId === target.id &&
@@ -1088,7 +1141,7 @@ export function buildFocusedPlayerThreatRows({
       return
     }
 
-    const matchingThreat = (event.threat.changes ?? [])
+    const matchingThreat = (event.threat?.changes ?? [])
       .filter(
         (change) =>
           change.targetId === target.id &&
@@ -1174,7 +1227,7 @@ export function buildReportRankings({
     const fightTotals = new Map<number, number>()
 
     events.forEach((event) => {
-      event.threat.changes?.forEach((change) => {
+      event.threat?.changes?.forEach((change) => {
         const source = actorsById.get(change.sourceId)
         if (!source) {
           return

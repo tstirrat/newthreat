@@ -219,9 +219,7 @@ describe('talentImplications', () => {
         timestamp: 0,
         type: 'combatantinfo',
         sourceID: 1,
-        sourceIsFriendly: true,
         targetID: 1,
-        targetIsFriendly: true,
       },
       sourceActor: { id: 1, name: 'TestWarrior', class: 'warrior' },
       talentPoints: [0, 0, 0],
@@ -323,18 +321,22 @@ describe('abilities', () => {
       const formula = warriorConfig.abilities[Spells.SunderArmor]
       expect(formula).toBeDefined()
 
-      const castResult = assertDefined(formula!(
-        createMockContext({
-          event: createCastEvent(),
-          amount: 0,
-        }),
-      ))
-      const missResult = assertDefined(formula!(
-        createMockContext({
-          event: createDamageEvent({ hitType: 'miss' }),
-          amount: 0,
-        }),
-      ))
+      const castResult = assertDefined(
+        formula!(
+          createMockContext({
+            event: createCastEvent(),
+            amount: 0,
+          }),
+        ),
+      )
+      const missResult = assertDefined(
+        formula!(
+          createMockContext({
+            event: createDamageEvent({ hitType: 'miss' }),
+            amount: 0,
+          }),
+        ),
+      )
 
       expect(castResult.formula).toBe('301 (cast)')
       expect(castResult.value).toBe(301)
