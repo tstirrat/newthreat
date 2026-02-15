@@ -11,7 +11,10 @@ import { priestConfig as eraPriestConfig } from '../era/classes/priest'
 import { rogueConfig as eraRogueConfig } from '../era/classes/rogue'
 import { shamanConfig as eraShamanConfig } from '../era/classes/shaman'
 import { warlockConfig as eraWarlockConfig } from '../era/classes/warlock'
-import { warriorConfig as eraWarriorConfig } from '../era/classes/warrior'
+import {
+  warriorConfig as eraWarriorConfig,
+  Spells as eraWarriorSpells,
+} from '../era/classes/warrior'
 import { baseThreat as eraBaseThreat } from '../era/general'
 import {
   aq40AggroLossBuffs as eraAq40AggroLossBuffs,
@@ -37,7 +40,10 @@ import { priestConfig as anniversaryPriestConfig } from './classes/priest'
 import { rogueConfig as anniversaryRogueConfig } from './classes/rogue'
 import { shamanConfig as anniversaryShamanConfig } from './classes/shaman'
 import { warlockConfig as anniversaryWarlockConfig } from './classes/warlock'
-import { warriorConfig as anniversaryWarriorConfig } from './classes/warrior'
+import {
+  warriorConfig as anniversaryWarriorConfig,
+  Spells as anniversaryWarriorSpells,
+} from './classes/warrior'
 import {
   aq40AggroLossBuffs as anniversaryAq40AggroLossBuffs,
   aq40AuraModifiers as anniversaryAq40AuraModifiers,
@@ -80,7 +86,16 @@ describe('anniversary inheritance defaults', () => {
     expect(anniversaryRogueConfig).toBe(eraRogueConfig)
     expect(anniversaryShamanConfig).toBe(eraShamanConfig)
     expect(anniversaryWarlockConfig).toBe(eraWarlockConfig)
-    expect(anniversaryWarriorConfig).toBe(eraWarriorConfig)
+    // Anniversary warrior extends era with TBC-specific ranks.
+    expect(anniversaryWarriorConfig).not.toBe(eraWarriorConfig)
+    expect(
+      anniversaryWarriorConfig.abilities?.[eraWarriorSpells.SunderArmorR5],
+    ).toBe(eraWarriorConfig.abilities[eraWarriorSpells.SunderArmorR5])
+    expect(
+      anniversaryWarriorConfig.abilities?.[
+        anniversaryWarriorSpells.SunderArmorR6
+      ],
+    ).toBeDefined()
   })
 
   it('shares era raid wrappers with era exports', () => {

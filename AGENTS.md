@@ -173,6 +173,8 @@ unions, aliases, and function types.
 - `verbatimModuleSyntax: true` -- `import type` is enforced
 - Explicit return types on exported functions and class methods
 - Return types may be omitted on short lambdas and internal helpers
+- Prefer meaningful domain types over plain primitives when semantics matter
+  (e.g., `SpellId`, `ActorId`, `EncounterId` instead of bare `number`)
 - Use `as const` for lookup tables (spell IDs, error codes)
 - Generics where appropriate (`get<T>`, `Partial<>` for test factories)
 
@@ -187,6 +189,8 @@ not accidentally mixed.
   parsers, and query-param parsers.
 - Keep wire payloads plain (`number`/`string`) and convert to branded types in
   application code after validation/parsing.
+- Keep plain `number` for generic numeric values that are not domain identities
+  (e.g., ranks, counts, percentages, loop indexes, local counters).
 - Do not over-brand internal ephemeral values (loop indexes, chart point indexes, local
   counters).
 

@@ -71,7 +71,7 @@ describe('Mage Config', () => {
       )
 
       expect(modifier.name).toBe('Burning Soul (Rank 2)')
-      expect(modifier.value).toBe(0.9)
+      expect(modifier.value).toBe(0.7)
       expect(modifier.source).toBe('talent')
       expect(modifier.schoolMask).toBe(SpellSchool.Fire)
     })

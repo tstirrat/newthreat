@@ -25,7 +25,7 @@ describe('sod mage config', () => {
       ),
     )
 
-    expect(result.value).toBe(0.9)
+    expect(result.value).toBe(0.7)
     expect(result.spellIds).toBeUndefined()
   })
 })

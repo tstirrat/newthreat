@@ -2,10 +2,15 @@
  * Fight-level state management
  *
  * Orchestrates per-actor state tracking throughout a fight. Routes events to
- * the appropriate actor's trackers and coordinates cross-tracker concerns
- * (e.g. gear implications producing synthetic auras).
+ * actor instance state objects and coordinates cross-actor concerns
+ * (e.g. talent/gear implications and threat-table mutations).
  */
-import type { Actor, ThreatConfig, WowClass } from '@wcl-threat/shared'
+import type {
+  Actor,
+  RuntimeActorView,
+  ThreatConfig,
+  WowClass,
+} from '@wcl-threat/shared'
 import type { GearItem, WCLEvent } from '@wcl-threat/wcl-types'
 
 import { ActorState } from './actor-state'
@@ -15,11 +20,13 @@ import type {
   ActorReference,
   EnemyReference,
 } from './instance-refs'
-import { buildActorKey, normalizeInstanceId } from './instance-refs'
-import { PositionTracker } from './position-tracker'
-import { TargetTracker } from './target-tracker'
+import {
+  buildActorKey,
+  normalizeInstanceId,
+  parseActorKey,
+  toActorInstanceReference,
+} from './instance-refs'
 import type { EnemyThreatEntry } from './threat-tracker'
-import { ThreatTracker } from './threat-tracker'
 
 const TALENT_ID_KEYS = [
   'spellID',
@@ -53,6 +60,7 @@ const COMBATANT_AURA_ID_KEYS = [
 
 type UnknownRecord = Record<string, unknown>
 const MAX_TALENT_PARSE_DEPTH = 6
+const DEFAULT_INSTANCE_ID = 0
 
 function asRecord(value: unknown): UnknownRecord | null {
   return typeof value === 'object' && value !== null
@@ -257,19 +265,13 @@ function mergeSyntheticAuras(parts: Array<number[] | undefined>): number[] {
 
 /** Top-level state container for a fight */
 export class FightState {
-  private actors = new Map<ActorId, ActorState>()
-  private actorMap: Map<ActorId, Actor>
-  private config: ThreatConfig
+  private actorStates = new Map<ActorKey, ActorState>()
+  private actorProfiles: Map<ActorId, Actor>
   private allExclusiveAuras: Set<number>[]
-  private positionTracker = new PositionTracker()
-  private targetTracker = new TargetTracker()
-  private threatTracker = new ThreatTracker()
-  private deadActors = new Set<ActorKey>()
 
   constructor(actorMap: Map<ActorId, Actor>, config: ThreatConfig) {
-    this.actorMap = actorMap
-    this.config = config
-    // Consolidate all exclusive auras from all class configs
+    this.actorProfiles = actorMap
+    // Consolidate all exclusive aura sets from all class configs
     this.allExclusiveAuras = this.collectAllExclusiveAuras(config)
   }
 
@@ -284,8 +286,68 @@ export class FightState {
     return allSets
   }
 
+  private getCompatActorReference(actorId: ActorId): ActorReference {
+    return {
+      id: actorId,
+      instanceId: DEFAULT_INSTANCE_ID,
+    }
+  }
+
+  private getActorProfile(actorId: ActorId): Actor {
+    return (
+      this.actorProfiles.get(actorId) ?? {
+        id: actorId,
+        name: `Unknown#${actorId}`,
+        class: null,
+      }
+    )
+  }
+
+  /** Get or create an ActorState for the given actor reference */
+  private getOrCreateActorState(actor: ActorReference): ActorState {
+    const normalizedActor = toActorInstanceReference(actor)
+    const actorKey = buildActorKey(normalizedActor)
+
+    let state = this.actorStates.get(actorKey)
+    if (!state) {
+      state = new ActorState({
+        profile: this.getActorProfile(normalizedActor.id),
+        instanceId: normalizedActor.instanceId,
+        exclusiveAuras: this.allExclusiveAuras,
+      })
+      this.actorStates.set(actorKey, state)
+    }
+    return state
+  }
+
+  /** Get ActorState for an explicit actor reference, if tracked. */
+  private getActorStateByReference(
+    actor: ActorReference,
+  ): ActorState | undefined {
+    const normalizedActor = toActorInstanceReference(actor)
+    const actorKey = buildActorKey(normalizedActor)
+    return this.actorStates.get(actorKey)
+  }
+
+  private getThreatSourceKey(actorId: ActorId): ActorKey {
+    return buildActorKey(this.getCompatActorReference(actorId))
+  }
+
   /** Process a WCL event and update relevant actor state */
   processEvent(event: WCLEvent, config: ThreatConfig): void {
+    const sourceRef = {
+      id: event.sourceID,
+      instanceId: normalizeInstanceId(event.sourceInstance),
+    }
+    const sourceState = this.getOrCreateActorState(sourceRef)
+
+    const targetRef = {
+      id: event.targetID,
+      instanceId: normalizeInstanceId(event.targetInstance),
+    }
+    const targetState =
+      event.targetID === -1 ? undefined : this.getOrCreateActorState(targetRef)
+
     // Update positions if available
     if (
       'x' in event &&
@@ -293,53 +355,32 @@ export class FightState {
       typeof event.x === 'number' &&
       typeof event.y === 'number'
     ) {
-      this.positionTracker.updatePosition(
-        {
-          id: event.sourceID,
-          instanceId: normalizeInstanceId(event.sourceInstance),
-        },
-        event.x,
-        event.y,
-      )
+      sourceState.updatePosition(event.x, event.y)
     }
 
     switch (event.type) {
       case 'combatantinfo':
-        this.processCombatantInfo(event, config)
+        this.processCombatantInfo(event, config, sourceState)
         break
       case 'cast':
       case 'begincast':
         // Cast activity marks actors as alive and updates target selection.
-        this.deadActors.delete(
-          buildActorKey({
-            id: event.sourceID,
-            instanceId: normalizeInstanceId(event.sourceInstance),
-          }),
-        )
+        sourceState.markAlive()
+
         if (event.targetID !== -1) {
-          this.targetTracker.setTarget(
-            {
-              id: event.sourceID,
-              instanceId: normalizeInstanceId(event.sourceInstance),
-            },
-            {
-              targetId: event.targetID,
-              targetInstance: normalizeInstanceId(event.targetInstance),
-            },
-          )
+          sourceState.setTarget({
+            targetId: event.targetID,
+            targetInstance: normalizeInstanceId(event.targetInstance),
+          })
         }
+
         if (event.type === 'cast') {
-          this.processCastAuraImplications(event, config)
+          this.processCastAuraImplications(event, config, sourceState)
         }
         break
       case 'damage':
         if (event.overkill > 0) {
-          this.deadActors.add(
-            buildActorKey({
-              id: event.targetID,
-              instanceId: normalizeInstanceId(event.targetInstance),
-            }),
-          )
+          targetState?.markDead()
         }
         break
       case 'applybuff':
@@ -348,39 +389,23 @@ export class FightState {
       case 'applydebuff':
       case 'refreshdebuff':
       case 'applydebuffstack':
-        this.getOrCreateActorState(event.targetID).auraTracker.addAura(
-          event.abilityGameID,
-        )
+        targetState?.auraTracker.addAura(event.abilityGameID)
         break
       case 'removebuff':
       case 'removedebuff':
-        this.getOrCreateActorState(event.targetID).auraTracker.removeAura(
-          event.abilityGameID,
-        )
+        targetState?.auraTracker.removeAura(event.abilityGameID)
         break
       case 'removebuffstack':
       case 'removedebuffstack':
         if (event.stacks !== undefined && event.stacks <= 0) {
-          this.getOrCreateActorState(event.targetID).auraTracker.removeAura(
-            event.abilityGameID,
-          )
+          targetState?.auraTracker.removeAura(event.abilityGameID)
         }
         break
       case 'death':
-        this.deadActors.add(
-          buildActorKey({
-            id: event.targetID,
-            instanceId: normalizeInstanceId(event.targetInstance),
-          }),
-        )
+        targetState?.markDead()
         break
       case 'resurrect':
-        this.deadActors.delete(
-          buildActorKey({
-            id: event.targetID,
-            instanceId: normalizeInstanceId(event.targetInstance),
-          }),
-        )
+        targetState?.markAlive()
         break
     }
   }
@@ -389,9 +414,9 @@ export class FightState {
   private processCastAuraImplications(
     event: Extract<WCLEvent, { type: 'cast' }>,
     config: ThreatConfig,
+    sourceState: ActorState,
   ): void {
-    const sourceActor = this.actorMap.get(event.sourceID) ?? null
-    const wowClass = sourceActor?.class as WowClass | null
+    const wowClass = sourceState.actorClass as WowClass | null
     const classConfig = wowClass ? config.classes[wowClass] : undefined
     const auraImplications = classConfig?.auraImplications
 
@@ -404,35 +429,69 @@ export class FightState {
       .map(([auraId]) => auraId)
 
     if (impliedAuras.length > 0) {
-      this.getOrCreateActorState(event.sourceID).auraTracker.seedAuras(
-        dedupeIds(impliedAuras),
-      )
+      sourceState.auraTracker.seedAuras(dedupeIds(impliedAuras))
     }
   }
 
-  /** Get the composite state for an actor */
+  /** Get the composite state for an actor at instance 0 (compatibility accessor). */
   getActorState(actorId: ActorId): ActorState | undefined {
-    return this.actors.get(actorId)
+    return this.getActorStateByReference(this.getCompatActorReference(actorId))
   }
 
-  /** Get active auras for an actor (convenience method) */
+  /** Get a read-only runtime actor snapshot for a specific instance. */
+  getActor(actor: ActorReference): RuntimeActorView | null {
+    const normalizedActor = toActorInstanceReference(actor)
+    const state = this.getActorStateByReference(normalizedActor)
+
+    if (state) {
+      return state.getRuntimeView()
+    }
+
+    const profile = this.actorProfiles.get(normalizedActor.id)
+    if (!profile) {
+      return null
+    }
+
+    return {
+      id: normalizedActor.id,
+      instanceId: normalizedActor.instanceId,
+      name: profile.name,
+      class: profile.class,
+      alive: true,
+      position: null,
+      currentTarget: null,
+      lastTarget: null,
+      auras: new Set(),
+    }
+  }
+
+  /** Get active auras for an actor instance. */
+  getAurasForActor(actor: ActorReference): ReadonlySet<number> {
+    return new Set(this.getActorStateByReference(actor)?.auras ?? [])
+  }
+
+  /** Get active auras for an actor at instance 0 (compatibility method). */
   getAuras(actorId: ActorId): Set<number> {
-    return this.actors.get(actorId)?.auras ?? new Set()
+    return new Set(this.getActorState(actorId)?.auras ?? [])
   }
 
-  /** Ensure an aura is active on an actor. */
+  /** Ensure an aura is active on an actor at instance 0. */
   setAura(actorId: ActorId, spellId: number): void {
-    this.getOrCreateActorState(actorId).auraTracker.addAura(spellId)
+    this.getOrCreateActorState(
+      this.getCompatActorReference(actorId),
+    ).auraTracker.addAura(spellId)
   }
 
-  /** Remove an aura from an actor. */
+  /** Remove an aura from an actor at instance 0. */
   removeAura(actorId: ActorId, spellId: number): void {
-    this.getOrCreateActorState(actorId).auraTracker.removeAura(spellId)
+    this.getOrCreateActorState(
+      this.getCompatActorReference(actorId),
+    ).auraTracker.removeAura(spellId)
   }
 
-  /** Get equipped gear for an actor (convenience method) */
+  /** Get equipped gear for an actor at instance 0 (compatibility method). */
   getGear(actorId: ActorId): GearItem[] {
-    return this.actors.get(actorId)?.gear ?? []
+    return [...(this.getActorState(actorId)?.gear ?? [])]
   }
 
   /**
@@ -442,9 +501,8 @@ export class FightState {
   private processCombatantInfo(
     event: Extract<WCLEvent, { type: 'combatantinfo' }>,
     config: ThreatConfig,
+    actorState: ActorState,
   ): void {
-    const actorState = this.getOrCreateActorState(event.sourceID)
-
     // Seed initial auras from combatant info
     if (event.auras) {
       const auraIds = dedupeIds(
@@ -463,8 +521,12 @@ export class FightState {
       actorState.gearTracker.setGear(event.gear)
     }
 
-    const sourceActor = this.actorMap.get(event.sourceID) ?? null
-    const wowClass = sourceActor?.class as WowClass | null
+    const sourceActor: Actor = {
+      id: actorState.id,
+      name: actorState.name,
+      class: actorState.actorClass,
+    }
+    const wowClass = sourceActor.class as WowClass | null
     const classConfig = wowClass ? config.classes[wowClass] : undefined
     const gear = actorState.gearTracker.getGear()
     const { talentPoints, talentRanks, specId } = buildTalentContext(event)
@@ -488,74 +550,146 @@ export class FightState {
     }
   }
 
-  /** Get or create an ActorState for the given actor ID */
-  private getOrCreateActorState(actorId: ActorId): ActorState {
-    let state = this.actors.get(actorId)
-    if (!state) {
-      // Use consolidated exclusive auras from all classes
-      // (e.g., paladin blessings can be applied to any class)
-      state = new ActorState(this.allExclusiveAuras)
-      this.actors.set(actorId, state)
-    }
-    return state
-  }
-
   // Position tracking methods
   getPosition(actor: ActorReference): { x: number; y: number } | null {
-    return this.positionTracker.getPosition(actor)
+    return this.getActorStateByReference(actor)?.getPosition() ?? null
   }
 
   getDistance(actor1: ActorReference, actor2: ActorReference): number | null {
-    return this.positionTracker.getDistance(actor1, actor2)
+    const pos1 = this.getPosition(actor1)
+    const pos2 = this.getPosition(actor2)
+
+    if (!pos1 || !pos2) {
+      return null
+    }
+
+    const dx = pos2.x - pos1.x
+    const dy = pos2.y - pos1.y
+    return Math.sqrt(dx * dx + dy * dy)
   }
 
   getActorsInRange(actor: ActorReference, maxDistance: number): number[] {
-    return this.positionTracker.getActorsInRange(actor, maxDistance)
+    const sourcePosition = this.getPosition(actor)
+    if (!sourcePosition) {
+      return []
+    }
+
+    const sourceKey = buildActorKey(toActorInstanceReference(actor))
+
+    const actorIdsInRange = [...this.actorStates.entries()]
+      .filter(([actorKey]) => actorKey !== sourceKey)
+      .flatMap(([, state]) => {
+        const otherPosition = state.getPosition()
+        if (!otherPosition) {
+          return []
+        }
+
+        const dx = otherPosition.x - sourcePosition.x
+        const dy = otherPosition.y - sourcePosition.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        return distance <= maxDistance ? [state.id] : []
+      })
+
+    return [...new Set(actorIdsInRange)]
   }
 
   getCurrentTarget(
     actor: ActorReference,
   ): { targetId: number; targetInstance: number } | null {
-    return this.targetTracker.getCurrentTarget(actor)
+    return this.getActorStateByReference(actor)?.getCurrentTarget() ?? null
   }
 
   getLastTarget(
     actor: ActorReference,
   ): { targetId: number; targetInstance: number } | null {
-    return this.targetTracker.getLastTarget(actor)
+    return this.getActorStateByReference(actor)?.getLastTarget() ?? null
   }
 
-  // Threat tracking methods
+  // Threat tracking methods (enemy-owned threat tables)
   getThreat(actorId: ActorId, enemy: EnemyReference): number {
-    return this.threatTracker.getThreat(actorId, enemy)
+    const sourceKey = this.getThreatSourceKey(actorId)
+    return this.getActorStateByReference(enemy)?.getThreatFrom(sourceKey) ?? 0
   }
 
   getTopActorsByThreat(
     enemy: EnemyReference,
     count: number,
   ): Array<{ actorId: ActorId; threat: number }> {
-    return this.threatTracker.getTopActorsByThreat(enemy, count)
+    const enemyState = this.getActorStateByReference(enemy)
+    if (!enemyState) {
+      return []
+    }
+
+    return enemyState
+      .getThreatTableEntries()
+      .map(({ actorKey, threat }) => ({
+        actor: parseActorKey(actorKey),
+        threat,
+      }))
+      .filter(({ actor, threat }) => actor.instanceId === 0 && threat > 0)
+      .map(({ actor, threat }) => ({
+        actorId: actor.id,
+        threat,
+      }))
+      .sort((a, b) => b.threat - a.threat)
+      .slice(0, count)
   }
 
   getAllActorThreat(enemy: EnemyReference): Map<ActorId, number> {
-    return this.threatTracker.getAllActorThreat(enemy)
+    const enemyState = this.getActorStateByReference(enemy)
+    if (!enemyState) {
+      return new Map()
+    }
+
+    return enemyState
+      .getThreatTableEntries()
+      .map(({ actorKey, threat }) => ({
+        actor: parseActorKey(actorKey),
+        threat,
+      }))
+      .filter(({ actor, threat }) => actor.instanceId === 0 && threat > 0)
+      .reduce((result, { actor, threat }) => {
+        result.set(actor.id, threat)
+        return result
+      }, new Map<ActorId, number>())
   }
 
   getAllEnemyThreatEntries(actorId: ActorId): EnemyThreatEntry[] {
-    return this.threatTracker.getAllEnemyThreatEntries(actorId)
+    const sourceKey = this.getThreatSourceKey(actorId)
+
+    return [...this.actorStates.entries()]
+      .map(([enemyKey, enemyState]) => ({
+        enemy: parseActorKey(enemyKey),
+        threat: enemyState.getThreatFrom(sourceKey),
+      }))
+      .filter(({ threat }) => threat > 0)
+      .map(({ enemy, threat }) => ({
+        enemy: {
+          id: enemy.id,
+          instanceId: enemy.instanceId,
+        },
+        threat,
+      }))
   }
 
   addThreat(actorId: ActorId, enemy: EnemyReference, amount: number): void {
-    this.threatTracker.addThreat(actorId, enemy, amount)
+    const enemyState = this.getOrCreateActorState(enemy)
+    const sourceKey = this.getThreatSourceKey(actorId)
+
+    enemyState.addThreatFrom(sourceKey, amount)
   }
 
   setThreat(actorId: ActorId, enemy: EnemyReference, amount: number): void {
-    this.threatTracker.setThreat(actorId, enemy, amount)
+    const enemyState = this.getOrCreateActorState(enemy)
+    const sourceKey = this.getThreatSourceKey(actorId)
+
+    enemyState.setThreatFrom(sourceKey, amount)
   }
 
   // Actor alive/dead tracking methods
   isActorAlive(actor: ActorReference): boolean {
-    return !this.deadActors.has(buildActorKey(actor))
+    return this.getActorStateByReference(actor)?.isAlive ?? true
   }
 
   /**
@@ -563,6 +697,27 @@ export class FightState {
    * Returns previous threat entries for each enemy instance that had threat
    */
   clearAllThreatForActor(actorId: ActorId): EnemyThreatEntry[] {
-    return this.threatTracker.clearAllThreatForActor(actorId)
+    const sourceKey = this.getThreatSourceKey(actorId)
+
+    return [...this.actorStates.entries()].reduce<EnemyThreatEntry[]>(
+      (clearedEntries, [enemyKey, enemyState]) => {
+        const threat = enemyState.clearThreatFrom(sourceKey)
+        if (threat <= 0) {
+          return clearedEntries
+        }
+
+        const enemy = parseActorKey(enemyKey)
+        clearedEntries.push({
+          enemy: {
+            id: enemy.id,
+            instanceId: enemy.instanceId,
+          },
+          threat,
+        })
+
+        return clearedEntries
+      },
+      [],
+    )
   }
 }

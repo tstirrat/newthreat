@@ -13,6 +13,7 @@ import type {
   EncounterId,
   EncounterThreatConfig,
   Enemy,
+  SpellId,
   ThreatCalculation,
   ThreatChange,
   ThreatConfig,
@@ -187,20 +188,34 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
         (augmentation) => augmentation.effects ?? [],
       )
 
-      const sourceActor = actorMap.get(event.sourceID) ?? {
+      const sourceActor = fightState.getActor({
         id: event.sourceID,
-        name: 'Unknown',
-        class: null,
-      }
-      const targetActor = actorMap.get(event.targetID) ?? {
+        instanceId: event.sourceInstance,
+      }) ??
+        actorMap.get(event.sourceID) ?? {
+          id: event.sourceID,
+          name: 'Unknown',
+          class: null,
+        }
+      const targetActor = fightState.getActor({
         id: event.targetID,
-        name: 'Unknown',
-        class: null,
-      }
+        instanceId: event.targetInstance,
+      }) ??
+        actorMap.get(event.targetID) ?? {
+          id: event.targetID,
+          name: 'Unknown',
+          class: null,
+        }
 
       const threatOptions: CalculateThreatOptions = {
-        sourceAuras: fightState.getAuras(event.sourceID),
-        targetAuras: fightState.getAuras(event.targetID),
+        sourceAuras: fightState.getAurasForActor({
+          id: event.sourceID,
+          instanceId: event.sourceInstance,
+        }),
+        targetAuras: fightState.getAurasForActor({
+          id: event.targetID,
+          instanceId: event.targetInstance,
+        }),
         spellSchoolMask: getSpellSchoolMaskForEvent(event, abilitySchoolMap),
         enemies,
         sourceActor,
@@ -821,8 +836,8 @@ function buildAugmentedEvent(
 // ============================================================================
 
 export interface CalculateThreatOptions {
-  sourceAuras: Set<number>
-  targetAuras: Set<number>
+  sourceAuras: ReadonlySet<SpellId>
+  targetAuras: ReadonlySet<SpellId>
   spellSchoolMask?: number
   enemies: Enemy[] // Still needed for building threat values
   sourceActor: Actor

@@ -1,22 +1,59 @@
 /**
  * Per-actor state container
  *
- * Composes individual trackers (auras, gear, and future trackers) into a
- * single state object for each actor in a fight. Created and managed by
- * FightState.
+ * Stores runtime state for a specific actor instance during a fight.
+ * Includes metadata, aura/gear trackers, lifecycle state, targeting,
+ * position, and enemy-owned threat tables.
  */
+import type { Actor, RuntimeActorView } from '@wcl-threat/shared'
 import type { GearItem } from '@wcl-threat/wcl-types'
 
 import { AuraTracker } from './aura-tracker'
 import { GearTracker } from './gear-tracker'
+import type { ActorKey } from './instance-refs'
+
+export interface ActorPosition {
+  x: number
+  y: number
+}
+
+export interface ActorTargetReference {
+  targetId: number
+  targetInstance: number
+}
+
+export interface ThreatTableEntry {
+  actorKey: ActorKey
+  threat: number
+}
+
+interface ActorStateOptions {
+  profile: Actor
+  instanceId: number
+  exclusiveAuras?: Set<number>[]
+}
 
 /** Composite state for a single actor during a fight */
 export class ActorState {
-  auraTracker: AuraTracker
-  readonly gearTracker = new GearTracker()
+  readonly id: number
+  readonly instanceId: number
+  readonly name: string
+  readonly actorClass: Actor['class']
 
-  constructor(exclusiveAuras?: Set<number>[]) {
-    this.auraTracker = new AuraTracker(exclusiveAuras)
+  readonly auraTracker: AuraTracker
+  readonly gearTracker = new GearTracker()
+  private alive = true
+  private position: ActorPosition | null = null
+  private currentTarget: ActorTargetReference | null = null
+  private lastTarget: ActorTargetReference | null = null
+  private threatTable = new Map<ActorKey, number>()
+
+  constructor(options: ActorStateOptions) {
+    this.id = options.profile.id
+    this.instanceId = options.instanceId
+    this.name = options.profile.name
+    this.actorClass = options.profile.class
+    this.auraTracker = new AuraTracker(options.exclusiveAuras)
   }
 
   /** Get active aura spell IDs */
@@ -27,5 +64,106 @@ export class ActorState {
   /** Get equipped gear */
   get gear(): GearItem[] {
     return this.gearTracker.getGear()
+  }
+
+  /** Check whether the actor is currently alive. */
+  get isAlive(): boolean {
+    return this.alive
+  }
+
+  /** Get current position. */
+  getPosition(): ActorPosition | null {
+    return this.position ? { ...this.position } : null
+  }
+
+  /** Get current target reference. */
+  getCurrentTarget(): ActorTargetReference | null {
+    return this.currentTarget ? { ...this.currentTarget } : null
+  }
+
+  /** Get previous target reference. */
+  getLastTarget(): ActorTargetReference | null {
+    return this.lastTarget ? { ...this.lastTarget } : null
+  }
+
+  /** Update actor position. */
+  updatePosition(x: number, y: number): void {
+    this.position = { x, y }
+  }
+
+  /** Mark actor dead. */
+  markDead(): void {
+    this.alive = false
+  }
+
+  /** Mark actor alive. */
+  markAlive(): void {
+    this.alive = true
+  }
+
+  /** Update current target and retain previous target when target changes. */
+  setTarget(target: ActorTargetReference): void {
+    if (
+      this.currentTarget &&
+      (this.currentTarget.targetId !== target.targetId ||
+        this.currentTarget.targetInstance !== target.targetInstance)
+    ) {
+      this.lastTarget = this.currentTarget
+    }
+
+    this.currentTarget = { ...target }
+  }
+
+  /** Read threat-table value from a source actor instance key. */
+  getThreatFrom(actorKey: ActorKey): number {
+    return this.threatTable.get(actorKey) ?? 0
+  }
+
+  /** Add threat-table value from a source actor instance key. */
+  addThreatFrom(actorKey: ActorKey, amount: number): void {
+    const current = this.getThreatFrom(actorKey)
+    this.setThreatFrom(actorKey, current + amount)
+  }
+
+  /** Set threat-table value from a source actor instance key. */
+  setThreatFrom(actorKey: ActorKey, amount: number): void {
+    const clampedAmount = Math.max(0, amount)
+    if (clampedAmount === 0) {
+      this.threatTable.delete(actorKey)
+      return
+    }
+    this.threatTable.set(actorKey, clampedAmount)
+  }
+
+  /** Clear and return threat-table value from one source actor instance key. */
+  clearThreatFrom(actorKey: ActorKey): number {
+    const previous = this.getThreatFrom(actorKey)
+    this.threatTable.delete(actorKey)
+    return previous
+  }
+
+  /** Get all positive threat-table entries. */
+  getThreatTableEntries(): ThreatTableEntry[] {
+    return Array.from(this.threatTable.entries()).map(
+      ([entryKey, threat]) => ({
+        actorKey: entryKey,
+        threat,
+      }),
+    )
+  }
+
+  /** Build a read-only runtime snapshot for formula/interceptor contexts. */
+  getRuntimeView(): RuntimeActorView {
+    return {
+      id: this.id,
+      instanceId: this.instanceId,
+      name: this.name,
+      class: this.actorClass,
+      alive: this.alive,
+      position: this.position ? { ...this.position } : null,
+      currentTarget: this.currentTarget ? { ...this.currentTarget } : null,
+      lastTarget: this.lastTarget ? { ...this.lastTarget } : null,
+      auras: new Set(this.auras),
+    }
   }
 }

@@ -732,6 +732,59 @@ describe('FightState', () => {
     })
   })
 
+  describe('getActor', () => {
+    it('returns instance-specific actor snapshots', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.processEvent(
+        {
+          timestamp: 100,
+          type: 'cast',
+          sourceID: 1,
+          sourceIsFriendly: true,
+          sourceInstance: 2,
+          targetID: 99,
+          targetIsFriendly: false,
+          targetInstance: 1,
+          abilityGameID: 111,
+          x: 45,
+          y: 91,
+        } as WCLEvent,
+        testConfig,
+      )
+
+      const actor = state.getActor({ id: 1, instanceId: 2 })
+      expect(actor).toMatchObject({
+        id: 1,
+        instanceId: 2,
+        name: 'Warrior',
+        class: 'warrior',
+        alive: true,
+        position: { x: 45, y: 91 },
+        currentTarget: { targetId: 99, targetInstance: 1 },
+      })
+    })
+
+    it('returns defensive snapshots that cannot mutate internal state', () => {
+      const state = new FightState(defaultActorMap, testConfig)
+
+      state.setAura(1, TEST_SPELLS.DEFENSIVE_STANCE)
+      const actor = state.getActor({ id: 1, instanceId: 0 })
+      expect(actor).not.toBeNull()
+
+      const mutableActor = actor as unknown as {
+        position: { x: number; y: number } | null
+        auras: Set<number>
+      }
+      mutableActor.position = { x: 999, y: 999 }
+      mutableActor.auras.add(123456)
+
+      const runtimeActor = state.getActor({ id: 1, instanceId: 0 })
+      expect(runtimeActor?.position).toBeNull()
+      expect(state.getAuras(1).has(123456)).toBe(false)
+    })
+  })
+
   describe('engine lifecycle state', () => {
     it('marks actors dead on death and alive on cast activity', () => {
       const state = new FightState(defaultActorMap, testConfig)

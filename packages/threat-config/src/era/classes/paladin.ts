@@ -5,6 +5,7 @@
  */
 import type {
   ClassThreatConfig,
+  SpellId,
   TalentImplicationContext,
 } from '@wcl-threat/shared'
 import { SpellSchool } from '@wcl-threat/shared'
@@ -83,20 +84,20 @@ const VENGEANCE_AURA_BY_RANK = [
   Spells.VengeanceR5,
 ] as const
 
-const IMPROVED_RIGHTEOUS_FURY_RANK_BY_TALENT_ID = new Map<number, number>(
+const IMPROVED_RIGHTEOUS_FURY_RANK_BY_TALENT_ID = new Map<SpellId, number>(
   IMPROVED_RIGHTEOUS_FURY_AURA_BY_RANK.map((spellId, idx) => [
     spellId,
     idx + 1,
   ]),
 )
 
-const VENGEANCE_RANK_BY_TALENT_ID = new Map<number, number>(
+const VENGEANCE_RANK_BY_TALENT_ID = new Map<SpellId, number>(
   VENGEANCE_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
 )
 
 export function hasRighteousFuryAura(
-  activeAuras: Set<number>,
-  righteousFuryAuraIds: readonly number[] = DEFAULT_RIGHTEOUS_FURY_AURA_IDS,
+  activeAuras: ReadonlySet<SpellId>,
+  righteousFuryAuraIds: readonly SpellId[] = DEFAULT_RIGHTEOUS_FURY_AURA_IDS,
 ): boolean {
   return righteousFuryAuraIds.some((auraId) => activeAuras.has(auraId))
 }
@@ -162,7 +163,7 @@ function inferVengeanceRank(ctx: TalentImplicationContext): number {
 // ============================================================================
 
 /** Exclusive aura sets - only one blessing can be active at a time */
-export const exclusiveAuras: Set<number>[] = [
+export const exclusiveAuras: Set<SpellId>[] = [
   // Blessing are exclusive between lesser and greater. i.e. Salvation replaces Greater Salvation
   new Set([Spells.BlessingOfKings, Spells.GreaterBlessingOfKings]),
   new Set([Spells.BlessingOfSalvation, Spells.GreaterBlessingOfSalvation]),
@@ -286,7 +287,7 @@ export const paladinConfig: ClassThreatConfig = {
   },
 
   talentImplications: (ctx: TalentImplicationContext) => {
-    const syntheticAuras: number[] = []
+    const syntheticAuras: SpellId[] = []
 
     const improvedRighteousFuryRank = inferImprovedRighteousFuryRank(ctx)
     if (improvedRighteousFuryRank > 0) {

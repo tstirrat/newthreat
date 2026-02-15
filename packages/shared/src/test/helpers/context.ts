@@ -4,6 +4,7 @@
  * Provides common test factories that are framework-agnostic and can be
  * consumed across workspace packages without introducing package cycles.
  */
+import type { Actor, RuntimeActorView } from '../../types'
 
 export interface MockActorRef {
   id: number
@@ -17,6 +18,7 @@ export interface MockEnemyRef {
 
 export interface MockActorContext {
   getPosition: (actor: MockActorRef) => { x: number; y: number } | null
+  getActor?: (actor: MockActorRef) => RuntimeActorView | null
   getDistance: (actor1: MockActorRef, actor2: MockActorRef) => number | null
   getActorsInRange: (actor: MockActorRef, maxDistance: number) => number[]
   getThreat: (actorId: number, enemy: MockEnemyRef) => number
@@ -44,8 +46,8 @@ export interface MockThreatContext {
   spellSchoolMask: number
   sourceAuras: Set<number>
   targetAuras: Set<number>
-  sourceActor: { id: number; name: string; class: string | null }
-  targetActor: { id: number; name: string; class: string | null }
+  sourceActor: Actor
+  targetActor: Actor
   encounterId: number | null
   actors: MockActorContext
 }
@@ -58,6 +60,7 @@ export function createMockActorContext(
 ): MockActorContext {
   return {
     getPosition: () => null,
+    getActor: () => null,
     getDistance: () => null,
     getActorsInRange: () => [],
     getThreat: () => 0,

@@ -207,7 +207,7 @@ function inferSubtletyRank(ctx: TalentImplicationContext): number {
   return SUBTLETY_AURA_BY_RANK.length
 }
 
-function hasBearForm(sourceAuras: Set<number>): boolean {
+function hasBearForm(sourceAuras: ReadonlySet<SpellId>): boolean {
   return (
     sourceAuras.has(Spells.BearForm) || sourceAuras.has(Spells.DireBearForm)
   )
@@ -215,7 +215,7 @@ function hasBearForm(sourceAuras: Set<number>): boolean {
 
 function feralInstinctMultiplier(
   rank: number,
-  sourceAuras: Set<number>,
+  sourceAuras: ReadonlySet<SpellId>,
 ): number {
   if (!hasBearForm(sourceAuras)) {
     return 1

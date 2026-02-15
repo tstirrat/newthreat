@@ -13,7 +13,7 @@ import { hatefulStrike, naxxAbilities } from './naxx'
 describe('Hateful Strike', () => {
   const PATCHWERK_ID = 16028
   const HATEFUL_AMOUNT = 500
-  const formula = hatefulStrike(HATEFUL_AMOUNT, { playerCount: 4 })
+  const formula = hatefulStrike({ amount: HATEFUL_AMOUNT, playerCount: 4 })
 
   function createNaxxActorContext(
     topActors: Array<{ actorId: number; threat: number }>,

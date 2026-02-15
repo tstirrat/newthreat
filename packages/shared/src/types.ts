@@ -72,6 +72,8 @@ export interface ActorContext {
   //
   // instanceId defaults to 0 when omitted.
   getPosition: (actor: ActorRef) => { x: number; y: number } | null
+  /** Get a read-only runtime actor snapshot (metadata + tracked state). */
+  getActor?: (actor: ActorRef) => RuntimeActorView | null
   /** Calculate distance between two actors (null if positions unavailable) */
   getDistance: (actor1: ActorRef, actor2: ActorRef) => number | null
   /** Get actors within range of a position */
@@ -113,9 +115,9 @@ export interface ThreatContext {
   /** WCL spell-school bitmask for the event ability (0 when school is unknown) */
   spellSchoolMask: number
   /** Active auras on the source actor (spell IDs) */
-  sourceAuras: Set<number>
+  sourceAuras: ReadonlySet<number>
   /** Active auras on the target actor (spell IDs) */
-  targetAuras: Set<number>
+  targetAuras: ReadonlySet<number>
   /** The source actor of the event */
   sourceActor: Actor
   /** The target actor of the event */
@@ -130,6 +132,25 @@ export interface Actor {
   id: number
   name: string
   class: WowClass | null
+}
+
+/** Read-only runtime actor view exposed to formulas/interceptors. */
+export interface RuntimeActorView {
+  readonly id: number
+  readonly instanceId: number
+  readonly name: string
+  readonly class: WowClass | null
+  readonly alive: boolean
+  readonly position: Readonly<{ x: number; y: number }> | null
+  readonly currentTarget: Readonly<{
+    targetId: number
+    targetInstance: number
+  }> | null
+  readonly lastTarget: Readonly<{
+    targetId: number
+    targetInstance: number
+  }> | null
+  readonly auras: ReadonlySet<number>
 }
 
 export interface Enemy {

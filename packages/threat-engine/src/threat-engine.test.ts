@@ -4202,6 +4202,8 @@ describe('Event Interceptor Integration', () => {
         // Verify we can access fight state
         expect(ctx.actors).toBeDefined()
         // These methods should exist and be callable
+        const runtimeActor = ctx.actors.getActor?.({ id: 1 })
+        expect(runtimeActor?.name).toBe('Warrior')
         ctx.actors.getThreat(1, { id: 99 })
         ctx.actors.getPosition({ id: 1 })
         ctx.uninstall()
