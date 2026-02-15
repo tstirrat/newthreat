@@ -7,11 +7,14 @@ import type { ThreatChange, ThreatFormula } from '@wcl-threat/shared'
 
 import { modifyThreat } from '../../shared/formulas'
 
-const HATEFUL_STRIKE_ID = 28308
-const NOTH_BLINK_ID = 29210
-const NOTH_BLINK_ALT_ID = 29211
+const Spells = {
+  HatefulStrike: 28308, // https://wowhead.com/classic/spell=28308/
+  NothBlink1: 29209, // https://wowhead.com/classic/spell=29209/
+  NothBlink2: 29210, // https://wowhead.com/classic/spell=29210/
+  NothBlink3: 29211, // https://wowhead.com/classic/spell=29211/
+}
+
 const MELEE_RANGE = 10 // yards
-const HATEFUL_STRIKE_THREAT = 500
 
 /**
  * Patchwerk - Hateful Strike
@@ -20,10 +23,13 @@ const HATEFUL_STRIKE_THREAT = 500
  * This is a boss ability cast on a player, so base threat (value) is 0.
  */
 export const hatefulStrike =
-  (
-    hatefulAmount: number,
-    { playerCount }: { playerCount?: number },
-  ): ThreatFormula =>
+  ({
+    amount,
+    playerCount,
+  }: {
+    amount: number
+    playerCount: number
+  }): ThreatFormula =>
   (ctx) => {
     const targetEnemyId = ctx.event.sourceID // Patchwerk is the source
     const targetEnemyInstance = ctx.event.sourceInstance ?? 0
@@ -45,7 +51,7 @@ export const hatefulStrike =
     const topActorsWithTarget =
       topActorIds.has(targetActorId) || targetActorId <= 0
         ? topActors
-        : [...topActors, { actorId: targetActorId, threat: targetThreat }]
+        : [{ actorId: targetActorId, threat: targetThreat }, ...topActors]
 
     const topActorsWithDistance = topActorsWithTarget.map(
       ({ actorId, threat }) => ({
@@ -75,21 +81,21 @@ export const hatefulStrike =
 
     // Build explicit ThreatChanges for all N targets
     const changes: ThreatChange[] = targets.map(({ actorId, threat }) => {
-      const total = threat + hatefulAmount
+      const total = threat + amount
 
       return {
         sourceId: actorId,
         targetId: targetEnemyId,
         targetInstance: targetEnemyInstance,
         operator: 'add',
-        amount: hatefulAmount,
+        amount,
         total,
       }
     })
 
     return {
-      formula: `hatefulStrike(${hatefulAmount})`,
-      value: hatefulAmount,
+      formula: `hatefulStrike(${amount})`,
+      value: amount,
       splitAmongEnemies: false,
       effects: [{ type: 'customThreat', changes }],
     }
@@ -99,7 +105,8 @@ export const hatefulStrike =
  * Naxxramas boss abilities
  */
 export const naxxAbilities = {
-  [HATEFUL_STRIKE_ID]: hatefulStrike(HATEFUL_STRIKE_THREAT, {}),
-  [NOTH_BLINK_ID]: modifyThreat({ modifier: 0, target: 'all' }),
-  [NOTH_BLINK_ALT_ID]: modifyThreat({ modifier: 0, target: 'all' }),
+  [Spells.HatefulStrike]: hatefulStrike({ amount: 500, playerCount: 4 }),
+  [Spells.NothBlink1]: modifyThreat({ modifier: 0, target: 'all' }),
+  [Spells.NothBlink2]: modifyThreat({ modifier: 0, target: 'all' }),
+  [Spells.NothBlink3]: modifyThreat({ modifier: 0, target: 'all' }),
 }

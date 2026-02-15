@@ -61,5 +61,4 @@ export const miscAbilities: Record<number, ThreatFormula> = {
   6613: noThreat, // Great Rage Potion
   17528: noThreat, // Mighty Rage Potion
   13494: noThreat, // Manual Crowd Pummeler
-  23602: noThreat, // Shield Specialization
 }

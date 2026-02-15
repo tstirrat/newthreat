@@ -94,6 +94,7 @@ const EVENTS_QUERY = `
           startTime: $startTime
           endTime: $endTime
           limit: $limit
+          includeResources: true
         ) {
           data
           nextPageTimestamp
