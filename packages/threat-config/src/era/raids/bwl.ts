@@ -10,21 +10,9 @@ import type {
 } from '@wcl-threat/shared'
 import type { EventType, WCLEvent } from '@wcl-threat/wcl-types'
 
-import { modifyThreatOnHit } from '../../shared/formulas'
+import { modifyThreat, modifyThreatOnHit } from '../../shared/formulas'
 import { Spells as DruidSpells } from '../classes/druid'
 import { Spells as WarriorSpells } from '../classes/warrior'
-
-/**
- * Aggro-loss buffs from Blackwing Lair bosses.
- */
-export const bwlAggroLossBuffs: ReadonlySet<SpellId> = new Set([
-  23023, // Razorgore Conflagrate
-  23310,
-  23311,
-  23312, // Chromaggus Time Lapse
-  22289, // Brood Power: Green
-  23603, // Nefarian: Wild Polymorph
-])
 
 const CLASS_CALL_START_EVENT_TYPES: EventType[] = ['applydebuff']
 
@@ -33,7 +21,25 @@ export const Spells = {
   WingBuffet: 23339,
   NefarianWarriorClassCall: 23397,
   NefarianDruidClassCall: 23398,
+  TimeLapse1: 23310,
+  TimeLapse2: 23311,
+  TimeLapse3: 23312,
+  RazorgoreConflagrate: 23023,
+  BroodPowerGreen: 22289,
+  NefarianWildPolymorph: 23603,
 } as const
+
+/**
+ * Aggro-loss buffs from Blackwing Lair bosses.
+ */
+export const bwlAggroLossBuffs: ReadonlySet<SpellId> = new Set([
+  Spells.RazorgoreConflagrate,
+  Spells.TimeLapse1,
+  Spells.TimeLapse2,
+  Spells.TimeLapse3,
+  Spells.BroodPowerGreen,
+  Spells.NefarianWildPolymorph,
+])
 
 interface ForceAuraClassCallOptions {
   classCallSpellId: SpellId
@@ -123,5 +129,17 @@ export const bwlAbilities: Record<SpellId, ThreatFormula> = {
     classCallSpellId: Spells.NefarianDruidClassCall,
     forcedAuraId: DruidSpells.CatForm,
     forcedAuraName: 'Cat Form',
+  }),
+  [Spells.TimeLapse1]: modifyThreat({
+    modifier: 0.5,
+    eventTypes: ['applydebuff'],
+  }),
+  [Spells.TimeLapse2]: modifyThreat({
+    modifier: 0.5,
+    eventTypes: ['applydebuff'],
+  }),
+  [Spells.TimeLapse3]: modifyThreat({
+    modifier: 0.5,
+    eventTypes: ['applydebuff'],
   }),
 }
