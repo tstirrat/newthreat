@@ -18,30 +18,40 @@ describe('Hateful Strike', () => {
   function createNaxxActorContext(
     topActors: Array<{ actorId: number; threat: number }>,
     distances: Map<string, number>,
+    threatByActorId: Map<number, number> = new Map(),
   ): ActorContext {
+    const topThreatByActorId = new Map(
+      topActors.map(({ actorId, threat }) => [actorId, threat]),
+    )
+
     return createMockActorContext({
       getPosition: () => ({ x: 0, y: 0 }),
       getDistance: (actor1, actor2) => {
         const key = `${actor1.id}-${actor2.id}`
         return distances.get(key) ?? null
       },
+      getThreat: (actorId) =>
+        threatByActorId.get(actorId) ?? topThreatByActorId.get(actorId) ?? 0,
       getTopActorsByThreat: () => topActors,
     })
   }
 
-  function createMockContext(actors: ActorContext): ThreatContext {
+  function createMockContext(
+    actors: ActorContext,
+    targetId: number = 1,
+  ): ThreatContext {
     return {
       event: createDamageEvent({
         sourceID: PATCHWERK_ID,
         sourceIsFriendly: false,
-        targetID: 1,
+        targetID: targetId,
         targetIsFriendly: true,
       }) as DamageEvent,
       amount: 5000,
       sourceAuras: new Set(),
       targetAuras: new Set(),
       sourceActor: { id: PATCHWERK_ID, name: 'Patchwerk', class: null },
-      targetActor: { id: 1, name: 'Tank', class: 'warrior' },
+      targetActor: { id: targetId, name: 'Tank', class: 'warrior' },
       encounterId: null,
       spellSchoolMask: 0,
       actors,
@@ -60,12 +70,12 @@ describe('Hateful Strike', () => {
 
     // Actors 1-4 are in melee range, 5-6 are not
     const distances = new Map([
-      ['1-16028', 5],
-      ['2-16028', 8],
-      ['3-16028', 10],
-      ['4-16028', 9],
-      ['5-16028', 15],
-      ['6-16028', 20],
+      ['1-16028', 1000],
+      ['2-16028', 1200],
+      ['3-16028', 1300],
+      ['4-16028', 1400],
+      ['5-16028', 1700],
+      ['6-16028', 2000],
     ])
 
     const actors = createNaxxActorContext(topActors, distances)
@@ -100,8 +110,8 @@ describe('Hateful Strike', () => {
     ]
 
     const distances = new Map([
-      ['1-16028', 5],
-      ['2-16028', 8],
+      ['1-16028', 1000],
+      ['2-16028', 1200],
     ])
 
     const actors = createNaxxActorContext(topActors, distances)
@@ -128,12 +138,12 @@ describe('Hateful Strike', () => {
     ]
 
     const distances = new Map([
-      ['1-16028', 5],
-      ['2-16028', 15],
-      ['3-16028', 10],
-      ['4-16028', 20],
-      ['5-16028', 8],
-      ['6-16028', 9],
+      ['1-16028', 1000],
+      ['2-16028', 3500],
+      ['3-16028', 1200],
+      ['4-16028', 4000],
+      ['5-16028', 1300],
+      ['6-16028', 1400],
     ])
 
     const actors = createNaxxActorContext(topActors, distances)
@@ -180,9 +190,9 @@ describe('Hateful Strike', () => {
     ]
 
     const distances = new Map([
-      ['1-16028', 5],
+      ['1-16028', 1000],
       // Actor 2 has no distance (null)
-      ['3-16028', 8],
+      ['3-16028', 1200],
     ])
 
     const actors = createNaxxActorContext(topActors, distances)
@@ -206,8 +216,8 @@ describe('Hateful Strike', () => {
     ]
 
     const distances = new Map([
-      ['1-16028', 15],
-      ['2-16028', 20],
+      ['1-16028', 3500],
+      ['2-16028', 4000],
     ])
 
     const actors = createNaxxActorContext(topActors, distances)
@@ -216,7 +226,103 @@ describe('Hateful Strike', () => {
     const result = checkExists(formula(ctx))
 
     if (result.effects?.[0]?.type === 'customThreat') {
-      expect(result.effects?.[0]?.changes).toHaveLength(0)
+      // Direct target is always included.
+      expect(result.effects?.[0]?.changes).toHaveLength(1)
+      expect(result.effects?.[0]?.changes.map((c) => c.sourceId)).toEqual([1])
+    }
+  })
+
+  it('should include direct target even when not in top threat list', () => {
+    const topActors = [
+      { actorId: 2, threat: 1200 },
+      { actorId: 3, threat: 1100 },
+      { actorId: 4, threat: 1000 },
+      { actorId: 5, threat: 900 },
+    ]
+
+    const distances = new Map([
+      ['2-16028', 1000],
+      ['3-16028', 1200],
+      ['4-16028', 1300],
+      ['5-16028', 3500],
+    ])
+
+    const actors = createNaxxActorContext(
+      topActors,
+      distances,
+      new Map([[1, 750]]),
+    )
+    const ctx = createMockContext(actors, 1)
+
+    const result = checkExists(formula(ctx))
+
+    if (result.effects?.[0]?.type === 'customThreat') {
+      expect(result.effects?.[0]?.changes.map((c) => c.sourceId)).toEqual([
+        1, 2, 3, 4,
+      ])
+      expect(result.effects?.[0]?.changes[0]).toMatchObject({
+        sourceId: 1,
+        amount: 500,
+        total: 1250,
+      })
+    }
+  })
+
+  it('should include direct target even when target distance is out of melee range', () => {
+    const topActors = [
+      { actorId: 1, threat: 1000 },
+      { actorId: 2, threat: 900 },
+      { actorId: 3, threat: 800 },
+      { actorId: 4, threat: 700 },
+      { actorId: 5, threat: 600 },
+    ]
+
+    const distances = new Map([
+      ['1-16028', 3500], // Out of melee; still must be included as direct target
+      ['2-16028', 1000],
+      ['3-16028', 1200],
+      ['4-16028', 1300],
+      ['5-16028', 1600],
+    ])
+
+    const actors = createNaxxActorContext(topActors, distances)
+    const ctx = createMockContext(actors, 1)
+
+    const result = checkExists(formula(ctx))
+
+    if (result.effects?.[0]?.type === 'customThreat') {
+      expect(result.effects?.[0]?.changes.map((c) => c.sourceId)).toEqual([
+        1, 2, 3, 4,
+      ])
+    }
+  })
+
+  it('should not duplicate the direct target in additional slots', () => {
+    const topActors = [
+      { actorId: 1, threat: 1000 },
+      { actorId: 2, threat: 900 },
+      { actorId: 3, threat: 800 },
+      { actorId: 4, threat: 700 },
+      { actorId: 5, threat: 600 },
+    ]
+
+    const distances = new Map([
+      ['1-16028', 1000],
+      ['2-16028', 1100],
+      ['3-16028', 1200],
+      ['4-16028', 1300],
+      ['5-16028', 1800],
+    ])
+
+    const actors = createNaxxActorContext(topActors, distances)
+    const ctx = createMockContext(actors, 1)
+
+    const result = checkExists(formula(ctx))
+
+    if (result.effects?.[0]?.type === 'customThreat') {
+      const sourceIds = result.effects?.[0]?.changes.map((c) => c.sourceId)
+      expect(sourceIds).toEqual([1, 2, 3, 4])
+      expect(sourceIds.filter((id) => id === 1)).toHaveLength(1)
     }
   })
 
