@@ -7,6 +7,7 @@ import type { ClassThreatConfig } from '@wcl-threat/shared'
 import { SpellSchool } from '@wcl-threat/shared'
 
 import {
+  Mods as EraMods,
   Spells as EraSpells,
   mageConfig as eraMageConfig,
 } from '../../era/classes/mage'
@@ -15,6 +16,10 @@ import { modifyThreat } from '../../shared/formulas'
 export const Spells = {
   ...EraSpells,
   Invisibility: 66,
+} as const
+
+export const Mods = {
+  ...EraMods,
 } as const
 
 export const mageConfig: ClassThreatConfig = {
@@ -26,13 +31,13 @@ export const mageConfig: ClassThreatConfig = {
     [Spells.BurningSoulRank1]: () => ({
       source: 'talent',
       name: 'Burning Soul (Rank 1)',
-      value: 0.95,
+      value: 1 - Mods.BurningSoul,
       schoolMask: SpellSchool.Fire,
     }),
     [Spells.BurningSoulRank2]: () => ({
       source: 'talent',
       name: 'Burning Soul (Rank 2)',
-      value: 0.9,
+      value: 1 - Mods.BurningSoul * 2,
       schoolMask: SpellSchool.Fire,
     }),
 

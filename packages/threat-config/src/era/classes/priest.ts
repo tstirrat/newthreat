@@ -9,8 +9,8 @@ import type {
 } from '@wcl-threat/shared'
 import { SpellSchool } from '@wcl-threat/shared'
 
-import { calculateThreat, noThreat } from '../../shared/formulas'
-import { inferMappedTalentRank } from '../../shared/talents'
+import { noThreat, threat } from '../../shared/formulas'
+import { inferTalent } from '../../shared/talents'
 
 // ============================================================================
 // Spell IDs
@@ -61,25 +61,22 @@ const Mods = {
   ShadowAffinity: 0.25 / 3, // 8.33% per rank (up to 25%)
 }
 
-const SILENT_RESOLVE_AURA_BY_RANK = [
+const SILENT_RESOLVE_RANKS = [
   Spells.SilentResolveRank1,
   Spells.SilentResolveRank2,
   Spells.SilentResolveRank3,
   Spells.SilentResolveRank4,
   Spells.SilentResolveRank5,
 ] as const
-const SHADOW_AFFINITY_AURA_BY_RANK = [
+const SHADOW_AFFINITY_RANKS = [
   Spells.ShadowAffinityRank1,
   Spells.ShadowAffinityRank2,
   Spells.ShadowAffinityRank3,
 ] as const
 
-const SILENT_RESOLVE_RANK_BY_TALENT_ID = new Map<number, number>(
-  SILENT_RESOLVE_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
-)
-const SHADOW_AFFINITY_RANK_BY_TALENT_ID = new Map<number, number>(
-  SHADOW_AFFINITY_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
-)
+const DISC = 0
+const HOLY = 1
+const SHADOW = 2
 
 // ============================================================================
 // Configuration
@@ -137,15 +134,15 @@ export const priestConfig: ClassThreatConfig = {
 
   abilities: {
     // Mind Blast - damage + flat threat per rank
-    [Spells.MindBlastR1]: calculateThreat({ modifier: 1, bonus: 40 }),
-    [Spells.MindBlastR2]: calculateThreat({ modifier: 1, bonus: 77 }),
-    [Spells.MindBlastR3]: calculateThreat({ modifier: 1, bonus: 121 }),
-    [Spells.MindBlastR4]: calculateThreat({ modifier: 1, bonus: 180 }),
-    [Spells.MindBlastR5]: calculateThreat({ modifier: 1, bonus: 236 }),
-    [Spells.MindBlastR6]: calculateThreat({ modifier: 1, bonus: 303 }),
-    [Spells.MindBlastR7]: calculateThreat({ modifier: 1, bonus: 380 }),
-    [Spells.MindBlastR8]: calculateThreat({ modifier: 1, bonus: 460 }),
-    [Spells.MindBlastR9]: calculateThreat({ modifier: 1, bonus: 540 }),
+    [Spells.MindBlastR1]: threat({ modifier: 1, bonus: 40 }),
+    [Spells.MindBlastR2]: threat({ modifier: 1, bonus: 77 }),
+    [Spells.MindBlastR3]: threat({ modifier: 1, bonus: 121 }),
+    [Spells.MindBlastR4]: threat({ modifier: 1, bonus: 180 }),
+    [Spells.MindBlastR5]: threat({ modifier: 1, bonus: 236 }),
+    [Spells.MindBlastR6]: threat({ modifier: 1, bonus: 303 }),
+    [Spells.MindBlastR7]: threat({ modifier: 1, bonus: 380 }),
+    [Spells.MindBlastR8]: threat({ modifier: 1, bonus: 460 }),
+    [Spells.MindBlastR9]: threat({ modifier: 1, bonus: 540 }),
 
     // Holy Nova - zero threat
     [Spells.HolyNovaDmgR1]: noThreat(),
@@ -168,22 +165,22 @@ export const priestConfig: ClassThreatConfig = {
   talentImplications: (ctx: TalentImplicationContext) => {
     const syntheticAuras: number[] = []
 
-    const silentResolveRank = inferMappedTalentRank(
-      ctx.talentRanks,
-      SILENT_RESOLVE_RANK_BY_TALENT_ID,
-      SILENT_RESOLVE_AURA_BY_RANK.length,
-    )
-    if (silentResolveRank > 0) {
-      syntheticAuras.push(SILENT_RESOLVE_AURA_BY_RANK[silentResolveRank - 1]!)
+    const silentResolveSpellId = inferTalent(ctx, SILENT_RESOLVE_RANKS)
+    // healing builds typically dont have silent resolve so we wont do any
+    // point inference
+    if (silentResolveSpellId) {
+      syntheticAuras.push(silentResolveSpellId)
     }
 
-    const shadowAffinityRank = inferMappedTalentRank(
-      ctx.talentRanks,
-      SHADOW_AFFINITY_RANK_BY_TALENT_ID,
-      SHADOW_AFFINITY_AURA_BY_RANK.length,
+    const shadowAffinitySpellId = inferTalent(
+      ctx,
+      SHADOW_AFFINITY_RANKS,
+      (points) => {
+        return points[SHADOW] >= 21 ? 3 : 0
+      },
     )
-    if (shadowAffinityRank > 0) {
-      syntheticAuras.push(SHADOW_AFFINITY_AURA_BY_RANK[shadowAffinityRank - 1]!)
+    if (shadowAffinitySpellId) {
+      syntheticAuras.push(shadowAffinitySpellId)
     }
 
     return syntheticAuras

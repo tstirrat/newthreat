@@ -12,11 +12,11 @@ import {
   druidConfig as eraDruidConfig,
 } from '../../era/classes/druid'
 import {
-  calculateThreat,
-  calculateThreatOnSuccessfulHit,
   noThreat,
+  threat,
   threatOnCastRollbackOnMiss,
   threatOnDebuff,
+  threatOnSuccessfulHit,
 } from '../../shared/formulas'
 
 export const Spells = {
@@ -103,7 +103,7 @@ const lacerateFormula = (
     }
   }
 
-  return calculateThreatOnSuccessfulHit({ bonus: 267 })(ctx)
+  return threatOnSuccessfulHit({ bonus: 267 })(ctx)
 }
 
 const noThreatFormula = noThreat()
@@ -177,29 +177,29 @@ export const druidConfig: ClassThreatConfig = {
 
   abilities: {
     ...eraDruidConfig.abilities,
-    [Spells.MaulR1]: calculateThreatOnSuccessfulHit({ bonus: maulRank1Bonus }),
-    [Spells.MaulR2]: calculateThreatOnSuccessfulHit({ bonus: maulRank2Bonus }),
-    [Spells.MaulR3]: calculateThreatOnSuccessfulHit({ bonus: maulRank3Bonus }),
-    [Spells.MaulR4]: calculateThreatOnSuccessfulHit({ bonus: maulRank4Bonus }),
-    [Spells.MaulR5]: calculateThreatOnSuccessfulHit({ bonus: maulRank5Bonus }),
-    [Spells.MaulR6]: calculateThreatOnSuccessfulHit({ bonus: maulRank6Bonus }),
-    [Spells.MaulR7]: calculateThreatOnSuccessfulHit({ bonus: maulRank7Bonus }),
-    [Spells.MaulR8]: calculateThreatOnSuccessfulHit({ bonus: 322 }),
+    [Spells.MaulR1]: threatOnSuccessfulHit({ bonus: maulRank1Bonus }),
+    [Spells.MaulR2]: threatOnSuccessfulHit({ bonus: maulRank2Bonus }),
+    [Spells.MaulR3]: threatOnSuccessfulHit({ bonus: maulRank3Bonus }),
+    [Spells.MaulR4]: threatOnSuccessfulHit({ bonus: maulRank4Bonus }),
+    [Spells.MaulR5]: threatOnSuccessfulHit({ bonus: maulRank5Bonus }),
+    [Spells.MaulR6]: threatOnSuccessfulHit({ bonus: maulRank6Bonus }),
+    [Spells.MaulR7]: threatOnSuccessfulHit({ bonus: maulRank7Bonus }),
+    [Spells.MaulR8]: threatOnSuccessfulHit({ bonus: 322 }),
 
-    [Spells.SwipeR1]: calculateThreat({ modifier: 1 }),
-    [Spells.SwipeR2]: calculateThreat({ modifier: 1 }),
-    [Spells.SwipeR3]: calculateThreat({ modifier: 1 }),
-    [Spells.SwipeR4]: calculateThreat({ modifier: 1 }),
-    [Spells.SwipeR5]: calculateThreat({ modifier: 1 }),
-    [Spells.SwipeR6]: calculateThreat({ modifier: 1 }),
+    [Spells.SwipeR1]: threat({ modifier: 1 }),
+    [Spells.SwipeR2]: threat({ modifier: 1 }),
+    [Spells.SwipeR3]: threat({ modifier: 1 }),
+    [Spells.SwipeR4]: threat({ modifier: 1 }),
+    [Spells.SwipeR5]: threat({ modifier: 1 }),
+    [Spells.SwipeR6]: threat({ modifier: 1 }),
 
     [Spells.DemoRoarR5]: threatOnDebuff(39),
     [Spells.DemoRoarR6]: threatOnDebuff(39),
 
     [Spells.Lacerate]: lacerateFormula,
-    [Spells.MangleBearR1]: calculateThreat({ modifier: Mods.Mangle }),
-    [Spells.MangleBearR2]: calculateThreat({ modifier: Mods.Mangle }),
-    [Spells.MangleBearR3]: calculateThreat({ modifier: Mods.Mangle }),
+    [Spells.MangleBearR1]: threat({ modifier: Mods.Mangle }),
+    [Spells.MangleBearR2]: threat({ modifier: Mods.Mangle }),
+    [Spells.MangleBearR3]: threat({ modifier: Mods.Mangle }),
 
     [Spells.CowerR4]: threatOnCastRollbackOnMiss(-800),
     [Spells.CowerR5]: threatOnCastRollbackOnMiss(-1170),

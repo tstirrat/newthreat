@@ -10,7 +10,7 @@ import {
   Spells as EraSpells,
   priestConfig as eraPriestConfig,
 } from '../../era/classes/priest'
-import { calculateThreat } from '../../shared/formulas'
+import { threat } from '../../shared/formulas'
 
 export const Spells = {
   ...EraSpells,
@@ -44,16 +44,16 @@ export const priestConfig: ClassThreatConfig = {
   },
   abilities: {
     ...eraPriestConfig.abilities,
-    [Spells.MindBlastR1]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR2]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR3]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR4]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR5]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR6]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR7]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR8]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR9]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR10]: calculateThreat({ modifier: 1 }),
-    [Spells.MindBlastR11]: calculateThreat({ modifier: 1 }),
+    [Spells.MindBlastR1]: threat({ modifier: 1 }),
+    [Spells.MindBlastR2]: threat({ modifier: 1 }),
+    [Spells.MindBlastR3]: threat({ modifier: 1 }),
+    [Spells.MindBlastR4]: threat({ modifier: 1 }),
+    [Spells.MindBlastR5]: threat({ modifier: 1 }),
+    [Spells.MindBlastR6]: threat({ modifier: 1 }),
+    [Spells.MindBlastR7]: threat({ modifier: 1 }),
+    [Spells.MindBlastR8]: threat({ modifier: 1 }),
+    [Spells.MindBlastR9]: threat({ modifier: 1 }),
+    [Spells.MindBlastR10]: threat({ modifier: 1 }),
+    [Spells.MindBlastR11]: threat({ modifier: 1 }),
   },
 }

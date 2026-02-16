@@ -7,7 +7,7 @@ import {
   Spells as EraSpells,
   rogueConfig as eraRogueConfig,
 } from '../../era/classes/rogue'
-import { calculateThreat, tauntTarget } from '../../shared/formulas'
+import { tauntTarget, threat } from '../../shared/formulas'
 
 export const Spells = {
   ...EraSpells,
@@ -85,7 +85,7 @@ export const rogueConfig: ClassThreatConfig = {
   abilities: {
     ...eraRogueConfig.abilities,
     [Spells.Tease]: tauntTarget({ bonus: 0, eventTypes: ['cast'] }),
-    [Spells.UnfairAdvantage]: calculateThreat({
+    [Spells.UnfairAdvantage]: threat({
       modifier: Mods.UnfairAdvantage,
     }),
   },

@@ -16,16 +16,16 @@ import type { ThreatContext } from '@wcl-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
 import {
-  calculateThreat,
-  calculateThreatOnSuccessfulHit,
   modifyThreat,
   modifyThreatOnHit,
   noThreat,
   tauntTarget,
+  threat,
   threatOnBuff,
   threatOnCastRollbackOnMiss,
   threatOnDebuff,
   threatOnDebuffOrDamage,
+  threatOnSuccessfulHit,
 } from './formulas'
 
 // Mock ThreatContext factory
@@ -56,7 +56,7 @@ function assertDefined<T>(value: T | undefined): T {
 
 describe('calculateThreat', () => {
   it('returns default threat (amt) with no options', () => {
-    const formula = calculateThreat()
+    const formula = threat()
     const ctx = createMockContext({ amount: 500 })
 
     const result = assertDefined(formula(ctx))
@@ -67,7 +67,7 @@ describe('calculateThreat', () => {
   })
 
   it('applies modifier to amount', () => {
-    const formula = calculateThreat({ modifier: 2 })
+    const formula = threat({ modifier: 2 })
     const ctx = createMockContext({ amount: 100 })
 
     const result = assertDefined(formula(ctx))
@@ -77,7 +77,7 @@ describe('calculateThreat', () => {
   })
 
   it('applies modifier with decimal values', () => {
-    const formula = calculateThreat({ modifier: 0.5 })
+    const formula = threat({ modifier: 0.5 })
     const ctx = createMockContext({ amount: 100 })
 
     const result = assertDefined(formula(ctx))
@@ -87,7 +87,7 @@ describe('calculateThreat', () => {
   })
 
   it('returns flat bonus threat with modifier: 0', () => {
-    const formula = calculateThreat({ modifier: 0, bonus: 301 })
+    const formula = threat({ modifier: 0, bonus: 301 })
     const ctx = createMockContext({ amount: 100 })
 
     const result = assertDefined(formula(ctx))
@@ -97,7 +97,7 @@ describe('calculateThreat', () => {
   })
 
   it('applies both modifier and bonus', () => {
-    const formula = calculateThreat({ modifier: 2, bonus: 150 })
+    const formula = threat({ modifier: 2, bonus: 150 })
     const ctx = createMockContext({ amount: 100 })
 
     const result = assertDefined(formula(ctx))
@@ -107,7 +107,7 @@ describe('calculateThreat', () => {
   })
 
   it('applies bonus without modifier', () => {
-    const formula = calculateThreat({ modifier: 1, bonus: 145 })
+    const formula = threat({ modifier: 1, bonus: 145 })
     const ctx = createMockContext({ amount: 100 })
 
     const result = assertDefined(formula(ctx))
@@ -117,7 +117,7 @@ describe('calculateThreat', () => {
   })
 
   it('supports split option', () => {
-    const formula = calculateThreat({ modifier: 0, bonus: 70, split: true })
+    const formula = threat({ modifier: 0, bonus: 70, split: true })
     const ctx = createMockContext()
 
     const result = assertDefined(formula(ctx))
@@ -128,7 +128,7 @@ describe('calculateThreat', () => {
   })
 
   it('handles negative bonus (threat reduction)', () => {
-    const formula = calculateThreat({ modifier: 0, bonus: -240 })
+    const formula = threat({ modifier: 0, bonus: -240 })
     const ctx = createMockContext()
 
     const result = assertDefined(formula(ctx))
@@ -138,7 +138,7 @@ describe('calculateThreat', () => {
   })
 
   it('handles zero threat', () => {
-    const formula = calculateThreat({ modifier: 0, bonus: 0 })
+    const formula = threat({ modifier: 0, bonus: 0 })
     const ctx = createMockContext({ amount: 100 })
 
     const result = assertDefined(formula(ctx))
@@ -148,7 +148,7 @@ describe('calculateThreat', () => {
   })
 
   it('handles complex formula with modifier and split', () => {
-    const formula = calculateThreat({ modifier: 0.5, split: true })
+    const formula = threat({ modifier: 0.5, split: true })
     const ctx = createMockContext({ amount: 1000 })
 
     const result = assertDefined(formula(ctx))
@@ -159,7 +159,7 @@ describe('calculateThreat', () => {
   })
 
   it('handles modifier with bonus and split', () => {
-    const formula = calculateThreat({ modifier: 1.75, bonus: 50, split: false })
+    const formula = threat({ modifier: 1.75, bonus: 50, split: false })
     const ctx = createMockContext({ amount: 100 })
 
     const result = assertDefined(formula(ctx))
@@ -170,7 +170,7 @@ describe('calculateThreat', () => {
   })
 
   it('allows formulas to disable player multipliers', () => {
-    const formula = calculateThreat({
+    const formula = threat({
       modifier: 0,
       bonus: 100,
       applyPlayerMultipliers: false,
@@ -183,7 +183,7 @@ describe('calculateThreat', () => {
 
 describe('calculateThreatOnSuccessfulHit', () => {
   it('applies threat on successful damage hits', () => {
-    const formula = calculateThreatOnSuccessfulHit({ bonus: 175 })
+    const formula = threatOnSuccessfulHit({ bonus: 175 })
     const result = assertDefined(
       formula(
         createMockContext({
@@ -198,7 +198,7 @@ describe('calculateThreatOnSuccessfulHit', () => {
   })
 
   it('returns undefined on misses', () => {
-    const formula = calculateThreatOnSuccessfulHit({ bonus: 175 })
+    const formula = threatOnSuccessfulHit({ bonus: 175 })
     const result = formula(
       createMockContext({
         event: createDamageEvent({ hitType: 'miss' }),
@@ -210,7 +210,7 @@ describe('calculateThreatOnSuccessfulHit', () => {
   })
 
   it('returns undefined for non-damage event types', () => {
-    const formula = calculateThreatOnSuccessfulHit({ bonus: 175 })
+    const formula = threatOnSuccessfulHit({ bonus: 175 })
     const result = formula(
       createMockContext({
         event: createCastEvent(),

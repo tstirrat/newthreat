@@ -10,9 +10,9 @@ import type {
 } from '@wcl-threat/shared'
 
 import {
-  calculateThreat,
   noThreat,
   tauntTarget,
+  threat,
   threatOnCastRollbackOnMiss,
   threatOnDebuff,
 } from '../../shared/formulas'
@@ -345,20 +345,20 @@ export const druidConfig: ClassThreatConfig = {
     [Spells.MoonkinForm]: noThreat(),
 
     // Maul - 1.75x damage
-    [Spells.MaulR1]: calculateThreat({ modifier: Mods.Maul }),
-    [Spells.MaulR2]: calculateThreat({ modifier: Mods.Maul }),
-    [Spells.MaulR3]: calculateThreat({ modifier: Mods.Maul }),
-    [Spells.MaulR4]: calculateThreat({ modifier: Mods.Maul }),
-    [Spells.MaulR5]: calculateThreat({ modifier: Mods.Maul }),
-    [Spells.MaulR6]: calculateThreat({ modifier: Mods.Maul }),
-    [Spells.MaulR7]: calculateThreat({ modifier: Mods.Maul }),
+    [Spells.MaulR1]: threat({ modifier: Mods.Maul }),
+    [Spells.MaulR2]: threat({ modifier: Mods.Maul }),
+    [Spells.MaulR3]: threat({ modifier: Mods.Maul }),
+    [Spells.MaulR4]: threat({ modifier: Mods.Maul }),
+    [Spells.MaulR5]: threat({ modifier: Mods.Maul }),
+    [Spells.MaulR6]: threat({ modifier: Mods.Maul }),
+    [Spells.MaulR7]: threat({ modifier: Mods.Maul }),
 
     // Swipe - 1.75x damage
-    [Spells.SwipeR1]: calculateThreat({ modifier: Mods.Swipe }),
-    [Spells.SwipeR2]: calculateThreat({ modifier: Mods.Swipe }),
-    [Spells.SwipeR3]: calculateThreat({ modifier: Mods.Swipe }),
-    [Spells.SwipeR4]: calculateThreat({ modifier: Mods.Swipe }),
-    [Spells.SwipeR5]: calculateThreat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR1]: threat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR2]: threat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR3]: threat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR4]: threat({ modifier: Mods.Swipe }),
+    [Spells.SwipeR5]: threat({ modifier: Mods.Swipe }),
 
     // Demoralizing Roar - flat threat per rank
     [Spells.DemoRoarR1]: threatOnDebuff(9),

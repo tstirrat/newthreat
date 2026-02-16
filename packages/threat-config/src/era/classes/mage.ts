@@ -41,7 +41,7 @@ export const Spells = {
 // Modifiers
 // ============================================================================
 
-const Mods = {
+export const Mods = {
   BurningSoul: 0.15, // 15% per rank (up to 30%)
   FrostChanneling: 0.1, // 10% per rank (up to 30%)
   ArcaneSubtlety: 0.2, // 20% per rank (up to 40%)

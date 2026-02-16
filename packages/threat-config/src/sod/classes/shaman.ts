@@ -8,7 +8,7 @@ import {
   Spells as EraSpells,
   shamanConfig as eraShamanConfig,
 } from '../../era/classes/shaman'
-import { calculateThreat, tauntTarget } from '../../shared/formulas'
+import { tauntTarget, threat } from '../../shared/formulas'
 
 export const Spells = {
   ...EraSpells,
@@ -102,7 +102,7 @@ export const shamanConfig: ClassThreatConfig = {
   abilities: {
     ...eraShamanConfig.abilities,
     [Spells.EarthShockTaunt]: tauntTarget({ modifier: 2 }),
-    [Spells.MoltenBlast]: calculateThreat({ modifier: Mods.MoltenBlast }),
+    [Spells.MoltenBlast]: threat({ modifier: Mods.MoltenBlast }),
   },
 
   fixateBuffs: new Set([

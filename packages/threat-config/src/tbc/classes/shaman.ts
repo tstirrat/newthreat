@@ -15,7 +15,7 @@ import {
   Spells as EraSpells,
   shamanConfig as eraShamanConfig,
 } from '../../era/classes/shaman'
-import { calculateThreat, noThreat } from '../../shared/formulas'
+import { noThreat, threat } from '../../shared/formulas'
 import { inferTalent } from '../../shared/talents'
 
 export const Spells = {
@@ -153,20 +153,20 @@ export const shamanConfig: ClassThreatConfig = {
 
   abilities: {
     ...eraShamanConfig.abilities,
-    [Spells.EarthShockR1]: calculateThreat({ modifier: 1 }),
-    [Spells.EarthShockR2]: calculateThreat({ modifier: 1 }),
-    [Spells.EarthShockR3]: calculateThreat({ modifier: 1 }),
-    [Spells.EarthShockR4]: calculateThreat({ modifier: 1 }),
-    [Spells.EarthShockR5]: calculateThreat({ modifier: 1 }),
-    [Spells.EarthShockR6]: calculateThreat({ modifier: 1 }),
-    [Spells.EarthShockR7]: calculateThreat({ modifier: 1 }),
-    [Spells.EarthShockR8]: calculateThreat({ modifier: 1 }),
+    [Spells.EarthShockR1]: threat({ modifier: 1 }),
+    [Spells.EarthShockR2]: threat({ modifier: 1 }),
+    [Spells.EarthShockR3]: threat({ modifier: 1 }),
+    [Spells.EarthShockR4]: threat({ modifier: 1 }),
+    [Spells.EarthShockR5]: threat({ modifier: 1 }),
+    [Spells.EarthShockR6]: threat({ modifier: 1 }),
+    [Spells.EarthShockR7]: threat({ modifier: 1 }),
+    [Spells.EarthShockR8]: threat({ modifier: 1 }),
 
-    [Spells.FrostShockR1]: calculateThreat({ modifier: 2 }),
-    [Spells.FrostShockR2]: calculateThreat({ modifier: 2 }),
-    [Spells.FrostShockR3]: calculateThreat({ modifier: 2 }),
-    [Spells.FrostShockR4]: calculateThreat({ modifier: 2 }),
-    [Spells.FrostShockR5]: calculateThreat({ modifier: 2 }),
+    [Spells.FrostShockR1]: threat({ modifier: 2 }),
+    [Spells.FrostShockR2]: threat({ modifier: 2 }),
+    [Spells.FrostShockR3]: threat({ modifier: 2 }),
+    [Spells.FrostShockR4]: threat({ modifier: 2 }),
+    [Spells.FrostShockR5]: threat({ modifier: 2 }),
 
     [Spells.Clearcasting]: noThreatFormula,
     [Spells.WindfuryAttackR1]: noThreatFormula,

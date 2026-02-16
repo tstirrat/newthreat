@@ -8,7 +8,7 @@ import {
   Spells as EraSpells,
   druidConfig as eraDruidConfig,
 } from '../../era/classes/druid'
-import { calculateThreat } from '../../shared/formulas'
+import { threat } from '../../shared/formulas'
 
 export const Spells = {
   ...EraSpells,
@@ -61,13 +61,13 @@ export const druidConfig: ClassThreatConfig = {
 
   abilities: {
     ...eraDruidConfig.abilities,
-    [EraSpells.SwipeR1]: calculateThreat({ modifier: Mods.Swipe }),
-    [EraSpells.SwipeR2]: calculateThreat({ modifier: Mods.Swipe }),
-    [EraSpells.SwipeR3]: calculateThreat({ modifier: Mods.Swipe }),
-    [EraSpells.SwipeR4]: calculateThreat({ modifier: Mods.Swipe }),
-    [EraSpells.SwipeR5]: calculateThreat({ modifier: Mods.Swipe }),
-    [Spells.LacerateInitial]: calculateThreat({ modifier: Mods.Lacerate }),
-    [Spells.LacerateDot]: calculateThreat({ modifier: Mods.Lacerate }),
+    [EraSpells.SwipeR1]: threat({ modifier: Mods.Swipe }),
+    [EraSpells.SwipeR2]: threat({ modifier: Mods.Swipe }),
+    [EraSpells.SwipeR3]: threat({ modifier: Mods.Swipe }),
+    [EraSpells.SwipeR4]: threat({ modifier: Mods.Swipe }),
+    [EraSpells.SwipeR5]: threat({ modifier: Mods.Swipe }),
+    [Spells.LacerateInitial]: threat({ modifier: Mods.Lacerate }),
+    [Spells.LacerateDot]: threat({ modifier: Mods.Lacerate }),
   },
 
   auraImplications: buildAuraImplications(),

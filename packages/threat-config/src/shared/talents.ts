@@ -98,26 +98,3 @@ export function inferTalent(
 
   return rankSpellIds[rankIndex] as number
 }
-
-/**
- * @deprecated Use inferTalent instead. This function is kept for backward compatibility.
- * Infer a talent rank using a map of talent spell IDs to concrete rank values.
- */
-export function inferMappedTalentRank(
-  talentRanks: ReadonlyMap<number, number>,
-  rankByTalentId: ReadonlyMap<number, number>,
-  maxRank: number,
-): number {
-  const inferredRank = [...talentRanks.entries()].reduce(
-    (highestRank, [talentId, rank]) => {
-      const mappedRank = rankByTalentId.get(talentId) ?? 0
-      if (mappedRank === 0) {
-        return highestRank
-      }
-      return Math.max(highestRank, mappedRank, rank)
-    },
-    0,
-  )
-
-  return clampRank(inferredRank, maxRank)
-}

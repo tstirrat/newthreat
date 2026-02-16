@@ -10,6 +10,7 @@ import type {
 } from '@wcl-threat/shared'
 
 import {
+  Mods as EraMods,
   Spells as EraSpells,
   warlockConfig as eraWarlockConfig,
 } from '../../era/classes/warlock'
@@ -23,8 +24,13 @@ export const Spells = {
   DestructiveReachRank2: 910202,
 } as const
 
+const Mods = {
+  ...EraMods,
+  DestructiveReach: 0.05,
+}
+
 const DESTRUCTION = 2
-const DESTRUCTIVE_REACH_THRESHOLD = 8
+const DESTRUCTIVE_REACH_THRESHOLD = 17
 
 export const warlockConfig: ClassThreatConfig = {
   ...eraWarlockConfig,
@@ -34,12 +40,12 @@ export const warlockConfig: ClassThreatConfig = {
     [Spells.DestructiveReachRank1]: () => ({
       source: 'talent',
       name: 'Destructive Reach (Rank 1)',
-      value: 0.95,
+      value: 1 - Mods.DestructiveReach,
     }),
     [Spells.DestructiveReachRank2]: () => ({
       source: 'talent',
       name: 'Destructive Reach (Rank 2)',
-      value: 0.9,
+      value: 1 - Mods.DestructiveReach * 2,
     }),
   },
 

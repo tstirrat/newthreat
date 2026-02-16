@@ -5,7 +5,7 @@
  */
 import type { ClassThreatConfig } from '@wcl-threat/shared'
 
-import { calculateThreat, modifyThreat } from '../../shared/formulas'
+import { modifyThreat, threat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -44,10 +44,30 @@ export const rogueConfig: ClassThreatConfig = {
     [Spells.VanishR2]: modifyThreat({ modifier: 0, target: 'all' }),
 
     // Feint - negative threat (no coefficient applied)
-    [Spells.FeintR1]: calculateThreat({ modifier: 0, bonus: -150 }),
-    [Spells.FeintR2]: calculateThreat({ modifier: 0, bonus: -240 }),
-    [Spells.FeintR3]: calculateThreat({ modifier: 0, bonus: -390 }),
-    [Spells.FeintR4]: calculateThreat({ modifier: 0, bonus: -600 }),
-    [Spells.FeintR5]: calculateThreat({ modifier: 0, bonus: -800 }),
+    [Spells.FeintR1]: threat({
+      modifier: 0,
+      bonus: -150,
+      applyPlayerMultipliers: false,
+    }),
+    [Spells.FeintR2]: threat({
+      modifier: 0,
+      bonus: -240,
+      applyPlayerMultipliers: false,
+    }),
+    [Spells.FeintR3]: threat({
+      modifier: 0,
+      bonus: -390,
+      applyPlayerMultipliers: false,
+    }),
+    [Spells.FeintR4]: threat({
+      modifier: 0,
+      bonus: -600,
+      applyPlayerMultipliers: false,
+    }),
+    [Spells.FeintR5]: threat({
+      modifier: 0,
+      bonus: -800,
+      applyPlayerMultipliers: false,
+    }),
   },
 }

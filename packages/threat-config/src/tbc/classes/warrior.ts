@@ -16,12 +16,12 @@ import {
   warriorConfig as eraWarriorConfig,
 } from '../../era/classes/warrior'
 import {
-  calculateThreat,
-  calculateThreatOnSuccessfulHit,
   noThreat,
+  threat,
   threatOnBuff,
   threatOnCastRollbackOnMiss,
   threatOnDebuff,
+  threatOnSuccessfulHit,
 } from '../../shared/formulas'
 import { inferTalent } from '../../shared/talents'
 
@@ -209,39 +209,39 @@ export const warriorConfig: ClassThreatConfig = {
   abilities: {
     ...eraWarriorConfig.abilities,
 
-    [Spells.HeroicStrikeR9]: calculateThreatOnSuccessfulHit({ bonus: 173 }),
-    [Spells.HeroicStrikeR10]: calculateThreatOnSuccessfulHit({ bonus: 194 }),
-    [Spells.HeroicStrikeR11]: calculateThreatOnSuccessfulHit({ bonus: 220 }),
+    [Spells.HeroicStrikeR9]: threatOnSuccessfulHit({ bonus: 173 }),
+    [Spells.HeroicStrikeR10]: threatOnSuccessfulHit({ bonus: 194 }),
+    [Spells.HeroicStrikeR11]: threatOnSuccessfulHit({ bonus: 220 }),
 
-    [Spells.ShieldSlamR4]: calculateThreatOnSuccessfulHit({ bonus: 254 }),
-    [Spells.ShieldSlamR5]: calculateThreatOnSuccessfulHit({ bonus: 278 }),
-    [Spells.ShieldSlamR6]: calculateThreatOnSuccessfulHit({ bonus: 305 }),
+    [Spells.ShieldSlamR4]: threatOnSuccessfulHit({ bonus: 254 }),
+    [Spells.ShieldSlamR5]: threatOnSuccessfulHit({ bonus: 278 }),
+    [Spells.ShieldSlamR6]: threatOnSuccessfulHit({ bonus: 305 }),
 
-    [Spells.ShieldBashR3]: calculateThreatOnSuccessfulHit({
+    [Spells.ShieldBashR3]: threatOnSuccessfulHit({
       modifier: 1.5,
       bonus: 156,
     }),
-    [Spells.ShieldBashR4]: calculateThreatOnSuccessfulHit({
+    [Spells.ShieldBashR4]: threatOnSuccessfulHit({
       modifier: 1.5,
       bonus: 192,
     }),
 
-    [Spells.RevengeR5]: calculateThreatOnSuccessfulHit({ bonus: 150 }),
-    [Spells.RevengeR6]: calculateThreatOnSuccessfulHit({ bonus: 175 }),
-    [Spells.RevengeR7]: calculateThreatOnSuccessfulHit({ bonus: 185 }),
-    [Spells.RevengeR8]: calculateThreatOnSuccessfulHit({ bonus: 200 }),
-    [Spells.RevengeStun]: calculateThreatOnSuccessfulHit({ bonus: 20 }),
+    [Spells.RevengeR5]: threatOnSuccessfulHit({ bonus: 150 }),
+    [Spells.RevengeR6]: threatOnSuccessfulHit({ bonus: 175 }),
+    [Spells.RevengeR7]: threatOnSuccessfulHit({ bonus: 185 }),
+    [Spells.RevengeR8]: threatOnSuccessfulHit({ bonus: 200 }),
+    [Spells.RevengeStun]: threatOnSuccessfulHit({ bonus: 20 }),
 
-    [Spells.DevastateR1]: calculateThreatOnSuccessfulHit({ bonus: 401.5 }),
-    [Spells.DevastateR2]: calculateThreatOnSuccessfulHit({ bonus: 401.5 }),
-    [Spells.DevastateR3]: calculateThreatOnSuccessfulHit({ bonus: 401.5 }),
+    [Spells.DevastateR1]: threatOnSuccessfulHit({ bonus: 401.5 }),
+    [Spells.DevastateR2]: threatOnSuccessfulHit({ bonus: 401.5 }),
+    [Spells.DevastateR3]: threatOnSuccessfulHit({ bonus: 401.5 }),
 
-    [Spells.ThunderClapR1]: calculateThreat({ modifier: 1.75 }),
-    [Spells.ThunderClapR2]: calculateThreat({ modifier: 1.75 }),
-    [Spells.ThunderClapR3]: calculateThreat({ modifier: 1.75 }),
-    [Spells.ThunderClapR4]: calculateThreat({ modifier: 1.75 }),
-    [Spells.ThunderClapR5]: calculateThreat({ modifier: 1.75 }),
-    [Spells.ThunderClapR6]: calculateThreat({ modifier: 1.75 }),
+    [Spells.ThunderClapR1]: threat({ modifier: 1.75 }),
+    [Spells.ThunderClapR2]: threat({ modifier: 1.75 }),
+    [Spells.ThunderClapR3]: threat({ modifier: 1.75 }),
+    [Spells.ThunderClapR4]: threat({ modifier: 1.75 }),
+    [Spells.ThunderClapR5]: threat({ modifier: 1.75 }),
+    [Spells.ThunderClapR6]: threat({ modifier: 1.75 }),
 
     [Spells.SunderArmorR1]: threatOnCastRollbackOnMiss(45),
     [Spells.SunderArmorR5]: threatOnCastRollbackOnMiss(261),

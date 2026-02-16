@@ -18,7 +18,7 @@ export interface FormulaOptions {
   applyPlayerMultipliers?: boolean
 }
 
-export interface CalculateThreatOptions {
+export interface ThreatOptions {
   /** Multiplier applied to event amount (default: 1) */
   modifier?: number
   /** Flat bonus threat added after modifier (default: 0) */
@@ -81,7 +81,7 @@ function isEventTypeAllowed(
 
 /**
  * Consolidated threat formula: (amount × modifier) + bonus
- * Replaces flat(), modAmount(), modAmountFlat(), defaultFormula(), threatOnBuff(), modHeal()
+ * Replaces flat(), modAmount(), modAmountFlat(), defaultFormula(), threatOnBuff()
  *
  * @example
  * calculateThreat() // amt (default damage)
@@ -90,9 +90,7 @@ function isEventTypeAllowed(
  * calculateThreat({ modifier: 2, bonus: 150 }) // (amt * 2) + 150
  * calculateThreat({ modifier: 0.5, split: true }) // amt * 0.5 (split among enemies)
  */
-export function calculateThreat(
-  options: CalculateThreatOptions = {},
-): FormulaFn {
+export function threat(options: ThreatOptions = {}): FormulaFn {
   const {
     modifier = 1,
     bonus = 0,
@@ -143,10 +141,8 @@ export function calculateThreat(
  * Consolidated hit-gated threat formula.
  * Applies (amount × modifier) + bonus only on successful damage hits.
  */
-export function calculateThreatOnSuccessfulHit(
-  options: CalculateThreatOptions = {},
-): FormulaFn {
-  const baseFormula = calculateThreat({
+export function threatOnSuccessfulHit(options: ThreatOptions = {}): FormulaFn {
+  const baseFormula = threat({
     ...options,
     eventTypes: ['damage'],
   })
@@ -405,19 +401,6 @@ export function threatOnBuff(
       applyPlayerMultipliers: options?.applyPlayerMultipliers,
     }
   }
-}
-
-/**
- * Heal with modified threat coefficient
- * Example: Paladin heals (amt * 0.25), normal heals (amt * 0.5)
- * Always splits among enemies
- */
-export function modHeal(multiplier: number): FormulaFn {
-  return (ctx) => ({
-    formula: multiplier === 0.5 ? 'amt * 0.5' : `amt * ${multiplier}`,
-    value: ctx.amount * multiplier,
-    splitAmongEnemies: true,
-  })
 }
 
 /**

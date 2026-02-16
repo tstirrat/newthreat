@@ -10,7 +10,7 @@ import type {
 } from '@wcl-threat/shared'
 import { SpellSchool } from '@wcl-threat/shared'
 
-import { calculateThreat, threatOnBuff } from '../../shared/formulas'
+import { threat, threatOnBuff } from '../../shared/formulas'
 import { inferTalent } from '../../shared/talents'
 
 // ============================================================================
@@ -196,22 +196,22 @@ export const paladinConfig: ClassThreatConfig = {
 
   abilities: {
     // Judgement of Light: 194 flat threat (cast)
-    [Spells.JudgementOfLight]: calculateThreat({ modifier: 0, bonus: 194 }),
+    [Spells.JudgementOfLight]: threat({ modifier: 0, bonus: 194 }),
 
     // Judgement of Wisdom: 194 flat threat (cast)
-    [Spells.JudgementOfWisdom]: calculateThreat({ modifier: 0, bonus: 194 }),
+    [Spells.JudgementOfWisdom]: threat({ modifier: 0, bonus: 194 }),
 
     // Judgement of Righteousness: damage counts as holy
-    [Spells.JudgementOfRighteousness]: calculateThreat({ modifier: 1 }),
+    [Spells.JudgementOfRighteousness]: threat({ modifier: 1 }),
 
     // Holy Shield: damage + 35 threat per block (handled per block event)
-    [Spells.HolyShield]: calculateThreat({ modifier: 1, bonus: 35 }),
+    [Spells.HolyShield]: threat({ modifier: 1, bonus: 35 }),
 
     // Consecration: damage done (scales with RF)
-    [Spells.Consecration]: calculateThreat({ modifier: 1 }),
+    [Spells.Consecration]: threat({ modifier: 1 }),
 
     // Exorcism: standard damage threat
-    [Spells.Exorcism]: calculateThreat({ modifier: 1 }),
+    [Spells.Exorcism]: threat({ modifier: 1 }),
 
     // Blessings: 60 threat split among enemies
     [Spells.BlessingOfKings]: threatOnBuff(60, { split: true }),

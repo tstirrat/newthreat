@@ -6,8 +6,8 @@
 import type { ClassThreatConfig } from '@wcl-threat/shared'
 
 import {
-  calculateThreat,
   noThreat,
+  threat,
   threatOnDebuff,
   threatOnDebuffOrDamage,
 } from '../../shared/formulas'
@@ -78,14 +78,21 @@ export const Spells = {
   DrainManaR2: 6226,
   DrainManaR3: 11703,
   DrainManaR4: 11704,
+
+  MasterDemonologistR1: 23759,
+  MasterDemonologistR2: 23826,
+  MasterDemonologistR3: 23827,
+  MasterDemonologistR4: 23828,
+  MasterDemonologistR5: 23829,
 } as const
 
 // ============================================================================
 // Modifiers
 // ============================================================================
 
-const Mods = {
+export const Mods = {
   SearingPain: 2.0,
+  MasterDemonologist: 0.04,
 }
 
 // ============================================================================
@@ -93,16 +100,42 @@ const Mods = {
 // ============================================================================
 
 export const warlockConfig: ClassThreatConfig = {
-  auraModifiers: {},
+  auraModifiers: {
+    [Spells.MasterDemonologistR1]: () => ({
+      source: 'talent',
+      name: 'Master Demonologist (Rank 1)',
+      value: 1 - Mods.MasterDemonologist,
+    }),
+    [Spells.MasterDemonologistR2]: () => ({
+      source: 'talent',
+      name: 'Master Demonologist (Rank 2)',
+      value: 1 - Mods.MasterDemonologist * 2,
+    }),
+    [Spells.MasterDemonologistR3]: () => ({
+      source: 'talent',
+      name: 'Master Demonologist (Rank 3)',
+      value: 1 - Mods.MasterDemonologist * 3,
+    }),
+    [Spells.MasterDemonologistR4]: () => ({
+      source: 'talent',
+      name: 'Master Demonologist (Rank 4)',
+      value: 1 - Mods.MasterDemonologist * 4,
+    }),
+    [Spells.MasterDemonologistR5]: () => ({
+      source: 'talent',
+      name: 'Master Demonologist (Rank 5)',
+      value: 1 - Mods.MasterDemonologist * 5,
+    }),
+  },
 
   abilities: {
     // Searing Pain - 2x threat
-    [Spells.SearingPainR1]: calculateThreat({ modifier: Mods.SearingPain }),
-    [Spells.SearingPainR2]: calculateThreat({ modifier: Mods.SearingPain }),
-    [Spells.SearingPainR3]: calculateThreat({ modifier: Mods.SearingPain }),
-    [Spells.SearingPainR4]: calculateThreat({ modifier: Mods.SearingPain }),
-    [Spells.SearingPainR5]: calculateThreat({ modifier: Mods.SearingPain }),
-    [Spells.SearingPainR6]: calculateThreat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR1]: threat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR2]: threat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR3]: threat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR4]: threat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR5]: threat({ modifier: Mods.SearingPain }),
+    [Spells.SearingPainR6]: threat({ modifier: Mods.SearingPain }),
 
     // Curses - 2x mana cost as threat
     [Spells.CurseOfRecklessnessR1]: threatOnDebuff(2 * 14),

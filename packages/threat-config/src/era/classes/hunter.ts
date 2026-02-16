@@ -7,7 +7,7 @@
 import type { EventInterceptor } from '@wcl-threat/shared'
 import type { ClassThreatConfig } from '@wcl-threat/shared'
 
-import { calculateThreat, modifyThreat } from '../../shared/formulas'
+import { modifyThreat, threat } from '../../shared/formulas'
 
 // ============================================================================
 // Spell IDs
@@ -101,16 +101,16 @@ export const hunterConfig: ClassThreatConfig = {
     }),
 
     // Distracting Shot - damage + flat threat per rank
-    [Spells.DistractingShotR1]: calculateThreat({ modifier: 1, bonus: 110 }),
-    [Spells.DistractingShotR2]: calculateThreat({ modifier: 1, bonus: 160 }),
-    [Spells.DistractingShotR3]: calculateThreat({ modifier: 1, bonus: 250 }),
-    [Spells.DistractingShotR4]: calculateThreat({ modifier: 1, bonus: 350 }),
-    [Spells.DistractingShotR5]: calculateThreat({ modifier: 1, bonus: 465 }),
-    [Spells.DistractingShotR6]: calculateThreat({ modifier: 1, bonus: 600 }),
+    [Spells.DistractingShotR1]: threat({ modifier: 1, bonus: 110 }),
+    [Spells.DistractingShotR2]: threat({ modifier: 1, bonus: 160 }),
+    [Spells.DistractingShotR3]: threat({ modifier: 1, bonus: 250 }),
+    [Spells.DistractingShotR4]: threat({ modifier: 1, bonus: 350 }),
+    [Spells.DistractingShotR5]: threat({ modifier: 1, bonus: 465 }),
+    [Spells.DistractingShotR6]: threat({ modifier: 1, bonus: 600 }),
 
     // Disengage - negative threat
-    [Spells.DisengageR1]: calculateThreat({ modifier: 0, bonus: -140 }),
-    [Spells.DisengageR2]: calculateThreat({ modifier: 0, bonus: -280 }),
-    [Spells.DisengageR3]: calculateThreat({ modifier: 0, bonus: -405 }),
+    [Spells.DisengageR1]: threat({ modifier: 0, bonus: -140 }),
+    [Spells.DisengageR2]: threat({ modifier: 0, bonus: -280 }),
+    [Spells.DisengageR3]: threat({ modifier: 0, bonus: -405 }),
   },
 }

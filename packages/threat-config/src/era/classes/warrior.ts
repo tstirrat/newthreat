@@ -11,13 +11,13 @@ import type {
 import type { GearItem } from '@wcl-threat/wcl-types'
 
 import {
-  calculateThreat,
-  calculateThreatOnSuccessfulHit,
   noThreat as noThreatFormula,
   tauntTarget,
+  threat,
   threatOnBuff,
   threatOnCastRollbackOnMiss,
   threatOnDebuff,
+  threatOnSuccessfulHit,
 } from '../../shared/formulas'
 import { inferTalent } from '../../shared/talents'
 
@@ -230,8 +230,8 @@ function inferGearAuras(gear: GearItem[]): number[] {
 
 const noThreat = noThreatFormula()
 
-const threatOnHit = (bonus: number): ReturnType<typeof calculateThreat> =>
-  calculateThreatOnSuccessfulHit({
+const threatOnHit = (bonus: number): ReturnType<typeof threat> =>
+  threatOnSuccessfulHit({
     modifier: 1,
     bonus,
   })
@@ -239,22 +239,22 @@ const threatOnHit = (bonus: number): ReturnType<typeof calculateThreat> =>
 const modDamagePlusThreat = (
   modifier: number,
   bonus: number,
-): ReturnType<typeof calculateThreat> =>
-  calculateThreatOnSuccessfulHit({
+): ReturnType<typeof threat> =>
+  threatOnSuccessfulHit({
     modifier,
     bonus,
   })
 
-const modDamage = (modifier: number): ReturnType<typeof calculateThreat> =>
-  calculateThreat({
+const modDamage = (modifier: number): ReturnType<typeof threat> =>
+  threat({
     modifier,
     eventTypes: ['damage'],
   })
 
 const resourceChangeThreat = (
   applyPlayerMultipliers: boolean,
-): ReturnType<typeof calculateThreat> =>
-  calculateThreat({
+): ReturnType<typeof threat> =>
+  threat({
     modifier: 5,
     split: true,
     eventTypes: ['resourcechange'],
@@ -452,7 +452,7 @@ export const warriorConfig: ClassThreatConfig = {
     [Spells.CleaveR6]: threatOnHit(100),
 
     [Spells.WhirlwindR1]: modDamage(1.25),
-    [Spells.MortalStrike]: calculateThreat({ eventTypes: ['damage'] }),
+    [Spells.MortalStrike]: threat({ eventTypes: ['damage'] }),
 
     // Thunder Clap ranks
     [Spells.ThunderClapR1]: modDamage(2.5),
@@ -501,11 +501,11 @@ export const warriorConfig: ClassThreatConfig = {
     [Spells.DemoShoutR7]: threatOnDebuff(43),
 
     // Mocking Blow ranks
-    [Spells.MockingBlowR1]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.MockingBlowR2]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.MockingBlowR3]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.MockingBlowR4]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.MockingBlowR5]: calculateThreat({ eventTypes: ['damage'] }),
+    [Spells.MockingBlowR1]: threat({ eventTypes: ['damage'] }),
+    [Spells.MockingBlowR2]: threat({ eventTypes: ['damage'] }),
+    [Spells.MockingBlowR3]: threat({ eventTypes: ['damage'] }),
+    [Spells.MockingBlowR4]: threat({ eventTypes: ['damage'] }),
+    [Spells.MockingBlowR5]: threat({ eventTypes: ['damage'] }),
 
     // Taunt / fixate abilities
     [Spells.Taunt]: tauntTarget({
@@ -515,21 +515,21 @@ export const warriorConfig: ClassThreatConfig = {
     [Spells.ChallengingShout]: noThreat,
 
     // Direct damage / on-hit physical abilities
-    [Spells.OverpowerR4]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.RendR6]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.DeepWounds]: calculateThreat({ eventTypes: ['damage'] }),
+    [Spells.OverpowerR4]: threat({ eventTypes: ['damage'] }),
+    [Spells.RendR6]: threat({ eventTypes: ['damage'] }),
+    [Spells.DeepWounds]: threat({ eventTypes: ['damage'] }),
     [Spells.PummelR1]: threatOnHit(76),
     [Spells.PummelR2]: threatOnHit(116),
-    [Spells.BloodthirstR1]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.BloodthirstR2]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.BloodthirstR3]: calculateThreat({ eventTypes: ['damage'] }),
-    [Spells.BloodthirstR4]: calculateThreat({ eventTypes: ['damage'] }),
+    [Spells.BloodthirstR1]: threat({ eventTypes: ['damage'] }),
+    [Spells.BloodthirstR2]: threat({ eventTypes: ['damage'] }),
+    [Spells.BloodthirstR3]: threat({ eventTypes: ['damage'] }),
+    [Spells.BloodthirstR4]: threat({ eventTypes: ['damage'] }),
 
     // Resource gain and proc heal abilities
     [Spells.BloodrageCast]: resourceChangeThreat(true),
     [Spells.BloodrageRageGain]: resourceChangeThreat(false),
     [Spells.UnbridledWrath]: resourceChangeThreat(false),
-    [Spells.BloodthirstHeal]: calculateThreat({
+    [Spells.BloodthirstHeal]: threat({
       modifier: 0.5,
       split: true,
       eventTypes: ['heal'],

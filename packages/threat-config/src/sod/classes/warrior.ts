@@ -8,7 +8,7 @@ import {
   Spells as EraSpells,
   warriorConfig as eraWarriorConfig,
 } from '../../era/classes/warrior'
-import { calculateThreat, noThreat } from '../../shared/formulas'
+import { noThreat, threat } from '../../shared/formulas'
 
 export const Spells = {
   ...EraSpells,
@@ -169,19 +169,19 @@ export const warriorConfig: ClassThreatConfig = {
   abilities: {
     ...eraWarriorConfig.abilities,
     [Spells.GladiatorStance]: noThreat(),
-    [Spells.ShieldSlamR1]: calculateThreat({
+    [Spells.ShieldSlamR1]: threat({
       modifier: Mods.ShieldSlam,
       bonus: 178,
     }),
-    [Spells.ShieldSlamR2]: calculateThreat({
+    [Spells.ShieldSlamR2]: threat({
       modifier: Mods.ShieldSlam,
       bonus: 203,
     }),
-    [Spells.ShieldSlamR3]: calculateThreat({
+    [Spells.ShieldSlamR3]: threat({
       modifier: Mods.ShieldSlam,
       bonus: 229,
     }),
-    [Spells.ShieldSlamR4]: calculateThreat({
+    [Spells.ShieldSlamR4]: threat({
       modifier: Mods.ShieldSlam,
       bonus: 254,
     }),

@@ -16,9 +16,9 @@ import {
   hasRighteousFuryAura,
 } from '../../era/classes/paladin'
 import {
-  calculateThreat,
   noThreat,
   tauntTarget,
+  threat,
   threatOnBuff,
 } from '../../shared/formulas'
 import { inferTalent } from '../../shared/talents'
@@ -183,14 +183,14 @@ export const paladinConfig: ClassThreatConfig = {
 
     [Spells.SealOfRighteousnessR9]: sealOfRighteousnessRank9,
 
-    [Spells.HolyShieldR1]: calculateThreat({ modifier: 1.35 }),
-    [Spells.HolyShieldR2]: calculateThreat({ modifier: 1.35 }),
-    [Spells.HolyShieldR3]: calculateThreat({ modifier: 1.35 }),
-    [Spells.HolyShieldR4]: calculateThreat({ modifier: 1.35 }),
+    [Spells.HolyShieldR1]: threat({ modifier: 1.35 }),
+    [Spells.HolyShieldR2]: threat({ modifier: 1.35 }),
+    [Spells.HolyShieldR3]: threat({ modifier: 1.35 }),
+    [Spells.HolyShieldR4]: threat({ modifier: 1.35 }),
 
-    [Spells.AvengersShieldR1]: calculateThreat({ modifier: 1.3 }),
-    [Spells.AvengersShieldR2]: calculateThreat({ modifier: 1.3 }),
-    [Spells.AvengersShieldR3]: calculateThreat({ modifier: 1.3 }),
+    [Spells.AvengersShieldR1]: threat({ modifier: 1.3 }),
+    [Spells.AvengersShieldR2]: threat({ modifier: 1.3 }),
+    [Spells.AvengersShieldR3]: threat({ modifier: 1.3 }),
 
     [Spells.RighteousDefense]: tauntTarget({ bonus: 0, eventTypes: ['cast'] }),
     [Spells.SpiritualAttunement]: resourceChangeThreat,
@@ -200,17 +200,17 @@ export const paladinConfig: ClassThreatConfig = {
     [Spells.JudgementOfWisdomManaR3]: noThreatFormula,
     [Spells.JudgementOfWisdomManaR4]: noThreatFormula,
 
-    [Spells.HolyLightR10]: calculateThreat({
+    [Spells.HolyLightR10]: threat({
       modifier: 0.5,
       split: true,
       eventTypes: ['heal'],
     }),
-    [Spells.HolyLightR11]: calculateThreat({
+    [Spells.HolyLightR11]: threat({
       modifier: 0.5,
       split: true,
       eventTypes: ['heal'],
     }),
-    [Spells.FlashOfLightR7]: calculateThreat({
+    [Spells.FlashOfLightR7]: threat({
       modifier: 0.5,
       split: true,
       eventTypes: ['heal'],

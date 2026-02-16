@@ -8,8 +8,8 @@ import type {
   TalentImplicationContext,
 } from '@wcl-threat/shared'
 
-import { calculateThreat } from '../../shared/formulas'
-import { inferMappedTalentRank } from '../../shared/talents'
+import { threat } from '../../shared/formulas'
+import { inferTalent } from '../../shared/talents'
 
 // ============================================================================
 // Spell IDs
@@ -39,15 +39,11 @@ const Mods = {
   HealingGrace: 0.05, // 5% per rank
 }
 
-const HEALING_GRACE_AURA_BY_RANK = [
+const HEALING_GRACE_RANKS = [
   Spells.HealingGraceRank1,
   Spells.HealingGraceRank2,
   Spells.HealingGraceRank3,
 ] as const
-
-const HEALING_GRACE_RANK_BY_TALENT_ID = new Map<number, number>(
-  HEALING_GRACE_AURA_BY_RANK.map((spellId, idx) => [spellId, idx + 1]),
-)
 
 const HEALING_SPELLS = new Set([
   8004,
@@ -108,24 +104,20 @@ export const shamanConfig: ClassThreatConfig = {
 
   abilities: {
     // Earth Shock - 2x threat
-    [Spells.EarthShockR1]: calculateThreat({ modifier: Mods.EarthShock }),
-    [Spells.EarthShockR2]: calculateThreat({ modifier: Mods.EarthShock }),
-    [Spells.EarthShockR3]: calculateThreat({ modifier: Mods.EarthShock }),
-    [Spells.EarthShockR4]: calculateThreat({ modifier: Mods.EarthShock }),
-    [Spells.EarthShockR5]: calculateThreat({ modifier: Mods.EarthShock }),
-    [Spells.EarthShockR6]: calculateThreat({ modifier: Mods.EarthShock }),
-    [Spells.EarthShockR7]: calculateThreat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR1]: threat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR2]: threat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR3]: threat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR4]: threat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR5]: threat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR6]: threat({ modifier: Mods.EarthShock }),
+    [Spells.EarthShockR7]: threat({ modifier: Mods.EarthShock }),
   },
 
   talentImplications: (ctx: TalentImplicationContext) => {
-    const healingGraceRank = inferMappedTalentRank(
-      ctx.talentRanks,
-      HEALING_GRACE_RANK_BY_TALENT_ID,
-      HEALING_GRACE_AURA_BY_RANK.length,
-    )
-    if (healingGraceRank === 0) {
-      return []
+    const healingGraceSpellId = inferTalent(ctx, HEALING_GRACE_RANKS)
+    if (healingGraceSpellId) {
+      return [healingGraceSpellId]
     }
-    return [HEALING_GRACE_AURA_BY_RANK[healingGraceRank - 1]!]
+    return []
   },
 }

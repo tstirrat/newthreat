@@ -5,7 +5,7 @@
  */
 import type { BaseThreatConfig } from '@wcl-threat/shared'
 
-import { calculateThreat } from '../shared/formulas'
+import { threat } from '../shared/formulas'
 
 /**
  * Base threat configurations for Anniversary Edition
@@ -14,7 +14,7 @@ export const baseThreat: BaseThreatConfig = {
   /**
    * Damage threat: 1 damage = 1 threat (before modifiers)
    */
-  damage: calculateThreat(),
+  damage: threat(),
 
   /**
    * Healing threat: effective healing * 0.5, split among enemies
