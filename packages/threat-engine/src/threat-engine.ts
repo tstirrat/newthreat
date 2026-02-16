@@ -233,11 +233,13 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
       const encounterEffects =
         encounterPreprocessor?.(threatContext)?.effects ?? []
       const stateEffect = buildStateEffectFromAuraEvent(event, stateSpellSets)
+      const deathMarkerEffect = buildDeathEventMarker(event)
       const effects = [
         ...(baseCalculation.effects ?? []),
         ...encounterEffects,
         ...interceptorEffects,
         ...(stateEffect ? [stateEffect] : []),
+        ...(deathMarkerEffect ? [deathMarkerEffect] : []),
       ]
       const calculation: ThreatCalculation = {
         ...baseCalculation,
@@ -297,6 +299,14 @@ function applyThreat(
 
   // Handle enemy death - just return empty changes (death is tracked in FightState)
   if (event.type === 'death' && !event.targetIsFriendly) {
+    return changes
+  }
+
+  const sourceRef = {
+    id: event.sourceID,
+    instanceId: event.sourceInstance ?? 0,
+  }
+  if (event.sourceIsFriendly && !fightState.isActorAlive(sourceRef)) {
     return changes
   }
 
@@ -606,6 +616,19 @@ function isTrackedBossMeleeEvent(
     !event.sourceIsFriendly &&
     event.targetIsFriendly
   )
+}
+
+function buildDeathEventMarker(
+  event: FriendlyResolvedEvent,
+): Extract<ThreatEffect, { type: 'eventMarker' }> | undefined {
+  if (event.type !== 'death' || !event.targetIsFriendly) {
+    return undefined
+  }
+
+  return {
+    type: 'eventMarker',
+    marker: 'death',
+  }
 }
 
 function getSpellSchoolMaskForEvent(

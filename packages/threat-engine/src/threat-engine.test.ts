@@ -508,6 +508,14 @@ describe('processEvents', () => {
       const deathChanges = deathAugmented?.threat!.changes ?? []
 
       expect(deathChanges).toHaveLength(2)
+      expect(deathAugmented?.threat?.calculation.effects).toEqual(
+        expect.arrayContaining([
+          {
+            type: 'eventMarker',
+            marker: 'death',
+          },
+        ]),
+      )
       expect(deathChanges).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -525,6 +533,86 @@ describe('processEvents', () => {
             total: 0,
           }),
         ]),
+      )
+    })
+
+    it('keeps dead players at zero threat until cast activity marks them alive', () => {
+      const actorMap = new Map<number, Actor>([
+        [warriorActor.id, warriorActor],
+        [bossEnemy.id, { id: bossEnemy.id, name: 'Boss', class: null }],
+      ])
+
+      const deathEvent: WCLEvent = {
+        timestamp: 1500,
+        type: 'death',
+        sourceID: bossEnemy.id,
+        sourceIsFriendly: false,
+        targetID: warriorActor.id,
+        targetIsFriendly: true,
+      }
+
+      const events: WCLEvent[] = [
+        createDamageEvent({
+          timestamp: 1000,
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          amount: 100,
+        }),
+        deathEvent,
+        createDamageEvent({
+          timestamp: 2000,
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          amount: 100,
+          tick: true,
+        }),
+        createCastEvent({
+          timestamp: 2500,
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          abilityGameID: SPELLS.MOCK_ABILITY_1,
+        }),
+        createDamageEvent({
+          timestamp: 3000,
+          sourceID: warriorActor.id,
+          targetID: bossEnemy.id,
+          amount: 100,
+        }),
+      ]
+
+      const result = processEvents({
+        rawEvents: events,
+        actorMap,
+        enemies,
+        config: mockConfig,
+      })
+
+      const deathChanges = result.augmentedEvents[1]?.threat?.changes ?? []
+      expect(deathChanges).toEqual([
+        expect.objectContaining({
+          sourceId: warriorActor.id,
+          targetId: bossEnemy.id,
+          operator: 'set',
+          total: 0,
+        }),
+      ])
+
+      const deadDotTick = result.augmentedEvents[2]
+      expect(deadDotTick?.threat?.changes).toBeUndefined()
+
+      const castThreatTotal =
+        result.augmentedEvents[3]?.threat?.changes?.[0]?.total
+      const postCastDamage = result.augmentedEvents[4]
+      const postCastDamageChange = postCastDamage?.threat?.changes?.[0]
+      expect(postCastDamageChange).toBeDefined()
+      expect(postCastDamageChange).toMatchObject({
+        sourceId: warriorActor.id,
+        targetId: bossEnemy.id,
+        operator: 'add',
+      })
+      expect(postCastDamageChange?.amount ?? 0).toBeGreaterThan(0)
+      expect(postCastDamageChange?.total).toBe(
+        (castThreatTotal ?? 0) + (postCastDamageChange?.amount ?? 0),
       )
     })
 

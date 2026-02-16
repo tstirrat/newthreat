@@ -406,6 +406,111 @@ describe('threat-aggregation', () => {
     )
   })
 
+  it('adds death markers from augmented event effects', () => {
+    const actors: ReportActorSummary[] = [
+      {
+        id: 1,
+        name: 'Tank',
+        type: 'Player',
+        subType: 'Warrior',
+      },
+      {
+        id: 10,
+        name: 'Boss',
+        type: 'NPC',
+        subType: 'Boss',
+      },
+    ]
+    const abilities: ReportAbilitySummary[] = [
+      {
+        gameID: 100,
+        icon: null,
+        name: 'Shield Slam',
+        type: '1',
+      },
+    ]
+    const events = [
+      {
+        timestamp: 1000,
+        type: 'damage',
+        sourceID: 1,
+        sourceIsFriendly: true,
+        targetID: 10,
+        targetIsFriendly: false,
+        abilityGameID: 100,
+        amount: 200,
+        threat: {
+          changes: [
+            {
+              sourceId: 1,
+              targetId: 10,
+              targetInstance: 0,
+              operator: 'add',
+              amount: 200,
+              total: 200,
+            },
+          ],
+          calculation: {
+            formula: 'damage',
+            amount: 200,
+            baseThreat: 200,
+            modifiedThreat: 200,
+            isSplit: false,
+            modifiers: [],
+          },
+        },
+      },
+      {
+        timestamp: 1200,
+        type: 'death',
+        sourceID: 10,
+        sourceIsFriendly: false,
+        targetID: 1,
+        targetIsFriendly: true,
+        threat: {
+          changes: [],
+          calculation: {
+            formula: '0',
+            amount: 0,
+            baseThreat: 0,
+            modifiedThreat: 0,
+            isSplit: false,
+            modifiers: [],
+            effects: [
+              {
+                type: 'eventMarker',
+                marker: 'death',
+              },
+            ],
+          },
+        },
+      },
+    ]
+
+    const series = buildThreatSeries({
+      events: events as never,
+      actors,
+      abilities,
+      fightStartTime: 1000,
+      fightEndTime: 2000,
+      target: {
+        id: 10,
+        instance: 0,
+      },
+    })
+
+    const tankSeries = series.find((entry) => entry.actorId === 1)
+    expect(tankSeries?.points).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          timeMs: 200,
+          totalThreat: 200,
+          markerKind: 'death',
+        }),
+      ]),
+    )
+  })
+
   it('builds state visual segments and fixate windows for the selected target', () => {
     const actors: ReportActorSummary[] = [
       {
@@ -714,6 +819,14 @@ describe('threat-aggregation', () => {
     expect(series[0]?.invulnerabilityWindows).toEqual([
       { startMs: 150, endMs: 200 },
     ])
+    expect(series[0]?.points).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          timeMs: 150,
+          markerKind: 'invulnerabilityStart',
+        }),
+      ]),
+    )
   })
 
   it('builds focused player summary for the selected window', () => {

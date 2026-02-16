@@ -92,20 +92,34 @@ interface SeriesChartPoint extends TooltipPointPayload {
 const doubleClickThresholdMs = 320
 const tooltipSnapDistancePx = 10
 const bossMeleeMarkerColor = '#ef4444'
+const deathMarkerColor = '#dc2626'
+const invulnerabilityMarkerColor = '#22c55e'
 
 function resolvePointColor(
   point: SeriesChartPoint | undefined,
   seriesColor: string,
 ): string {
-  if (point?.markerKind === 'bossMelee') {
+  if (!point?.markerKind) {
+    return seriesColor
+  }
+
+  if (point.markerKind === 'bossMelee') {
     return bossMeleeMarkerColor
+  }
+
+  if (point.markerKind === 'death') {
+    return deathMarkerColor
+  }
+
+  if (point.markerKind === 'invulnerabilityStart') {
+    return invulnerabilityMarkerColor
   }
 
   return seriesColor
 }
 
 function resolvePointSize(point: SeriesChartPoint | undefined): number {
-  if (point?.markerKind === 'bossMelee') {
+  if (point?.markerKind) {
     return 8
   }
 
@@ -619,7 +633,11 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         const markerLine =
           markerKind === 'bossMelee'
             ? `Marker: <strong style="color:${bossMeleeMarkerColor};">Boss melee</strong>`
-            : null
+            : markerKind === 'death'
+              ? `Marker: <strong style="color:${deathMarkerColor};">Death</strong>`
+              : markerKind === 'invulnerabilityStart'
+                ? `Marker: <strong style="color:${invulnerabilityMarkerColor};">Invulnerability applied</strong>`
+                : null
         const splitCount = resolveSplitCount(modifiedThreat, threatDelta)
         const visibleModifiers = modifiers.filter(
           (modifier) =>

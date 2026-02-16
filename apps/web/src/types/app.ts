@@ -63,7 +63,10 @@ export interface ThreatPointModifier {
   value: number
 }
 
-export type ThreatPointMarkerKind = 'bossMelee'
+export type ThreatPointMarkerKind =
+  | 'bossMelee'
+  | 'death'
+  | 'invulnerabilityStart'
 
 export type ThreatStateVisualKind = 'fixate' | 'aggroLoss' | 'invulnerable'
 
