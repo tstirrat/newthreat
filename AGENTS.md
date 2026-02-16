@@ -48,6 +48,26 @@ pnpm --filter @wcl-threat/api deploy          # Deploy API to production
 pnpm --filter @wcl-threat/api deploy:staging  # Deploy API to staging
 ```
 
+## Worktree & Preview Workflow
+
+When working in a git worktree, verify context before running app previews:
+
+```bash
+git rev-parse --show-toplevel                 # Repo root for current worktree
+git branch --show-current                     # Current branch (may be detached HEAD)
+git worktree list                             # All worktrees and their paths
+```
+
+For web preview testing from the current worktree:
+
+```bash
+pnpm --filter @wcl-threat/web dev             # Starts Vite on default port 5173
+```
+
+- Read the Vite startup output and share the `Local` URL (for example `http://localhost:5173/`).
+- If 5173 is already in use, Vite auto-selects another port (for example 5174); always share the actual printed URL.
+- Keep the dev server running while the user validates changes; stop it with `Ctrl+C` when done.
+
 ## Quality Expectations
 
 - Every change must be linted, type checked, and tested before it is considered complete; use the workspace commands (`pnpm lint`, `pnpm typecheck`, `pnpm test`, etc.) that cover the touched areas.
