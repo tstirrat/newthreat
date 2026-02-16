@@ -68,6 +68,21 @@ describe('resolveConfigOrNull', () => {
     expect(config).toBe(anniversaryConfig)
   })
 
+  it('resolves anniversary for gameVersion 3 with Anniversary season id', () => {
+    const config = resolveConfigOrNull(
+      createResolverInput({
+        gameVersion: 3,
+        fights: [
+          {
+            classicSeasonID: 5,
+          },
+        ],
+      }),
+    )
+
+    expect(config).toBe(anniversaryConfig)
+  })
+
   it('resolves era for gameVersion 2 with Anniversary season id before 2026-01-13', () => {
     const config = resolveConfigOrNull(
       createResolverInput({

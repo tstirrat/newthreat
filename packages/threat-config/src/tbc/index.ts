@@ -19,6 +19,7 @@ import {
   FRESH_TBC_CUTOVER_TIMESTAMP_MS,
   getClassicSeasonIds,
   hasZonePartition,
+  isSupportedClassicGameVersion,
   validateAbilities,
   validateAuraModifiers,
 } from '../shared/utils'
@@ -118,7 +119,7 @@ export const anniversaryConfig: ThreatConfig = {
   version: '1.3.1',
   displayName: 'TBC (Anniversary)',
   resolve: (input: ThreatConfigResolutionInput): boolean => {
-    if (input.report.masterData.gameVersion !== 2) {
+    if (!isSupportedClassicGameVersion(input.report.masterData.gameVersion)) {
       return false
     }
 

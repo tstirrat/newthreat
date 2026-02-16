@@ -145,6 +145,38 @@ describe('Reports API', () => {
       })
     })
 
+    it('resolves TBC for gameVersion 3 season metadata on 2026-01-13 and later', async () => {
+      mockFetch({
+        report: {
+          ...reportData,
+          startTime: Date.UTC(2026, 0, 13, 0, 0, 0, 0),
+          masterData: {
+            ...reportData.masterData,
+            gameVersion: 3,
+          },
+          fights: reportData.fights.map((fight) => ({
+            ...fight,
+            classicSeasonID: 5,
+          })),
+        },
+      })
+
+      const res = await app.request(
+        'http://localhost/v1/reports/FRESHTBCV3',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(200)
+
+      const data: ReportResponse = await res.json()
+      expect(data.gameVersion).toBe(3)
+      expect(data.threatConfig).toEqual({
+        displayName: 'TBC (Anniversary)',
+        version: expect.any(String),
+      })
+    })
+
     it('returns null threat config for unsupported retail reports', async () => {
       mockFetch({
         report: {

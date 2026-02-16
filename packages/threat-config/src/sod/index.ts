@@ -16,6 +16,7 @@ import { baseThreat } from '../era/general'
 import {
   getClassicSeasonIds,
   hasZonePartition,
+  isSupportedClassicGameVersion,
   validateAbilities,
   validateAuraModifiers,
 } from '../shared/utils'
@@ -103,7 +104,7 @@ export const sodConfig: ThreatConfig = {
   version: '1.0.0',
   displayName: 'Season of Discovery',
   resolve: (input) => {
-    if (input.report.masterData.gameVersion !== 2) {
+    if (!isSupportedClassicGameVersion(input.report.masterData.gameVersion)) {
       return false
     }
 

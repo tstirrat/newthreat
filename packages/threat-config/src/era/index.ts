@@ -14,6 +14,7 @@ import {
   FRESH_TBC_CUTOVER_TIMESTAMP_MS,
   getClassicSeasonIds,
   hasZonePartition,
+  isSupportedClassicGameVersion,
   validateAbilities,
   validateAuraModifiers,
 } from '../shared/utils'
@@ -69,7 +70,7 @@ export const eraConfig: ThreatConfig = {
   version: '1.3.1',
   displayName: 'Vanilla (Era)',
   resolve: (meta: ThreatConfigResolutionInput): boolean => {
-    if (meta.report.masterData.gameVersion !== 2) {
+    if (!isSupportedClassicGameVersion(meta.report.masterData.gameVersion)) {
       return false
     }
 

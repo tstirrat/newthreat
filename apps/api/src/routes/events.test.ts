@@ -291,6 +291,37 @@ describe('Events API', () => {
       expect(data.summary).toBeDefined()
     })
 
+    it('resolves anniversary config for gameVersion 3 from classic season metadata', async () => {
+      mockFetch({
+        report: {
+          ...reportData,
+          startTime: Date.UTC(2026, 0, 13, 0, 0, 0, 0),
+          masterData: {
+            ...reportData.masterData,
+            gameVersion: 3,
+          },
+          fights: reportData.fights.map((fight) => ({
+            ...fight,
+            classicSeasonID: 5,
+          })),
+        },
+        events: mockEvents,
+      })
+
+      const res = await app.request(
+        'http://localhost/v1/reports/TBCV3/fights/1/events',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(200)
+
+      const data: AugmentedEventsResponse = await res.json()
+      expect(data.gameVersion).toBe(3)
+      expect(data.events).toBeDefined()
+      expect(data.summary).toBeDefined()
+    })
+
     it('returns 400 when classic season metadata is unsupported', async () => {
       mockFetch({
         report: {
