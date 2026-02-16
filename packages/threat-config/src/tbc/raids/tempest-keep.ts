@@ -1,11 +1,14 @@
 /**
  * Tempest Keep raid mechanics for Anniversary/TBC.
  */
-import type { ThreatFormula } from '@wcl-threat/shared'
+import type { Abilities } from '@wcl-threat/shared'
 
-import { modifyThreat, modifyThreatOnHit } from '../../shared/formulas'
+import { modifyThreatOnHit } from '../../shared/formulas'
 
-export const tempestKeepAbilities: Record<number, ThreatFormula> = {
-  33237: modifyThreat({ modifier: 0, target: 'all', eventTypes: ['cast'] }), // High King Maulgar (Kiggler) reset
-  37102: modifyThreatOnHit(0.75), // Crystalcore Devastator knock-away
+const Spells = {
+  KnockAway: 37102, // https://www.wowhead.com/tbc/spell=37102/knock-away
+} as const
+
+export const tempestKeepAbilities: Abilities = {
+  [Spells.KnockAway]: modifyThreatOnHit(0.75),
 }

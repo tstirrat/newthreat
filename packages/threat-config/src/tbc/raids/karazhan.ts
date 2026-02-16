@@ -2,6 +2,7 @@
  * Karazhan raid mechanics for Anniversary/TBC.
  */
 import type {
+  Abilities,
   EventInterceptor,
   EventInterceptorResult,
   ThreatEffect,
@@ -12,13 +13,14 @@ import { modifyThreat } from '../../shared/formulas'
 
 const NIGHTBANE_LANDING_DELAY_MS = 43_000
 
-function createNightbaneLandingInterceptor(
+function threatWipeAfterDelay(
   enemyId: number,
   enemyInstance: number,
+  delayMs: number,
 ): EventInterceptor {
   return (event, interceptorCtx): EventInterceptorResult => {
     const elapsedMs = interceptorCtx.timestamp - interceptorCtx.installedAt
-    if (elapsedMs < NIGHTBANE_LANDING_DELAY_MS) {
+    if (elapsedMs < delayMs) {
       return { action: 'passthrough' }
     }
 
@@ -80,13 +82,26 @@ const nightbaneRainOfBones: ThreatFormula = (ctx) => {
       },
       {
         type: 'installInterceptor',
-        interceptor: createNightbaneLandingInterceptor(enemyId, enemyInstance),
+        interceptor: threatWipeAfterDelay(
+          enemyId,
+          enemyInstance,
+          NIGHTBANE_LANDING_DELAY_MS,
+        ),
       },
     ],
   }
 }
 
-export const karazhanAbilities: Record<number, ThreatFormula> = {
-  30013: modifyThreat({ modifier: 0, target: 'all', eventTypes: ['cast'] }), // Disarm
-  37098: nightbaneRainOfBones, // Rain of Bones
+const Spells = {
+  RainOfBones: 37098,
+  Disarm: 30013,
+} as const
+
+export const karazhanAbilities: Abilities = {
+  [Spells.Disarm]: modifyThreat({
+    modifier: 0,
+    target: 'all',
+    eventTypes: ['cast'],
+  }),
+  [Spells.RainOfBones]: nightbaneRainOfBones,
 }

@@ -1,11 +1,11 @@
 /**
  * Shared TBC raid mechanics used across multiple raids.
  */
-import type { ThreatFormula } from '@wcl-threat/shared'
+import type { Abilities } from '@wcl-threat/shared'
 
 import { modifyThreatOnHit } from '../../shared/formulas'
 
-export const commonRaidAbilities: Record<number, ThreatFormula> = {
+export const commonRaidAbilities: Abilities = {
   // Generic knock-away style 50% threat drops
   10101: modifyThreatOnHit(0.5),
   18813: modifyThreatOnHit(0.5),

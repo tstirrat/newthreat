@@ -276,6 +276,10 @@ export type TalentImplicationsFn = (ctx: TalentImplicationContext) => number[]
 
 export type AuraImplications = ReadonlyMap<SpellId, ReadonlySet<SpellId>>
 
+export type AuraModifiers = Record<number, AuraModifierFn>
+
+export type Abilities = Record<number, ThreatFormula>
+
 export interface ClassThreatConfig {
   /** Exclusive aura sets - engine auto-removes others when one is applied */
   exclusiveAuras?: Set<number>[]
@@ -284,12 +288,8 @@ export interface ClassThreatConfig {
   baseThreatFactor?: number
 
   /** Aura-based modifiers: spellId -> modifier function */
-  auraModifiers: Record<number, AuraModifierFn>
-
-  /** Ability-specific formulas */
-  abilities: Record<number, ThreatFormula>
-
-  /** Called when combatantInfo is received to detect gear-based modifiers */
+  auraModifiers: AuraModifiers
+  abilities: Abilities
   gearImplications?: (gear: GearItem[]) => number[]
 
   /** Called when combatantInfo is received to detect talent-based synthetic auras */

@@ -1,12 +1,20 @@
 /**
  * Anniversary Naxxramas deltas over Era.
  */
-import type { ThreatFormula } from '@wcl-threat/shared'
+import type { Abilities } from '@wcl-threat/shared'
 
-import { naxxAbilities as eraNaxxAbilities } from '../../era/raids/naxx'
-import { createHatefulStrikeFormula } from './hateful-strike'
+import {
+  Spells as EraSpells,
+  naxxAbilities as eraNaxxAbilities,
+} from '../../era/raids/naxx'
+import { createHurtfulStrikeFormula } from './hurtful-strike'
 
-export const naxxAbilities: Record<number, ThreatFormula> = {
+const Spells = {
+  ...EraSpells,
+  HatefulStrike: 28308, // https://www.wowhead.com/tbc/spell=28308/hateful-strike
+} as const
+
+export const naxxAbilities: Abilities = {
   ...eraNaxxAbilities,
-  28308: createHatefulStrikeFormula(1000, 2000), // Patchwerk hateful strike variant
+  [Spells.HatefulStrike]: createHurtfulStrikeFormula(1000, 2000),
 }

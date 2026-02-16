@@ -1,12 +1,7 @@
 /**
  * Black Temple raid mechanics for Anniversary/TBC.
  */
-import type {
-  SpellId,
-  ThreatContext,
-  ThreatFormula,
-  ThreatModifier,
-} from '@wcl-threat/shared'
+import type { Abilities, AuraModifiers, SpellId } from '@wcl-threat/shared'
 
 import {
   modifyThreat,
@@ -16,28 +11,57 @@ import {
 
 const noThreatFormula = noThreat()
 
+const Spells = {
+  Vanish: 41476, // https://www.wowhead.com/tbc/spell=41476/vanish
+  ShadowPrison: 40647, // https://www.wowhead.com/tbc/spell=40647/shadow-prison
+  GlaiveReturns: 39873, // https://www.wowhead.com/tbc/spell=39873/glaive-returns
+  ThrowGlaive: 39635, // https://www.wowhead.com/tbc/spell=39635/throw-glaive
+  Eject1: 40597, // https://www.wowhead.com/tbc/spell=40597/eject
+  Eject2: 40486, // https://www.wowhead.com/tbc/spell=40486/eject
+  Insignificance: 40618, // https://www.wowhead.com/tbc/spell=40618/insignificance
+  FelRage: 40604, // https://www.wowhead.com/tbc/spell=40604/fel-rage
+  JudgementOfCommand: 41470, // https://www.wowhead.com/tbc/spell=41470/judgement-of-command
+} as const
+
 export const blackTempleFixateBuffs: ReadonlySet<SpellId> = new Set([
-  40604, // Gurtogg - Fel Rage
+  Spells.FelRage,
 ])
 
-export const blackTempleAuraModifiers: Record<
-  number,
-  (ctx: ThreatContext) => ThreatModifier
-> = {
-  40618: () => ({
+export const blackTempleAuraModifiers: AuraModifiers = {
+  [Spells.Insignificance]: () => ({
     source: 'buff',
     name: 'Insignificance',
     value: 0,
   }),
 }
 
-export const blackTempleAbilities: Record<number, ThreatFormula> = {
-  40486: modifyThreatOnHit(0.75), // Gurtogg Bloodboil
-  40597: modifyThreatOnHit(0.75), // Gurtogg Eject
-  40618: noThreatFormula, // Insignificance
-  40647: modifyThreat({ modifier: 0, target: 'all', eventTypes: ['cast'] }), // Illidan Shadow Prison
-  39635: modifyThreat({ modifier: 0, target: 'all', eventTypes: ['cast'] }), // Illidan phase transition
-  39873: modifyThreat({ modifier: 0, target: 'all', eventTypes: ['cast'] }), // Illidan glaive return
-  41476: modifyThreat({ modifier: 0, target: 'all', eventTypes: ['cast'] }), // Council vanish reset
-  41470: noThreatFormula, // Reflect damage bookkeeping handled outside formula layer
+export const blackTempleAbilities: Abilities = {
+  // Bloodboil
+  [Spells.Eject2]: modifyThreatOnHit(0.75), // Gurtogg Bloodboil
+  [Spells.Eject1]: modifyThreatOnHit(0.75), // Gurtogg Eject
+  [Spells.Insignificance]: noThreatFormula, // Insignificance
+
+  // Illidan
+  [Spells.ShadowPrison]: modifyThreat({
+    modifier: 0,
+    target: 'all',
+    eventTypes: ['cast'],
+  }),
+  [Spells.ThrowGlaive]: modifyThreat({
+    // Phase transition
+    modifier: 0,
+    target: 'all',
+    eventTypes: ['cast'],
+  }),
+  [Spells.GlaiveReturns]: modifyThreat({
+    modifier: 0,
+    target: 'all',
+    eventTypes: ['cast'],
+  }),
+  [Spells.Vanish]: modifyThreat({
+    modifier: 0,
+    target: 'all',
+    eventTypes: ['cast'],
+  }),
+  // [Spells.JudgementOfCommand]: noThreatFormula, // TODO: why was this in BT config?
 }

@@ -1,20 +1,30 @@
 /**
  * Serpentshrine Cavern raid mechanics for Anniversary/TBC.
  */
-import type { ThreatFormula } from '@wcl-threat/shared'
+import type { Abilities } from '@wcl-threat/shared'
 
 import { modifyThreat } from '../../shared/formulas'
 
-export const serpentshrineCavernAbilities: Record<number, ThreatFormula> = {
-  25035: modifyThreat({ modifier: 0, target: 'all', eventTypes: ['cast'] }), // Hydross phase swap
-  37640: modifyThreat({
+const Spells = {
+  HydrossPhaseSwap: 25035, // https://www.wowhead.com/tbc/spell=25035/elemental-spawn-in
+  LeotherasWhirlwind: 37640, // https://www.wowhead.com/tbc/spell=37640/whirlwind
+  LadyVashjBarrier: 38112, // https://www.wowhead.com/tbc/spell=38112/magic-barrier
+} as const
+
+export const serpentshrineCavernAbilities: Abilities = {
+  [Spells.HydrossPhaseSwap]: modifyThreat({
+    modifier: 0,
+    target: 'all',
+    eventTypes: ['cast'],
+  }),
+  [Spells.LeotherasWhirlwind]: modifyThreat({
     modifier: 0,
     target: 'all',
     eventTypes: ['applybuff', 'removebuff'],
-  }), // Leotheras whirlwind reset
-  38112: modifyThreat({
+  }),
+  [Spells.LadyVashjBarrier]: modifyThreat({
     modifier: 0,
     target: 'all',
     eventTypes: ['applybuff', 'removebuff'],
-  }), // Lady Vashj barrier reset
+  }),
 }

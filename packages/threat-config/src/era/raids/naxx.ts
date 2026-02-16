@@ -7,7 +7,7 @@ import type { ThreatChange, ThreatFormula } from '@wcl-threat/shared'
 
 import { modifyThreat } from '../../shared/formulas'
 
-const Spells = {
+export const Spells = {
   HatefulStrike: 28308, // https://wowhead.com/classic/spell=28308/
   NothBlink1: 29209, // https://wowhead.com/classic/spell=29209/
   NothBlink2: 29210, // https://wowhead.com/classic/spell=29210/

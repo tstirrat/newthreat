@@ -1,10 +1,22 @@
 /**
  * Gruul's Lair raid mechanics for Anniversary/TBC.
  */
-import type { ThreatFormula } from '@wcl-threat/shared'
+import type { Abilities } from '@wcl-threat/shared'
 
-import { createHatefulStrikeFormula } from './hateful-strike'
+import { modifyThreat } from '../../shared/formulas'
+import { createHurtfulStrikeFormula } from './hurtful-strike'
 
-export const gruulsLairAbilities: Record<number, ThreatFormula> = {
-  33813: createHatefulStrikeFormula(1500, 0), // Hurtful Strike
+const Spells = {
+  // Kiggler the Crazed arcane explosion - HKM fight
+  ArcaneExplosion: 33237, // https://www.wowhead.com/tbc/spell=33237/arcane-explosion
+  HurtfulStrike: 33813, // https://www.wowhead.com/tbc/spell=33813/hurtful-strike
+} as const
+
+export const gruulsLairAbilities: Abilities = {
+  [Spells.ArcaneExplosion]: modifyThreat({
+    modifier: 0,
+    target: 'all',
+    eventTypes: ['cast'],
+  }),
+  [Spells.HurtfulStrike]: createHurtfulStrikeFormula(1500, 0),
 }

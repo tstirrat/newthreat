@@ -61,9 +61,9 @@ function appendThreatChange(
  * Build hateful strike formulas that add fixed threat to the boss current tank
  * and to the direct event target.
  */
-export function createHatefulStrikeFormula(
+export function createHurtfulStrikeFormula(
   mainTankThreat: number,
-  offTankThreat: number,
+  targetThreat: number,
 ): ThreatFormula {
   return (ctx) => {
     if (!isThreatfulDamageEvent(ctx.event, ctx.amount)) {
@@ -94,15 +94,15 @@ export function createHatefulStrikeFormula(
       )
     }
 
-    const offTankId = ctx.event.targetID
-    if (offTankId > 0) {
-      const currentThreat = ctx.actors.getThreat(offTankId, enemy)
+    const targetId = ctx.event.targetID
+    if (targetId > 0) {
+      const currentThreat = ctx.actors.getThreat(targetId, enemy)
       appendThreatChange(
         changes,
-        offTankId,
+        targetId,
         enemy.id,
         enemy.instanceId,
-        offTankThreat,
+        targetThreat,
         currentThreat,
       )
     }
@@ -112,7 +112,7 @@ export function createHatefulStrikeFormula(
     }
 
     return {
-      formula: `hatefulStrike(main=${mainTankThreat}, off=${offTankThreat})`,
+      formula: `hurtfulStrike(MT=${mainTankThreat}, target=${targetThreat})`,
       value: 0,
       splitAmongEnemies: false,
       effects: [{ type: 'customThreat', changes }],
