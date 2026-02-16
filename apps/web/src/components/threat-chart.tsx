@@ -31,6 +31,11 @@ import {
   buildThreatStateVisualMaps,
   resolveThreatStateStatus,
 } from '../lib/threat-chart-visuals'
+import {
+  type DataZoomWindowPayload,
+  isFullWindowRange,
+  resolveDataZoomWindowRange,
+} from '../lib/threat-chart-window'
 import type {
   ThreatPointMarkerKind,
   ThreatPointModifier,
@@ -839,24 +844,38 @@ export const ThreatChart: FC<ThreatChartProps> = ({
           style={{ height: 560, width: '100%' }}
           onEvents={{
             datazoom: (params: {
-              batch?: Array<{ startValue?: number; endValue?: number }>
+              batch?: DataZoomWindowPayload[]
+              start?: number
+              end?: number
               startValue?: number
               endValue?: number
             }) => {
-              const batch = params.batch?.[0]
-              const nextStart = Math.round(
-                batch?.startValue ?? params.startValue ?? bounds.min,
-              )
-              const nextEnd = Math.round(
-                batch?.endValue ?? params.endValue ?? bounds.max,
-              )
+              const chart = chartRef.current?.getEchartsInstance()
+              const optionDataZoom = chart?.getOption().dataZoom
+              const optionPayload = Array.isArray(optionDataZoom)
+                ? (optionDataZoom[0] as DataZoomWindowPayload | undefined)
+                : undefined
+              const resolvedRange = resolveDataZoomWindowRange({
+                bounds,
+                payloads: [params.batch?.[0], params, optionPayload],
+              })
 
-              if (nextStart <= bounds.min && nextEnd >= bounds.max) {
+              if (!resolvedRange) {
                 onWindowChange(null, null)
                 return
               }
 
-              onWindowChange(nextStart, nextEnd)
+              if (
+                isFullWindowRange({
+                  bounds,
+                  range: resolvedRange,
+                })
+              ) {
+                onWindowChange(null, null)
+                return
+              }
+
+              onWindowChange(resolvedRange.startMs, resolvedRange.endMs)
             },
             legendselectchanged: (params: {
               name: string
