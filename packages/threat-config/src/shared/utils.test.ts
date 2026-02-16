@@ -35,6 +35,9 @@ describe('validateAuraModifiers', () => {
     return {
       version: '1.0.0',
       displayName: 'Test Config',
+      wowhead: {
+        domain: 'classic',
+      },
       resolve: () => false,
       baseThreat: {} as ThreatConfig['baseThreat'],
       classes,
@@ -215,6 +218,9 @@ describe('validateAbilities', () => {
     return {
       version: '1.0.0',
       displayName: 'Test Config',
+      wowhead: {
+        domain: 'classic',
+      },
       resolve: () => false,
       baseThreat: {} as ThreatConfig['baseThreat'],
       classes,
@@ -396,6 +402,9 @@ describe('validateAbilities', () => {
     const config: ThreatConfig = {
       version: '1.0.0',
       displayName: 'Test Config',
+      wowhead: {
+        domain: 'classic',
+      },
       resolve: () => false,
       baseThreat: {} as ThreatConfig['baseThreat'],
       classes: {

@@ -22,6 +22,10 @@ export interface ExampleReportLink {
   href: string
 }
 
+export interface WowheadLinksConfig {
+  domain: string
+}
+
 export interface FightQueryState {
   players: number[]
   targetId: number | null

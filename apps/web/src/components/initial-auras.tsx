@@ -3,17 +3,18 @@
  */
 import type { FC } from 'react'
 
-import type { InitialAuraDisplay } from '../types/app'
+import type { InitialAuraDisplay, WowheadLinksConfig } from '../types/app'
 
 export type InitialAurasProps = {
   auras: InitialAuraDisplay[]
+  wowhead: WowheadLinksConfig
 }
 
-function buildWowheadUrl(spellId: number): string {
-  return `https://www.wowhead.com/classic/spell=${spellId}`
+function buildWowheadUrl(wowheadDomain: string, spellId: number): string {
+  return `https://www.wowhead.com/${wowheadDomain}/spell=${spellId}`
 }
 
-export const InitialAuras: FC<InitialAurasProps> = ({ auras }) => {
+export const InitialAuras: FC<InitialAurasProps> = ({ auras, wowhead }) => {
   if (auras.length === 0) {
     return null
   }
@@ -27,8 +28,8 @@ export const InitialAuras: FC<InitialAurasProps> = ({ auras }) => {
         {auras.map((aura, index) => (
           <a
             key={`${aura.spellId}-${index}`}
-            data-wowhead={`spell=${aura.spellId}&domain=classic`}
-            href={buildWowheadUrl(aura.spellId)}
+            data-wowhead={`spell=${aura.spellId}&domain=${wowhead.domain}`}
+            href={buildWowheadUrl(wowhead.domain, aura.spellId)}
             target="_blank"
             rel="noreferrer"
             className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-black/20 ${

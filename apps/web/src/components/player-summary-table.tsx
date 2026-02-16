@@ -8,6 +8,7 @@ import type {
   FocusedPlayerSummary,
   FocusedPlayerThreatRow,
   InitialAuraDisplay,
+  WowheadLinksConfig,
 } from '../types/app'
 import { InitialAuras } from './initial-auras'
 import { PlayerName } from './player-name'
@@ -16,10 +17,11 @@ export type PlayerSummaryTableProps = {
   summary: FocusedPlayerSummary | null
   rows: FocusedPlayerThreatRow[]
   initialAuras: InitialAuraDisplay[]
+  wowhead: WowheadLinksConfig
 }
 
-function buildWowheadSpellUrl(spellId: number): string {
-  return `https://www.wowhead.com/classic/spell=${spellId}`
+function buildWowheadSpellUrl(wowheadDomain: string, spellId: number): string {
+  return `https://www.wowhead.com/${wowheadDomain}/spell=${spellId}`
 }
 
 function formatTps(value: number): string {
@@ -33,6 +35,7 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
   summary,
   rows,
   initialAuras,
+  wowhead,
 }) => {
   if (!summary) {
     return (
@@ -84,7 +87,7 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
             <div>{formatNumber(summary.totalHealing)}</div>
           </div>
         </div>
-        <InitialAuras auras={initialAuras} />
+        <InitialAuras auras={initialAuras} wowhead={wowhead} />
       </div>
 
       <div className="rounded-md border border-border bg-panel p-3">
@@ -124,8 +127,11 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
                       ) : (
                         <a
                           className="underline decoration-dotted underline-offset-2"
-                          data-wowhead={`spell=${row.abilityId}&domain=classic`}
-                          href={buildWowheadSpellUrl(row.abilityId)}
+                          data-wowhead={`spell=${row.abilityId}&domain=${wowhead.domain}`}
+                          href={buildWowheadSpellUrl(
+                            wowhead.domain,
+                            row.abilityId,
+                          )}
                           rel="noreferrer"
                           target="_blank"
                         >

@@ -349,11 +349,18 @@ export interface ThreatConfigResolutionInput {
   report: ThreatConfigResolutionReport
 }
 
+export interface WowheadConfig {
+  /** Shared Wowhead domain used for links and tooltip payloads. */
+  domain: string
+}
+
 export interface ThreatConfig {
   /** Semantic version of this config */
   version: string
   /** Human-readable config label, e.g. "Season of Discovery" */
   displayName: string
+  /** Wowhead link + tooltip domain config for this game branch. */
+  wowhead: WowheadConfig
   /** Report metadata matcher used to select this config */
   resolve: (input: ThreatConfigResolutionInput) => boolean
   /** Base threat calculations by event type */

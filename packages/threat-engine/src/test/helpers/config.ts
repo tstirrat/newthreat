@@ -41,6 +41,9 @@ export function createMockThreatConfig(
   const defaultConfig: ThreatConfig = {
     version: 'test-1.0.0',
     displayName: 'Test Config',
+    wowhead: {
+      domain: 'classic',
+    },
     resolve: () => false,
 
     baseThreat: {

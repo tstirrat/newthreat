@@ -69,6 +69,9 @@ const globalAuraModifiers = {
 export const eraConfig: ThreatConfig = {
   version: '1.3.1',
   displayName: 'Vanilla (Era)',
+  wowhead: {
+    domain: 'classic',
+  },
   resolve: (meta: ThreatConfigResolutionInput): boolean => {
     if (!isSupportedClassicGameVersion(meta.report.masterData.gameVersion)) {
       return false

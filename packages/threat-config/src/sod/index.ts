@@ -103,6 +103,9 @@ function inferGlobalGearAuras(gear: GearItem[]): number[] {
 export const sodConfig: ThreatConfig = {
   version: '1.0.0',
   displayName: 'Season of Discovery',
+  wowhead: {
+    domain: 'classic',
+  },
   resolve: (input) => {
     if (!isSupportedClassicGameVersion(input.report.masterData.gameVersion)) {
       return false

@@ -32,6 +32,18 @@ function createResolverInput(params: {
 }
 
 describe('resolveConfigOrNull', () => {
+  it('exposes wowhead settings per config', () => {
+    expect(eraConfig.wowhead).toEqual({
+      domain: 'classic',
+    })
+    expect(sodConfig.wowhead).toEqual({
+      domain: 'classic',
+    })
+    expect(anniversaryConfig.wowhead).toEqual({
+      domain: 'tbc',
+    })
+  })
+
   it('returns null for retail gameVersion 1', () => {
     const config = resolveConfigOrNull(createResolverInput({ gameVersion: 1 }))
 

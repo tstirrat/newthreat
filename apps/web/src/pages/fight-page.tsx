@@ -28,10 +28,14 @@ import {
   selectDefaultTarget,
 } from '../lib/threat-aggregation'
 import { buildFightRankingsUrl, buildReportUrl } from '../lib/wcl-url'
-import type { WarcraftLogsHost } from '../types/app'
+import type { WarcraftLogsHost, WowheadLinksConfig } from '../types/app'
 
 interface LocationState {
   host?: WarcraftLogsHost
+}
+
+const defaultWowheadLinksConfig: WowheadLinksConfig = {
+  domain: 'classic',
 }
 
 export const FightPage: FC = () => {
@@ -274,6 +278,7 @@ export const FightPage: FC = () => {
       ),
     [eventsData?.events, focusedPlayerId, threatConfig],
   )
+  const wowheadLinksConfig = threatConfig?.wowhead ?? defaultWowheadLinksConfig
   const handleTargetChange = useCallback(
     (target: { id: number; instance: number }) => {
       queryState.setTarget(target)
@@ -456,6 +461,7 @@ export const FightPage: FC = () => {
           summary={focusedPlayerSummary}
           rows={focusedPlayerRows}
           initialAuras={initialAuras}
+          wowhead={wowheadLinksConfig}
         />
       </SectionCard>
     </div>
