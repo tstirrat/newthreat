@@ -115,11 +115,16 @@ export const FightPage: FC = () => {
     }
 
     return resolveConfigOrNull({
-      gameVersion: reportData.gameVersion,
-      zone: reportData.zone,
-      fights: reportData.fights.map(() => ({
-        classicSeasonID: null,
-      })),
+      report: {
+        startTime: reportData.startTime,
+        masterData: {
+          gameVersion: reportData.gameVersion,
+        },
+        zone: reportData.zone,
+        fights: reportData.fights.map(() => ({
+          classicSeasonID: null,
+        })),
+      },
     })
   }, [reportData])
 

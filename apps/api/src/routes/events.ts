@@ -64,9 +64,7 @@ eventsRoutes.get('/', async (c) => {
 
   const gameVersion = report.masterData.gameVersion
   const config = resolveConfigOrNull({
-    gameVersion,
-    zone: report.zone,
-    fights: report.fights,
+    report,
   })
   if (!config) {
     const classicSeasonIds = Array.from(

@@ -21,3 +21,16 @@ export function formatTimelineTime(valueMs: number): string {
 
   return `${minutes}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`
 }
+
+/** Format a Unix-milliseconds timestamp as a readable local date/time. */
+export function formatDateTime(valueMs: number): string {
+  const date = new Date(valueMs)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown'
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}

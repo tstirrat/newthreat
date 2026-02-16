@@ -16,6 +16,7 @@ import type { GearItem } from '@wcl-threat/wcl-types'
 import { eraConfig } from '../era'
 import { baseThreat } from '../era/general'
 import {
+  FRESH_TBC_CUTOVER_TIMESTAMP_MS,
   getClassicSeasonIds,
   hasZonePartition,
   validateAbilities,
@@ -117,7 +118,11 @@ export const anniversaryConfig: ThreatConfig = {
   version: '1.3.1',
   displayName: 'TBC (Anniversary)',
   resolve: (input: ThreatConfigResolutionInput): boolean => {
-    if (input.gameVersion !== 2) {
+    if (input.report.masterData.gameVersion !== 2) {
+      return false
+    }
+
+    if (input.report.startTime < FRESH_TBC_CUTOVER_TIMESTAMP_MS) {
       return false
     }
 
@@ -126,7 +131,11 @@ export const anniversaryConfig: ThreatConfig = {
       return seasonIds.includes(ANNIVERSARY_CLASSIC_SEASON_ID)
     }
 
-    return hasZonePartition(input, ['phase', 'pre-patch'])
+    if (!hasZonePartition(input, ['phase', 'pre-patch'])) {
+      return false
+    }
+
+    return true
   },
 
   baseThreat,

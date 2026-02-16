@@ -85,9 +85,7 @@ function resolveRunConfig(
   }
 
   const resolvedConfig = resolveConfigOrNull({
-    gameVersion: fixture.report.masterData.gameVersion,
-    zone: fixture.report.zone,
-    fights: fixture.report.fights,
+    report: fixture.report,
   })
   if (resolvedConfig) {
     return resolvedConfig

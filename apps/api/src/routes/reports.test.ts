@@ -40,7 +40,7 @@ describe('Reports API', () => {
       expect(data.owner).toBe('TestGuild')
       expect(data.gameVersion).toBe(2)
       expect(data.threatConfig).toEqual({
-        displayName: 'TBC (Anniversary)',
+        displayName: 'Vanilla (Era)',
         version: expect.any(String),
       })
       expect(data.fights).toHaveLength(3)
@@ -77,7 +77,7 @@ describe('Reports API', () => {
       const data: ReportResponse = await res.json()
       expect(data.abilities).toEqual([])
       expect(data.threatConfig).toEqual({
-        displayName: 'TBC (Anniversary)',
+        displayName: 'Vanilla (Era)',
         version: expect.any(String),
       })
     })
@@ -109,6 +109,38 @@ describe('Reports API', () => {
       expect(data.gameVersion).toBe(2)
       expect(data.threatConfig).toEqual({
         displayName: 'Season of Discovery',
+        version: expect.any(String),
+      })
+    })
+
+    it('resolves TBC for season metadata on 2026-01-13 and later', async () => {
+      mockFetch({
+        report: {
+          ...reportData,
+          startTime: Date.UTC(2026, 0, 13, 0, 0, 0, 0),
+          masterData: {
+            ...reportData.masterData,
+            gameVersion: 2,
+          },
+          fights: reportData.fights.map((fight) => ({
+            ...fight,
+            classicSeasonID: 5,
+          })),
+        },
+      })
+
+      const res = await app.request(
+        'http://localhost/v1/reports/FRESHTBC123',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(200)
+
+      const data: ReportResponse = await res.json()
+      expect(data.gameVersion).toBe(2)
+      expect(data.threatConfig).toEqual({
+        displayName: 'TBC (Anniversary)',
         version: expect.any(String),
       })
     })
@@ -169,6 +201,78 @@ describe('Reports API', () => {
       expect(data.threatConfig).toEqual(
         expect.objectContaining({
           displayName: 'Vanilla (Era)',
+        }),
+      )
+    })
+
+    it('resolves era for phase partitions before 2026-01-13 cutover', async () => {
+      mockFetch({
+        report: {
+          ...reportData,
+          startTime: Date.UTC(2026, 0, 12, 23, 59, 59, 999),
+          masterData: {
+            ...reportData.masterData,
+            gameVersion: 2,
+          },
+          fights: reportData.fights.map((fight) => ({
+            ...fight,
+            classicSeasonID: undefined,
+          })),
+          zone: {
+            ...reportData.zone,
+            partitions: [{ id: 1, name: 'Phase 5' }],
+          },
+        },
+      })
+
+      const res = await app.request(
+        'http://localhost/v1/reports/ERAFRESH123',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(200)
+
+      const data: ReportResponse = await res.json()
+      expect(data.threatConfig).toEqual(
+        expect.objectContaining({
+          displayName: 'Vanilla (Era)',
+        }),
+      )
+    })
+
+    it('resolves anniversary for phase partitions on 2026-01-13 and later', async () => {
+      mockFetch({
+        report: {
+          ...reportData,
+          startTime: Date.UTC(2026, 0, 13, 0, 0, 0, 0),
+          masterData: {
+            ...reportData.masterData,
+            gameVersion: 2,
+          },
+          fights: reportData.fights.map((fight) => ({
+            ...fight,
+            classicSeasonID: undefined,
+          })),
+          zone: {
+            ...reportData.zone,
+            partitions: [{ id: 1, name: 'Phase 5' }],
+          },
+        },
+      })
+
+      const res = await app.request(
+        'http://localhost/v1/reports/TBCFRESH123',
+        {},
+        createMockBindings(),
+      )
+
+      expect(res.status).toBe(200)
+
+      const data: ReportResponse = await res.json()
+      expect(data.threatConfig).toEqual(
+        expect.objectContaining({
+          displayName: 'TBC (Anniversary)',
         }),
       )
     })

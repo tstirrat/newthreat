@@ -329,8 +329,11 @@ export interface EncounterThreatConfig {
   preprocessor?: EncounterPreprocessorFactory
 }
 
-export interface ThreatConfigResolutionInput {
-  gameVersion: number
+export interface ThreatConfigResolutionReport {
+  startTime: number
+  masterData: {
+    gameVersion: number
+  }
   zone: {
     partitions?: Array<{
       id: number
@@ -340,6 +343,10 @@ export interface ThreatConfigResolutionInput {
   fights: Array<{
     classicSeasonID?: number | null
   }>
+}
+
+export interface ThreatConfigResolutionInput {
+  report: ThreatConfigResolutionReport
 }
 
 export interface ThreatConfig {

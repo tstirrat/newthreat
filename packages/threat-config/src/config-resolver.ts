@@ -10,6 +10,7 @@ import { eraConfig } from './era'
 import { sodConfig } from './sod'
 import { anniversaryConfig } from './tbc'
 
+// Resolver precedence matters for overlapping metadata buckets.
 const configs: ThreatConfig[] = [sodConfig, anniversaryConfig, eraConfig]
 
 /**
@@ -21,13 +22,13 @@ const configs: ThreatConfig[] = [sodConfig, anniversaryConfig, eraConfig]
 export function resolveConfigOrNull(
   input: ThreatConfigResolutionInput,
 ): ThreatConfig | null {
-  const matches = configs.filter((config) => config.resolve(input))
-  // Fail closed if no config matches or if metadata ambiguously matches more than one.
-  if (matches.length !== 1) {
-    return null
+  for (const config of configs) {
+    if (config.resolve(input)) {
+      return config
+    }
   }
 
-  return matches[0] ?? null
+  return null
 }
 
 /**
@@ -39,7 +40,7 @@ export function resolveConfig(
   const config = resolveConfigOrNull(input)
   if (!config) {
     throw new Error(
-      `No threat config for gameVersion ${input.gameVersion} with provided report metadata`,
+      `No threat config for gameVersion ${input.report.masterData.gameVersion} with provided report metadata`,
     )
   }
   return config

@@ -145,9 +145,7 @@ export function runConfigFixture(
   const config =
     options.config ??
     resolveConfig({
-      gameVersion: fixture.report.masterData.gameVersion,
-      zone: fixture.report.zone,
-      fights: fixture.report.fights,
+      report: fixture.report,
     })
   const { actorMap, friendlyActorIds, enemies, abilitySchoolMap } =
     buildThreatEngineInput({

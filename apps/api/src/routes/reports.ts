@@ -52,12 +52,10 @@ reportRoutes.get('/:code', async (c) => {
   }
 
   const report = data.reportData.report
-  const masterData = report.masterData
   const threatConfig = resolveConfigOrNull({
-    gameVersion: masterData.gameVersion,
-    zone: report.zone,
-    fights: report.fights,
+    report,
   })
+  const masterData = report.masterData
 
   const cacheControl =
     c.env.ENVIRONMENT === 'development'

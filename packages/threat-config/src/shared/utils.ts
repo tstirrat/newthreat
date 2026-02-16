@@ -6,6 +6,8 @@ import type {
   ThreatConfigResolutionInput,
 } from '@wcl-threat/shared'
 
+export const FRESH_TBC_CUTOVER_TIMESTAMP_MS = Date.UTC(2026, 0, 13)
+
 /**
  * Validates that there are no duplicate spell IDs across global and class aura modifiers.
  * Logs warnings in development for any duplicates found.
@@ -108,7 +110,7 @@ export function hasZonePartition(
   input: ThreatConfigResolutionInput,
   expected: string[],
 ): boolean {
-  return (input.zone.partitions ?? []).some((partition) => {
+  return (input.report.zone.partitions ?? []).some((partition) => {
     const zoneName = partition.name.toLowerCase()
     return expected.some((expectedName) => zoneName.includes(expectedName))
   })
@@ -119,7 +121,7 @@ export function getClassicSeasonIds(
 ): number[] {
   return Array.from(
     new Set(
-      input.fights
+      input.report.fights
         .map((fight) => fight.classicSeasonID)
         .filter((seasonId): seasonId is number => seasonId != null),
     ),

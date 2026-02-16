@@ -11,6 +11,7 @@ import type {
 } from '@wcl-threat/shared'
 
 import {
+  FRESH_TBC_CUTOVER_TIMESTAMP_MS,
   getClassicSeasonIds,
   hasZonePartition,
   validateAbilities,
@@ -34,6 +35,9 @@ import { mcAggroLossBuffs } from './raids/mc'
 import { naxxAbilities } from './raids/naxx'
 import { onyxiaAbilities } from './raids/ony'
 import { zgAggroLossBuffs, zgEncounters } from './raids/zg'
+
+const SOD_CLASSIC_SEASON_ID = 3
+const ANNIVERSARY_CLASSIC_SEASON_ID = 5
 
 // Fixate buffs (taunt effects)
 // Class-specific fixates are in class configs
@@ -65,15 +69,36 @@ export const eraConfig: ThreatConfig = {
   version: '1.3.1',
   displayName: 'Vanilla (Era)',
   resolve: (meta: ThreatConfigResolutionInput): boolean => {
-    if (meta.gameVersion !== 2) {
+    if (meta.report.masterData.gameVersion !== 2) {
       return false
     }
 
-    if (getClassicSeasonIds(meta).length > 0) {
+    const seasonIds = getClassicSeasonIds(meta)
+    if (seasonIds.length > 0) {
+      if (seasonIds.includes(SOD_CLASSIC_SEASON_ID)) {
+        return false
+      }
+
+      if (
+        seasonIds.every(
+          (seasonId) => seasonId === ANNIVERSARY_CLASSIC_SEASON_ID,
+        )
+      ) {
+        return meta.report.startTime < FRESH_TBC_CUTOVER_TIMESTAMP_MS
+      }
+
       return false
     }
 
-    return hasZonePartition(meta, ['s0', 'hardcore', 'som'])
+    if (hasZonePartition(meta, ['s0', 'hardcore', 'som'])) {
+      return true
+    }
+
+    if (!hasZonePartition(meta, ['phase', 'pre-patch'])) {
+      return false
+    }
+
+    return meta.report.startTime < FRESH_TBC_CUTOVER_TIMESTAMP_MS
   },
 
   baseThreat,

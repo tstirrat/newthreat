@@ -103,7 +103,7 @@ export const sodConfig: ThreatConfig = {
   version: '1.0.0',
   displayName: 'Season of Discovery',
   resolve: (input) => {
-    if (input.gameVersion !== 2) {
+    if (input.report.masterData.gameVersion !== 2) {
       return false
     }
 

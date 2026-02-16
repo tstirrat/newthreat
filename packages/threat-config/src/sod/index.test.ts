@@ -49,9 +49,14 @@ describe('sod config', () => {
   it('resolves season id 3 reports', () => {
     expect(
       sodConfig.resolve({
-        gameVersion: 2,
-        zone: {},
-        fights: [{ classicSeasonID: 3 }],
+        report: {
+          startTime: Date.UTC(2026, 0, 13),
+          masterData: {
+            gameVersion: 2,
+          },
+          zone: {},
+          fights: [{ classicSeasonID: 3 }],
+        },
       }),
     ).toBe(true)
   })
@@ -59,11 +64,16 @@ describe('sod config', () => {
   it('resolves discovery partition reports', () => {
     expect(
       sodConfig.resolve({
-        gameVersion: 2,
-        zone: {
-          partitions: [{ id: 1, name: 'Discovery P8' }],
+        report: {
+          startTime: Date.UTC(2026, 0, 13),
+          masterData: {
+            gameVersion: 2,
+          },
+          zone: {
+            partitions: [{ id: 1, name: 'Discovery P8' }],
+          },
+          fights: [],
         },
-        fights: [],
       }),
     ).toBe(true)
   })

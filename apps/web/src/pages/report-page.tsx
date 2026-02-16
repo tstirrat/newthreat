@@ -12,6 +12,7 @@ import { SectionCard } from '../components/section-card'
 import { useRecentReports } from '../hooks/use-recent-reports'
 import { useReportData } from '../hooks/use-report-data'
 import { useReportHost } from '../hooks/use-report-host'
+import { formatDateTime } from '../lib/format'
 import { buildReportUrl } from '../lib/wcl-url'
 import type { WarcraftLogsHost } from '../types/app'
 
@@ -79,6 +80,7 @@ export const ReportPage: FC = () => {
         headerRight={
           <div className="text-right text-xs text-muted">
             <p>Threat config: {threatConfigLabel}</p>
+            <p>Started: {formatDateTime(data.startTime)}</p>
           </div>
         }
       >
