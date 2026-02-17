@@ -527,6 +527,12 @@ describe('threat-aggregation', () => {
         name: 'Sunder Armor',
         type: 'ability',
       },
+      {
+        gameID: 355,
+        icon: null,
+        name: 'Mocking Blow',
+        type: 'ability',
+      },
     ]
     const buildCalculation = (effects?: unknown[]) => ({
       formula: '0',
@@ -809,11 +815,23 @@ describe('threat-aggregation', () => {
 
     expect(series).toHaveLength(1)
     expect(series[0]?.stateVisualSegments).toEqual([
-      { kind: 'fixate', startMs: 100, endMs: 150 },
-      { kind: 'invulnerable', startMs: 150, endMs: 175 },
-      { kind: 'aggroLoss', startMs: 175, endMs: 225 },
-      { kind: 'fixate', startMs: 225, endMs: 250 },
-      { kind: 'aggroLoss', startMs: 300, endMs: 500 },
+      {
+        kind: 'fixate',
+        spellId: 355,
+        spellName: 'Mocking Blow',
+        startMs: 100,
+        endMs: 150,
+      },
+      { kind: 'invulnerable', spellId: 642, startMs: 150, endMs: 175 },
+      { kind: 'aggroLoss', spellId: 118, startMs: 175, endMs: 225 },
+      {
+        kind: 'fixate',
+        spellId: 355,
+        spellName: 'Mocking Blow',
+        startMs: 225,
+        endMs: 250,
+      },
+      { kind: 'aggroLoss', spellId: 10346, startMs: 300, endMs: 500 },
     ])
     expect(series[0]?.fixateWindows).toEqual([{ startMs: 100, endMs: 250 }])
     expect(series[0]?.invulnerabilityWindows).toEqual([

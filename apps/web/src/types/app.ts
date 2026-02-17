@@ -80,6 +80,8 @@ export interface ThreatStateWindow {
 
 export interface ThreatStateVisualSegment extends ThreatStateWindow {
   kind: ThreatStateVisualKind
+  spellId?: number
+  spellName?: string
 }
 
 export interface ThreatSeries {

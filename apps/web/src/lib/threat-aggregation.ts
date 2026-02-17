@@ -75,6 +75,7 @@ interface ThreatStateTransition {
   kind: ThreatStateVisualKind
   phase: 'start' | 'end'
   spellId: number
+  spellName: string | null
   timeMs: number
   sequence: number
 }
@@ -82,6 +83,8 @@ interface ThreatStateTransition {
 interface ActiveThreatState {
   key: string
   kind: ThreatStateVisualKind
+  spellId: number
+  spellName: string | null
   startMs: number
   sequence: number
 }
@@ -349,6 +352,22 @@ function createAbilityMap(
   )
 }
 
+function resolveStateSpellName(
+  spellId: number,
+  abilityById: Map<number, ReportAbilitySummary>,
+): string | null {
+  if (!Number.isFinite(spellId) || spellId <= 0) {
+    return null
+  }
+
+  const spellName = abilityById.get(spellId)?.name?.trim()
+  if (spellName) {
+    return spellName
+  }
+
+  return null
+}
+
 function parseAbilitySchoolMask(type: string | null): number {
   if (!type) {
     return 0
@@ -444,7 +463,12 @@ function mergeStateVisualSegments(
       return accumulator
     }
 
-    if (previous.kind === segment.kind && segment.startMs <= previous.endMs) {
+    if (
+      previous.kind === segment.kind &&
+      previous.spellId === segment.spellId &&
+      previous.spellName === segment.spellName &&
+      segment.startMs <= previous.endMs
+    ) {
       previous.endMs = Math.max(previous.endMs, segment.endMs)
       return accumulator
     }
@@ -474,12 +498,14 @@ function collectStateTransitionsByActor({
   firstTimestamp,
   fightEndMs,
   target,
+  abilityById,
 }: {
   sortedEvents: AugmentedEventsResponse['events']
   fightStartTime: number
   firstTimestamp: number
   fightEndMs: number
   target: FightTarget
+  abilityById: Map<number, ReportAbilitySummary>
 }): Map<number, ThreatStateTransition[]> {
   const transitionsByActor = new Map<number, ThreatStateTransition[]>()
   let sequence = 0
@@ -515,6 +541,7 @@ function collectStateTransitionsByActor({
         kind: effect.state.kind,
         phase: effect.state.phase,
         spellId: effect.state.spellId,
+        spellName: resolveStateSpellName(effect.state.spellId, abilityById),
         timeMs,
         sequence,
       }
@@ -576,6 +603,8 @@ function buildActorStateVisuals(
     ) {
       stateVisualSegments.push({
         kind: currentWinner.kind,
+        spellId: currentWinner.spellId,
+        spellName: currentWinner.spellName ?? undefined,
         startMs: currentSegmentStart,
         endMs: timestamp,
       })
@@ -615,6 +644,8 @@ function buildActorStateVisuals(
         activeStates.set(key, {
           key,
           kind: transition.kind,
+          spellId: transition.spellId,
+          spellName: transition.spellName,
           startMs: transition.timeMs,
           sequence: transition.sequence,
         })
@@ -631,6 +662,8 @@ function buildActorStateVisuals(
   ) {
     stateVisualSegments.push({
       kind: currentWinner.kind,
+      spellId: currentWinner.spellId,
+      spellName: currentWinner.spellName ?? undefined,
       startMs: currentSegmentStart,
       endMs: fightEndMs,
     })
@@ -836,6 +869,7 @@ export function buildThreatSeries({
     firstTimestamp,
     fightEndMs,
     target,
+    abilityById,
   })
 
   const accumulators = new Map<number, SeriesAccumulator>()

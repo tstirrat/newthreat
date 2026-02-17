@@ -113,14 +113,20 @@ describe('threat-chart-visuals', () => {
     const withStateSegments: ThreatSeries = {
       ...baseSeries,
       stateVisualSegments: [
-        { kind: 'fixate', startMs: 10, endMs: 20 },
+        {
+          kind: 'fixate',
+          spellId: 20572,
+          spellName: 'Mocking Blow',
+          startMs: 10,
+          endMs: 20,
+        },
         { kind: 'invulnerable', startMs: 20, endMs: 40 },
       ],
     }
 
     expect(resolveThreatStateStatus(withStateSegments, 15)).toEqual({
       color: '#ffa500',
-      label: 'fixate',
+      label: 'fixate (Mocking Blow)',
     })
     expect(resolveThreatStateStatus(withStateSegments, 25)).toEqual({
       color: '#0f0',

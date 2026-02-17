@@ -132,8 +132,14 @@ export function resolveThreatStateStatus(
     }
   }
 
+  const baseLabel = stateLabelByKind[activeSegment.kind]
+  const label =
+    activeSegment.kind === 'fixate' && activeSegment.spellName
+      ? `${baseLabel} (${activeSegment.spellName})`
+      : baseLabel
+
   return {
     color: stateColorByKind[activeSegment.kind],
-    label: stateLabelByKind[activeSegment.kind],
+    label,
   }
 }
