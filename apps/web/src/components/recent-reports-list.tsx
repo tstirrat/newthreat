@@ -29,7 +29,7 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({ reports }) => {
               >
                 {report.title || report.reportId}
               </Link>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted-foreground">
                 {report.sourceHost} ·{' '}
                 {new Date(report.lastOpenedAt).toLocaleString()}
               </p>

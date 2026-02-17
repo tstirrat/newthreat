@@ -78,16 +78,20 @@ export const ReportPage: FC = () => {
         title={data.title}
         subtitle={`Report ${data.code} · ${data.zone.name}`}
         headerRight={
-          <div className="text-right text-xs text-muted">
+          <div className="text-right text-xs text-muted-foreground">
             <p>Threat config: {threatConfigLabel}</p>
             <p>Started: {formatDateTime(data.startTime)}</p>
           </div>
         }
       >
         <div className="flex flex-wrap items-center gap-3 text-sm">
-          <span className="text-muted">Owner: {data.owner}</span>
-          <span className="text-muted">Fights: {data.fights.length}</span>
-          <span className="text-muted">Players: {players.length}</span>
+          <span className="text-muted-foreground">Owner: {data.owner}</span>
+          <span className="text-muted-foreground">
+            Fights: {data.fights.length}
+          </span>
+          <span className="text-muted-foreground">
+            Players: {players.length}
+          </span>
           <a
             className="underline"
             href={buildReportUrl(locationState?.host ?? reportHost, reportId)}

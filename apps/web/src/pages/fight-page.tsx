@@ -393,7 +393,7 @@ export const FightPage: FC = () => {
         title={`${fightData.name} (Fight #${fightData.id})`}
         subtitle={`${reportData.title} · ${fightData.kill ? 'Kill' : 'Wipe'} · ${Math.round(durationMs / 1000)}s`}
         headerRight={
-          <div className="text-right text-xs text-muted">
+          <div className="text-right text-xs text-muted-foreground">
             <p>Threat config: {threatConfigLabel}</p>
           </div>
         }
@@ -402,7 +402,7 @@ export const FightPage: FC = () => {
           <Link className="underline" to={`/report/${reportId}`}>
             Back to report
           </Link>
-          <span className="text-muted">Warcraft Logs:</span>
+          <span className="text-muted-foreground">Warcraft Logs:</span>
           <a
             className="underline"
             href={buildReportUrl(locationState?.host ?? reportHost, reportId)}
@@ -411,7 +411,7 @@ export const FightPage: FC = () => {
           >
             Report
           </a>
-          <span className="text-muted">|</span>
+          <span className="text-muted-foreground">|</span>
           <a
             className="underline"
             href={buildFightRankingsUrl(
@@ -457,7 +457,7 @@ export const FightPage: FC = () => {
             </TabsList>
           </Tabs>
         ) : (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             No boss kills found in this report.
           </p>
         )}
@@ -468,7 +468,7 @@ export const FightPage: FC = () => {
         headerRight={
           selectedTarget ? (
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <div className="flex items-center gap-2 text-xs text-muted">
+              <div className="flex items-center gap-2 text-xs">
                 <Checkbox
                   checked={queryState.state.pets}
                   id="show-pets"
@@ -476,12 +476,7 @@ export const FightPage: FC = () => {
                     queryState.setPets(checked === true)
                   }}
                 />
-                <Label
-                  className="cursor-pointer text-xs text-muted"
-                  htmlFor="show-pets"
-                >
-                  Show pets
-                </Label>
+                <Label htmlFor="show-pets">Show pets</Label>
               </div>
               <Separator className="h-6" orientation="vertical" />
               <div>
@@ -493,16 +488,18 @@ export const FightPage: FC = () => {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted">No valid targets available.</p>
+            <p className="text-sm text-muted-foreground">
+              No valid targets available.
+            </p>
           )
         }
       >
         {selectedTarget === null ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             No valid targets available for this fight.
           </p>
         ) : visibleSeries.length === 0 ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             No threat points are available for this target.
           </p>
         ) : (

@@ -1,6 +1,7 @@
 /**
  * Shared app shell for all routed pages.
  */
+import { ModeToggle } from '@/components/mode-toggle'
 import type { FC } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 
@@ -12,7 +13,12 @@ export const RootLayout: FC = () => {
           <h1 className="text-lg font-semibold">
             <Link to="/">WCL Threat</Link>
           </h1>
-          <span className="text-sm text-muted">Development mode</span>
+          <div className="flex items-center gap-2">
+            <ModeToggle />
+            <span className="text-sm text-muted-foreground">
+              Development mode
+            </span>
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-7xl px-4 py-6">

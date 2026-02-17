@@ -29,9 +29,7 @@ export const TargetSelector: FC<TargetSelectorProps> = ({
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <Label className="text-xs font-medium text-muted" htmlFor={selectId}>
-        Target
-      </Label>
+      <Label htmlFor={selectId}>Target</Label>
       <Select
         value={selectedValue}
         onValueChange={(value) => {

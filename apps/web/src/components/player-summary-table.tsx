@@ -48,7 +48,7 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
 }) => {
   if (!summary) {
     return (
-      <p aria-live="polite" className="text-sm text-muted">
+      <p aria-live="polite" className="text-sm text-muted-foreground">
         Click a chart line to focus an actor.
       </p>
     )
@@ -60,38 +60,38 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
     <div className="grid gap-4 md:grid-cols-[280px_minmax(0,1fr)]">
       <Card className="bg-panel" size="sm">
         <CardContent className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-muted">
+          <div className="text-xs uppercase tracking-wide text-foreground">
             Focused actor
           </div>
           <div className="text-base">
             <PlayerName color={summary.color} label={summary.label} />
           </div>
-          <div className="text-sm text-muted">
+          <div className="text-sm text-muted-foreground">
             Class: {summary.actorClass ?? 'Unknown'}
             {summary.talentPoints &&
               ` (${summary.talentPoints[0]}/${summary.talentPoints[1]}/${summary.talentPoints[2]})`}
           </div>
           <div className="space-y-2 text-sm">
             <div>
-              <div className="text-xs uppercase tracking-wide text-muted">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 Total threat
               </div>
               <div>{formatNumber(summary.totalThreat)}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-muted">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 Total TPS
               </div>
               <div>{formatTps(summary.totalTps)}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-muted">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 Total damage
               </div>
               <div>{formatNumber(summary.totalDamage)}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-muted">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 Total healing
               </div>
               <div>{formatNumber(summary.totalHealing)}</div>
@@ -104,7 +104,7 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
       <Card className="bg-panel" size="sm">
         <CardContent>
           {rows.length === 0 ? (
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               No threat-generating abilities for this actor in the current chart
               window.
             </p>
@@ -114,7 +114,7 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
               className="text-sm"
             >
               <TableHeader>
-                <TableRow className="text-left text-xs uppercase tracking-wide text-muted">
+                <TableRow>
                   <TableHead>Ability / Debuff</TableHead>
                   <TableHead>Damage/Heal (Amount)</TableHead>
                   <TableHead>Threat</TableHead>
@@ -122,30 +122,18 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow className="bg-black/5 font-medium">
-                  <TableCell>Total</TableCell>
-                  <TableCell>{formatNumber(totalAmount)}</TableCell>
-                  <TableCell>{formatNumber(summary.totalThreat)}</TableCell>
-                  <TableCell>{formatTps(summary.totalTps)}</TableCell>
-                </TableRow>
                 {rows.map((row) => (
                   <TableRow key={row.key}>
                     <TableCell>
                       {row.abilityId === null ? (
                         row.abilityName
                       ) : (
-                        <a
-                          className="underline decoration-dotted underline-offset-2"
-                          data-wowhead={`spell=${row.abilityId}&domain=${wowhead.domain}`}
-                          href={buildWowheadSpellUrl(
-                            wowhead.domain,
-                            row.abilityId,
-                          )}
-                          rel="noreferrer"
-                          target="_blank"
+                        <WowHeadLink
+                          abilityId={row.abilityId}
+                          wowhead={wowhead}
                         >
                           {row.abilityName}
-                        </a>
+                        </WowHeadLink>
                       )}
                     </TableCell>
                     <TableCell>{formatNumber(row.amount)}</TableCell>
@@ -153,11 +141,41 @@ export const PlayerSummaryTable: FC<PlayerSummaryTableProps> = ({
                     <TableCell>{formatTps(row.tps)}</TableCell>
                   </TableRow>
                 ))}
+                <TableRow>
+                  <TableCell>Total</TableCell>
+                  <TableCell>{formatNumber(totalAmount)}</TableCell>
+                  <TableCell>{formatNumber(summary.totalThreat)}</TableCell>
+                  <TableCell>{formatTps(summary.totalTps)}</TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function WowHeadLink({
+  abilityId,
+  wowhead,
+  children,
+  type = 'spell',
+}: {
+  abilityId: number
+  wowhead: WowheadLinksConfig
+  type?: 'spell' | 'item'
+  children: React.ReactNode
+}) {
+  return (
+    <a
+      className="underline"
+      data-wowhead={`${type}=${abilityId}&domain=${wowhead.domain}`}
+      href={buildWowheadSpellUrl(wowhead.domain, abilityId)}
+      rel="noreferrer"
+      target="_blank"
+    >
+      {children}
+    </a>
   )
 }
