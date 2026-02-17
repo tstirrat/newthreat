@@ -3,6 +3,8 @@
  */
 import type { FC } from 'react'
 
+import { Alert, AlertDescription, AlertTitle } from './ui/alert'
+
 export type ErrorStateProps = {
   title: string
   message: string
@@ -10,13 +12,9 @@ export type ErrorStateProps = {
 
 export const ErrorState: FC<ErrorStateProps> = ({ title, message }) => {
   return (
-    <section
-      aria-live="assertive"
-      className="rounded-xl border border-red-300 bg-red-50 p-6 text-red-900 shadow-sm"
-      role="alert"
-    >
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <p className="mt-2 text-sm">{message}</p>
-    </section>
+    <Alert aria-live="assertive" role="alert" variant="destructive">
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   )
 }

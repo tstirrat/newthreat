@@ -3,6 +3,8 @@
  */
 import type { FC } from 'react'
 
+import { Button } from './ui/button'
+
 export interface ThreatChartControlsProps {
   showClearIsolate: boolean
   onResetZoom: () => void
@@ -16,21 +18,18 @@ export const ThreatChartControls: FC<ThreatChartControlsProps> = ({
 }) => {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
-        className="rounded-md border border-border bg-panel px-2 py-1 text-xs"
-        type="button"
-        onClick={onResetZoom}
-      >
+      <Button size="sm" type="button" variant="outline" onClick={onResetZoom}>
         Reset zoom
-      </button>
+      </Button>
       {showClearIsolate ? (
-        <button
-          className="rounded-md border border-border bg-panel px-2 py-1 text-xs"
+        <Button
+          size="sm"
           type="button"
+          variant="outline"
           onClick={onClearIsolate}
         >
           Clear isolate
-        </button>
+        </Button>
       ) : null}
     </div>
   )

@@ -5,6 +5,7 @@ import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { RecentReportEntry } from '../types/app'
+import { Card, CardContent } from './ui/card'
 
 export type RecentReportsListProps = {
   reports: RecentReportEntry[]
@@ -18,21 +19,22 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({ reports }) => {
   return (
     <ul aria-label="Recent reports" className="space-y-2">
       {reports.map((report) => (
-        <li
-          className="rounded-md border border-border bg-panel px-3 py-2"
-          key={report.reportId}
-        >
-          <Link
-            className="font-medium underline"
-            state={{ host: report.sourceHost }}
-            to={`/report/${report.reportId}`}
-          >
-            {report.title || report.reportId}
-          </Link>
-          <p className="mt-1 text-xs text-muted">
-            {report.sourceHost} ·{' '}
-            {new Date(report.lastOpenedAt).toLocaleString()}
-          </p>
+        <li key={report.reportId}>
+          <Card className="bg-panel" size="sm">
+            <CardContent className="space-y-1">
+              <Link
+                className="font-medium underline"
+                state={{ host: report.sourceHost }}
+                to={`/report/${report.reportId}`}
+              >
+                {report.title || report.reportId}
+              </Link>
+              <p className="text-xs text-muted">
+                {report.sourceHost} ·{' '}
+                {new Date(report.lastOpenedAt).toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
         </li>
       ))}
     </ul>

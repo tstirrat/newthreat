@@ -1,9 +1,10 @@
 /**
  * Fight-level page with target filter and player-focused chart interactions.
  */
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { resolveConfigOrNull } from '@wcl-threat/threat-config'
 import { type FC, useCallback, useEffect, useMemo } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { ErrorState } from '../components/error-state'
 import { LoadingState } from '../components/loading-state'
@@ -11,6 +12,9 @@ import { PlayerSummaryTable } from '../components/player-summary-table'
 import { SectionCard } from '../components/section-card'
 import { TargetSelector } from '../components/target-selector'
 import { ThreatChart } from '../components/threat-chart'
+import { Checkbox } from '../components/ui/checkbox'
+import { Label } from '../components/ui/label'
+import { Separator } from '../components/ui/separator'
 import { useFightData } from '../hooks/use-fight-data'
 import { useFightEvents } from '../hooks/use-fight-events'
 import { useFightQueryState } from '../hooks/use-fight-query-state'
@@ -56,6 +60,7 @@ function areEqualIdLists(left: number[], right: number[]): boolean {
 
 export const FightPage: FC = () => {
   const params = useParams<{ reportId: string; fightId: string }>()
+  const navigate = useNavigate()
   const location = useLocation()
   const locationState = location.state as LocationState | null
 
@@ -422,58 +427,64 @@ export const FightPage: FC = () => {
         </div>
       </SectionCard>
 
-      <div className="rounded-xl border border-border bg-panel px-4 py-3 shadow-sm">
-        <nav aria-label="Fight quick switch">
-          {bossKillFights.length > 0 ? (
-            <ul className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-              {bossKillFights.map((fight, fightIndex) => {
-                const isCurrentFight = fight.id === fightId
-                const fightLabel = fight.name
+      <nav aria-label="Fight quick switch">
+        {bossKillFights.length > 0 ? (
+          <Tabs
+            value={String(fightId)}
+            onValueChange={(nextFightId) => {
+              if (nextFightId === String(fightId)) {
+                return
+              }
 
-                return (
-                  <li className="inline-flex items-center gap-2" key={fight.id}>
-                    {fightIndex > 0 ? (
-                      <span className="text-muted">|</span>
-                    ) : null}
-                    {isCurrentFight ? (
-                      <span className="font-medium">{fightLabel}</span>
-                    ) : (
-                      <Link
-                        className="underline"
-                        to={`/report/${reportId}/fight/${fight.id}${location.search}`}
-                      >
-                        {fightLabel}
-                      </Link>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted">
-              No boss kills found in this report.
-            </p>
-          )}
-        </nav>
-      </div>
+              navigate(
+                `/report/${reportId}/fight/${nextFightId}${location.search}`,
+              )
+            }}
+          >
+            <TabsList
+              className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0"
+              // variant="line"
+            >
+              {bossKillFights.map((fight) => (
+                <TabsTrigger
+                  className="whitespace-nowrap px-3 py-1.5 text-sm"
+                  key={fight.id}
+                  value={String(fight.id)}
+                >
+                  {fight.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        ) : (
+          <p className="text-sm text-muted">
+            No boss kills found in this report.
+          </p>
+        )}
+      </nav>
 
       <SectionCard
         title="Threat timeline"
         headerRight={
           selectedTarget ? (
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <label className="flex items-center gap-2 text-xs text-muted">
-                <input
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <Checkbox
                   checked={queryState.state.pets}
-                  className="h-4 w-4"
-                  type="checkbox"
-                  onChange={(event) => {
-                    queryState.setPets(event.target.checked)
+                  id="show-pets"
+                  onCheckedChange={(checked) => {
+                    queryState.setPets(checked === true)
                   }}
                 />
-                Show pets
-              </label>
-              <div className="border-l border-border pl-3">
+                <Label
+                  className="cursor-pointer text-xs text-muted"
+                  htmlFor="show-pets"
+                >
+                  Show pets
+                </Label>
+              </div>
+              <Separator className="h-6" orientation="vertical" />
+              <div>
                 <TargetSelector
                   targets={targetOptions}
                   selectedTarget={selectedTarget}

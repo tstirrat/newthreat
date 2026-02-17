@@ -3,6 +3,10 @@
  */
 import { type FC, useId, useState } from 'react'
 
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Label } from './ui/label'
+
 export type ReportUrlFormProps = {
   onSubmit: (input: string) => void
 }
@@ -21,11 +25,10 @@ export const ReportUrlForm: FC<ReportUrlFormProps> = ({ onSubmit }) => {
       }}
     >
       <div className="w-full space-y-1">
-        <label className="block text-sm font-medium" htmlFor={inputId}>
+        <Label className="text-sm" htmlFor={inputId}>
           Report URL or ID
-        </label>
-        <input
-          className="w-full rounded-md border border-border bg-panel px-3 py-2 text-sm"
+        </Label>
+        <Input
           id={inputId}
           name="report-input"
           placeholder="Paste Warcraft Logs report URL or report ID"
@@ -34,12 +37,9 @@ export const ReportUrlForm: FC<ReportUrlFormProps> = ({ onSubmit }) => {
           onChange={(event) => setValue(event.target.value)}
         />
       </div>
-      <button
-        className="rounded-md border border-primary bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-        type="submit"
-      >
+      <Button className="sm:self-end" type="submit">
         Load report
-      </button>
+      </Button>
     </form>
   )
 }

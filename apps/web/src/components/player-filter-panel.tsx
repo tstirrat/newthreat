@@ -6,6 +6,10 @@ import type { FC } from 'react'
 
 import { getClassColor } from '../lib/class-colors'
 import type { ReportActorSummary } from '../types/api'
+import { Button } from './ui/button'
+import { Card, CardContent } from './ui/card'
+import { Checkbox } from './ui/checkbox'
+import { Label } from './ui/label'
 
 export type PlayerFilterPanelProps = {
   players: ReportActorSummary[]
@@ -23,20 +27,22 @@ export const PlayerFilterPanel: FC<PlayerFilterPanelProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <button
-          className="rounded-md border border-border bg-panel px-2 py-1 text-xs"
+        <Button
+          size="sm"
           type="button"
+          variant="outline"
           onClick={() => onChange([])}
         >
           Show all
-        </button>
-        <button
-          className="rounded-md border border-border bg-panel px-2 py-1 text-xs"
+        </Button>
+        <Button
+          size="sm"
           type="button"
+          variant="outline"
           onClick={() => onChange(players.map((player) => player.id))}
         >
           Select all players
-        </button>
+        </Button>
       </div>
       <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {players.map((player) => {
@@ -44,27 +50,33 @@ export const PlayerFilterPanel: FC<PlayerFilterPanelProps> = ({
             player.subType as PlayerClass | undefined,
           )
           const isChecked = selectedSet.has(player.id)
+          const inputId = `player-filter-${player.id}`
 
           return (
-            <li
-              className="rounded-md border border-border bg-panel px-2 py-1"
-              key={player.id}
-            >
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  checked={isChecked}
-                  type="checkbox"
-                  onChange={(event) => {
-                    if (event.target.checked) {
-                      onChange([...selectedSet, player.id])
-                      return
-                    }
+            <li key={player.id}>
+              <Card className="bg-panel" size="sm">
+                <CardContent>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={isChecked}
+                      id={inputId}
+                      onCheckedChange={(checked) => {
+                        if (checked === true) {
+                          onChange([...selectedSet, player.id])
+                          return
+                        }
 
-                    onChange(selectedPlayerIds.filter((id) => id !== player.id))
-                  }}
-                />
-                <span style={{ color: classColor }}>{player.name}</span>
-              </label>
+                        onChange(
+                          selectedPlayerIds.filter((id) => id !== player.id),
+                        )
+                      }}
+                    />
+                    <Label className="cursor-pointer text-sm" htmlFor={inputId}>
+                      <span style={{ color: classColor }}>{player.name}</span>
+                    </Label>
+                  </div>
+                </CardContent>
+              </Card>
             </li>
           )
         })}

@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 
 import { buildBossKillNavigationFights } from '../lib/fight-navigation'
 import type { ReportFightSummary } from '../types/api'
+import { Card, CardContent } from './ui/card'
 
 export type FightsListProps = {
   reportId: string
@@ -33,20 +34,21 @@ export const FightsList: FC<FightsListProps> = ({ reportId, fights }) => {
       {bossKillFights.length > 0 ? (
         <ul aria-label="Boss kill fights" className="space-y-2">
           {bossKillFights.map((fight) => (
-            <li
-              className="rounded-md border border-border bg-panel px-3 py-3"
-              key={fight.id}
-            >
-              <div className="flex flex-wrap items-center gap-1 text-sm">
-                <span className="font-medium">{fight.name}</span>
-                <span>:</span>
-                <Link
-                  className="underline"
-                  to={`/report/${reportId}/fight/${fight.id}`}
-                >
-                  Kill ({formatFightDuration(fight)})
-                </Link>
-              </div>
+            <li key={fight.id}>
+              <Card className="bg-panel" size="sm">
+                <CardContent>
+                  <div className="flex flex-wrap items-center gap-1 text-sm">
+                    <span className="font-medium">{fight.name}</span>
+                    <span>:</span>
+                    <Link
+                      className="underline"
+                      to={`/report/${reportId}/fight/${fight.id}`}
+                    >
+                      Kill ({formatFightDuration(fight)})
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             </li>
           ))}
         </ul>

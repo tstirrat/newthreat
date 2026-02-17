@@ -11,6 +11,16 @@ import {
   normalizeEncounterNameForNavigation,
 } from '../lib/fight-navigation'
 import type { ReportActorSummary, ReportFightSummary } from '../types/api'
+import { Button } from './ui/button'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './ui/table'
 
 export type PlayersNavigationListProps = {
   reportId: string
@@ -93,55 +103,53 @@ export const PlayersNavigationList: FC<PlayersNavigationListProps> = ({
   )
 
   return (
-    <div className="overflow-x-auto">
-      <table
-        aria-label="Player navigation by boss kill"
-        className="min-w-full border-collapse text-sm"
-      >
-        <caption className="sr-only">Player navigation by boss kill</caption>
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-            <th className="px-2 py-2">Player</th>
-            {hasRoleColumn ? <th className="px-2 py-2">Role</th> : null}
-            {bossKillColumns.map((fight) => (
-              <th className="px-2 py-2" key={fight.id}>
-                {fight.name} #{fight.id}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedPlayers.map((player) => {
-            const classColor = getClassColor(
-              player.subType as PlayerClass | undefined,
-            )
-            const role = resolvePlayerRole(player)
+    <Table aria-label="Player navigation by boss kill" className="text-sm">
+      <TableCaption className="sr-only">
+        Player navigation by boss kill
+      </TableCaption>
+      <TableHeader>
+        <TableRow className="text-left text-xs uppercase tracking-wide text-muted">
+          <TableHead>Player</TableHead>
+          {hasRoleColumn ? <TableHead>Role</TableHead> : null}
+          {bossKillColumns.map((fight) => (
+            <TableHead key={fight.id}>
+              {fight.name} #{fight.id}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {sortedPlayers.map((player) => {
+          const classColor = getClassColor(
+            player.subType as PlayerClass | undefined,
+          )
+          const role = resolvePlayerRole(player)
 
-            return (
-              <tr className="border-b border-border" key={player.id}>
-                <td className="px-2 py-2">
-                  <span className="font-medium" style={{ color: classColor }}>
-                    {player.name}
-                  </span>
-                </td>
-                {hasRoleColumn ? (
-                  <td className="px-2 py-2 text-xs uppercase text-muted">
-                    {role ?? '—'}
-                  </td>
-                ) : null}
-                {bossKillColumns.map((fight) => {
-                  const participated = fight.friendlyPlayers.includes(player.id)
-                  const fightQuery = new URLSearchParams({
-                    players: String(player.id),
-                    focusId: String(player.id),
-                  }).toString()
+          return (
+            <TableRow key={player.id}>
+              <TableCell>
+                <span className="font-medium" style={{ color: classColor }}>
+                  {player.name}
+                </span>
+              </TableCell>
+              {hasRoleColumn ? (
+                <TableCell className="text-xs uppercase text-muted">
+                  {role ?? '—'}
+                </TableCell>
+              ) : null}
+              {bossKillColumns.map((fight) => {
+                const participated = fight.friendlyPlayers.includes(player.id)
+                const fightQuery = new URLSearchParams({
+                  players: String(player.id),
+                  focusId: String(player.id),
+                }).toString()
 
-                  return (
-                    <td className="px-2 py-2 align-middle" key={fight.id}>
-                      {participated ? (
+                return (
+                  <TableCell className="align-middle" key={fight.id}>
+                    {participated ? (
+                      <Button asChild size="icon-sm" variant="outline">
                         <Link
                           aria-label={`Open ${fight.name} chart for ${player.name}`}
-                          className="inline-flex items-center justify-center rounded border border-border p-1"
                           title={`Open ${fight.name} chart for ${player.name}`}
                           to={`/report/${reportId}/fight/${fight.id}?${fightQuery}`}
                         >
@@ -161,15 +169,15 @@ export const PlayersNavigationList: FC<PlayersNavigationListProps> = ({
                             />
                           </svg>
                         </Link>
-                      ) : null}
-                    </td>
-                  )
-                })}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                      </Button>
+                    ) : null}
+                  </TableCell>
+                )
+              })}
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
   )
 }

@@ -4,19 +4,27 @@
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
+import { Button } from '../components/ui/button'
+import {
+  Card,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card'
+
 export const NotFoundPage: FC = () => {
   return (
-    <section className="rounded-xl border border-border bg-panel p-6 shadow-sm">
-      <h1 className="text-xl font-semibold">Page not found</h1>
-      <p className="mt-2 text-sm text-muted">
-        The requested route does not exist.
-      </p>
-      <Link
-        className="mt-4 inline-flex rounded-md border border-border px-3 py-2 text-sm font-medium"
-        to="/"
-      >
-        Return home
-      </Link>
-    </section>
+    <Card className="bg-panel shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-lg">Page not found</CardTitle>
+        <CardDescription>The requested route does not exist.</CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button asChild variant="outline">
+          <Link to="/">Return home</Link>
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }

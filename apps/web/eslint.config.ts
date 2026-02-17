@@ -23,5 +23,19 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        {
+          allowConstantExport: true,
+          allowExportNames: [
+            'useTheme',
+            'buttonVariants',
+            'badgeVariants',
+            'tabsListVariants',
+          ],
+        },
+      ],
+    },
   },
 ])

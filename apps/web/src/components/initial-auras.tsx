@@ -4,6 +4,7 @@
 import type { FC } from 'react'
 
 import type { InitialAuraDisplay, WowheadLinksConfig } from '../types/app'
+import { Badge } from './ui/badge'
 
 export type InitialAurasProps = {
   auras: InitialAuraDisplay[]
@@ -26,22 +27,25 @@ export const InitialAuras: FC<InitialAurasProps> = ({ auras, wowhead }) => {
       </div>
       <div className="flex flex-wrap gap-1">
         {auras.map((aura, index) => (
-          <a
+          <Badge
+            asChild
+            className={aura.isNotable ? 'bg-yellow-950/40 text-yellow-100' : ''}
             key={`${aura.spellId}-${index}`}
-            data-wowhead={`spell=${aura.spellId}&domain=${wowhead.domain}`}
-            href={buildWowheadUrl(wowhead.domain, aura.spellId)}
-            target="_blank"
-            rel="noreferrer"
-            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-black/20 ${
-              aura.isNotable ? 'bg-yellow-950/40' : 'bg-black/10'
-            }`}
-            title={`${aura.name}${aura.stacks > 1 ? ` (${aura.stacks})` : ''}`}
+            variant={aura.isNotable ? 'secondary' : 'outline'}
           >
-            <span>{aura.name}</span>
-            {aura.stacks > 1 && (
-              <span className="text-muted">×{aura.stacks}</span>
-            )}
-          </a>
+            <a
+              data-wowhead={`spell=${aura.spellId}&domain=${wowhead.domain}`}
+              href={buildWowheadUrl(wowhead.domain, aura.spellId)}
+              rel="noreferrer"
+              target="_blank"
+              title={`${aura.name}${aura.stacks > 1 ? ` (${aura.stacks})` : ''}`}
+            >
+              <span>{aura.name}</span>
+              {aura.stacks > 1 && (
+                <span className="text-muted">×{aura.stacks}</span>
+              )}
+            </a>
+          </Badge>
         ))}
       </div>
     </div>
