@@ -6,6 +6,7 @@
  */
 import {
   createApplyBuffEvent,
+  createCombatantInfoEvent,
   createMockThreatConfig,
   createRemoveBuffEvent,
 } from '@wcl-threat/shared'
@@ -640,15 +641,14 @@ describe('FightState', () => {
       const state = new FightState(defaultActorMap, config)
 
       state.processEvent(
-        {
+        createCombatantInfoEvent({
           timestamp: 0,
-          type: 'combatantinfo',
-          sourceID: 1,
-          sourceIsFriendly: true,
-          targetID: 1,
-          targetIsFriendly: true,
-          talents: [{ id: 14 }, { id: 5 }, { id: 31 }],
-        } as WCLEvent,
+          talents: [
+            { id: 14, icon: '' },
+            { id: 5, icon: '' },
+            { id: 31, icon: '' },
+          ],
+        }),
         config,
       )
 

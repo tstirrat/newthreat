@@ -52,7 +52,7 @@ describe('tbc paladin config', () => {
     )
     expect(buffResult.formula).toBe('58')
     expect(buffResult.value).toBe(58)
-    expect(buffResult.splitAmongEnemies).toBe(false)
+    expect(buffResult.splitAmongEnemies).toBe(true)
 
     const damageResult = assertDefined(
       formula!(

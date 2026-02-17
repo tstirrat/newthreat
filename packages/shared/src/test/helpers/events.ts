@@ -11,6 +11,7 @@ import type {
   ApplyDebuffStackEvent,
   CastEvent,
   CombatantInfoAura,
+  CombatantInfoEvent,
   DamageEvent,
   EnergizeEvent,
   HealEvent,
@@ -351,6 +352,27 @@ export function createRemoveDebuffStackEvent(
     targetID: 2,
     abilityGameID: 1,
     stacks: 0,
+    ...sanitizeEventOverrides(overrides),
+  }
+}
+
+/**
+ * Create a combatantinfo event with default values
+ */
+export function createCombatantInfoEvent(
+  overrides: EventOverrides<CombatantInfoEvent> = {},
+): CombatantInfoEvent {
+  return {
+    timestamp: 1000,
+    type: 'combatantinfo',
+    sourceID: 1,
+    targetID: 2,
+    auras: [createCombatantInfoAura(71, 'Battle Stance')],
+    talents: [
+      { id: 0, icon: '' },
+      { id: 0, icon: '' },
+      { id: 0, icon: '' },
+    ],
     ...sanitizeEventOverrides(overrides),
   }
 }
