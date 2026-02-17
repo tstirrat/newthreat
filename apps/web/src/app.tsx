@@ -1,6 +1,7 @@
 /**
  * Root application component with providers.
  */
+import { ThemeProvider } from '@/components/theme-provider'
 import { QueryClientProvider } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { RouterProvider } from 'react-router-dom'
@@ -13,7 +14,9 @@ const queryClient = createQueryClient()
 export const App: FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <RouterProvider router={router} />
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }
