@@ -1,7 +1,6 @@
 /**
  * ECharts threat timeline with deep-linkable zoom and a custom legend panel.
  */
-import { ResourceTypeCode } from '@wcl-threat/wcl-types'
 import type { EChartsOption } from 'echarts'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import { LineChart } from 'echarts/charts'
@@ -20,16 +19,19 @@ import { type FC, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useThreatChartLegendState } from '../hooks/use-threat-chart-legend-state'
 import {
   type SeriesChartPoint,
-  type TooltipPointPayload,
   useThreatChartPinnedTooltip,
 } from '../hooks/use-threat-chart-pinned-tooltip'
 import { useThreatChartThemeColors } from '../hooks/use-threat-chart-theme-colors'
 import { formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
 import {
+  bossMeleeMarkerColor,
+  createThreatChartTooltipFormatter,
+  deathMarkerColor,
+} from '../lib/threat-chart-tooltip'
+import {
   buildAuraMarkArea,
   buildThreatStateVisualMaps,
-  resolveThreatStateStatus,
 } from '../lib/threat-chart-visuals'
 import {
   type DataZoomWindowPayload,
@@ -51,9 +53,6 @@ echarts.use([
   CanvasRenderer,
   SVGRenderer,
 ])
-
-const bossMeleeMarkerColor = '#ef4444'
-const deathMarkerColor = '#dc2626'
 
 function resolvePointColor(
   point: SeriesChartPoint | undefined,
@@ -80,80 +79,6 @@ function resolvePointSize(point: SeriesChartPoint | undefined): number {
   }
 
   return 6
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-}
-
-function formatSignedThreat(value: number): string {
-  const prefix = value >= 0 ? '+' : '-'
-  return `${prefix}${formatTooltipNumber(Math.abs(value))}`
-}
-
-function formatTooltipNumber(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)
-}
-
-function resolveSchoolColor(school: string | null): string | null {
-  if (!school || school === 'physical' || school.includes('/')) {
-    return null
-  }
-
-  const bySchool: Record<string, string> = {
-    // Core spell schools (overrides)
-    holy: '#f2e699',
-    fire: '#ef4444',
-    nature: '#22c55e',
-    frost: '#38bdf8',
-    shadow: '#a78bfa',
-    arcane: '#06b6d4',
-  }
-
-  return bySchool[school] ?? null
-}
-
-function formatResourceTypeLabel(resourceType: number | null): string | null {
-  const byResourceTypeCode: Record<number, string> = {
-    [ResourceTypeCode.Mana]: 'Mana',
-    [ResourceTypeCode.Rage]: 'Rage',
-    [ResourceTypeCode.Focus]: 'Focus',
-    [ResourceTypeCode.Energy]: 'Energy',
-    [ResourceTypeCode.ComboPoints]: 'Combo points',
-    [ResourceTypeCode.RunicPower]: 'Runic power',
-    [ResourceTypeCode.HolyPower]: 'Holy power',
-  }
-
-  if (resourceType === null) {
-    return null
-  }
-
-  return byResourceTypeCode[resourceType] ?? `Resource (${resourceType})`
-}
-
-function resolveSplitCount(
-  modifiedThreat: number,
-  threatDelta: number,
-): number {
-  if (modifiedThreat === 0 || threatDelta === 0) {
-    return 1
-  }
-
-  const ratio = Math.abs(modifiedThreat / threatDelta)
-  const rounded = Math.round(ratio)
-  if (!Number.isFinite(ratio) || rounded <= 1) {
-    return 1
-  }
-
-  return Math.abs(ratio - rounded) < 0.001 ? rounded : 1
 }
 
 export type ThreatChartProps = {
@@ -287,6 +212,10 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     clearIsolate()
     onVisiblePlayerIdsChange?.(allPlayerIds)
   }, [allPlayerIds, clearIsolate, onVisiblePlayerIdsChange])
+  const tooltipFormatter = createThreatChartTooltipFormatter({
+    series,
+    themeColors,
+  })
 
   const option: EChartsOption = {
     animation: false,
@@ -307,128 +236,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       textStyle: {
         color: themeColors.foreground,
       },
-      formatter: (params) => {
-        const entry = params as {
-          data?: TooltipPointPayload
-          seriesName?: string
-        }
-        const payload = entry.data
-        if (!payload) {
-          return ''
-        }
-
-        const actorName = escapeHtml(
-          String(entry.seriesName ?? 'Unknown actor'),
-        )
-        const actorColor = escapeHtml(String(payload.actorColor ?? '#94a3b8'))
-        const abilityName = escapeHtml(payload.abilityName ?? 'Unknown ability')
-        const modifiers = payload.modifiers ?? []
-        const timeMs = Number(payload.timeMs ?? 0)
-        const totalThreat = Number(payload.totalThreat ?? 0)
-        const threatDelta = Number(payload.threatDelta ?? 0)
-        const amount = Number(payload.amount ?? 0)
-        const modifiedThreat = Number(payload.modifiedThreat ?? 0)
-        const markerKind = payload.markerKind ?? null
-        const spellSchool = payload.spellSchool?.toLowerCase() ?? null
-        const rawEventType = String(
-          payload.eventType ?? 'unknown',
-        ).toLowerCase()
-        const rawResourceType =
-          typeof payload.resourceType === 'number' ? payload.resourceType : null
-        const eventType = escapeHtml(rawEventType)
-        const isHealEvent = rawEventType === 'heal'
-        const isResourceEvent =
-          rawEventType === 'resourcechange' || rawEventType === 'energize'
-        const abilityEventSuffix = isHealEvent
-          ? ` (${eventType})`
-          : rawEventType === 'damage'
-            ? ''
-            : ` (${eventType})`
-        const abilityTitleColor = isHealEvent ? '#22c55e' : null
-        const actorId = Number(payload.actorId ?? 0)
-        const sourceSeries =
-          series.find((item) => item.actorId === actorId) ?? null
-        const auraStatus = sourceSeries
-          ? resolveThreatStateStatus(sourceSeries, timeMs)
-          : { color: null, label: 'normal' }
-        const statusLabel = escapeHtml(auraStatus.label)
-        const statusColor = escapeHtml(auraStatus.color ?? themeColors.muted)
-        const auraLine =
-          auraStatus.color && auraStatus.label
-            ? `Aura: <strong style="color:${statusColor};">${statusLabel}</strong>`
-            : null
-        const markerLine =
-          markerKind === 'bossMelee'
-            ? `Marker: <strong style="color:${bossMeleeMarkerColor};">Boss melee</strong>`
-            : markerKind === 'death'
-              ? `Marker: <strong style="color:${deathMarkerColor};">Death</strong>`
-              : null
-        const splitCount = resolveSplitCount(modifiedThreat, threatDelta)
-        const visibleModifiers = modifiers.filter(
-          (modifier) =>
-            Number.isFinite(modifier.value) &&
-            Math.abs(modifier.value - 1) > 0.0005,
-        )
-        const modifiersTotal = visibleModifiers.reduce((total, modifier) => {
-          if (!Number.isFinite(modifier.value)) {
-            return total
-          }
-
-          return total * modifier.value
-        }, 1)
-        const isSchoolAmountEvent =
-          rawEventType === 'damage' || rawEventType === 'heal'
-        const amountSchool =
-          isSchoolAmountEvent && spellSchool && spellSchool !== 'physical'
-            ? ` (${escapeHtml(spellSchool)})`
-            : ''
-        const amountColor =
-          rawEventType === 'heal'
-            ? '#22c55e'
-            : rawEventType === 'damage'
-              ? resolveSchoolColor(spellSchool)
-              : null
-        const amountLabel = escapeHtml(
-          isResourceEvent
-            ? (formatResourceTypeLabel(rawResourceType) ?? 'Amt')
-            : 'Amt',
-        )
-        const modifierLines = visibleModifiers.map((modifier) => {
-          const schoolsLabel = modifier.schoolLabels
-            .filter((school) => school !== 'physical')
-            .join('/')
-          const rowSchool =
-            modifier.schoolLabels.length === 1
-              ? (modifier.schoolLabels[0] ?? null)
-              : null
-          const color = resolveSchoolColor(rowSchool)
-          const schoolSuffix =
-            schoolsLabel.length > 0 ? ` (${escapeHtml(schoolsLabel)})` : ''
-          const value = Number.isFinite(modifier.value)
-            ? formatTooltipNumber(modifier.value)
-            : '-'
-          return `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;${color ? `color:${color};` : ''}"><span>${escapeHtml(modifier.name)}${schoolSuffix}</span><span>${value}</span></div>`
-        })
-
-        return [
-          '<div style="min-width:280px;font-size:12px;line-height:1.2;">',
-          `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><strong${abilityTitleColor ? ` style="color:${abilityTitleColor};"` : ''}>${abilityName}${abilityEventSuffix}</strong><strong style="color:${actorColor};">${actorName}</strong></div>`,
-          `<div style="line-height:1.2;">T: ${formatTimelineTime(timeMs)}</div>`,
-          `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;${amountColor ? `color:${amountColor};` : ''}"><span>${amountLabel}: ${formatTooltipNumber(amount)}${amountSchool}</span><span>${escapeHtml(payload.formula ?? 'n/a')}</span></div>`,
-          `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><span>Threat: ${formatSignedThreat(threatDelta)}${splitCount > 1 ? ` / ${splitCount}` : ''}</span><span>&sum; ${formatTooltipNumber(totalThreat)}</span></div>`,
-          ...(visibleModifiers.length > 0
-            ? [
-                `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.2;"><span>Multipliers:</span><span>&sum; ${formatTooltipNumber(modifiersTotal)}</span></div>`,
-                '<div style="padding-left:2ch;">',
-                ...modifierLines,
-                '</div>',
-              ]
-            : []),
-          ...(auraLine ? [auraLine] : []),
-          ...(markerLine ? [markerLine] : []),
-          '</div>',
-        ].join('')
-      },
+      formatter: tooltipFormatter,
     },
     xAxis: {
       type: 'value',
