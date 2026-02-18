@@ -51,3 +51,10 @@ export function upsertRecentReport(
   saveRecentReports(next)
   return next
 }
+
+/** Remove a recent report entry by report ID. */
+export function removeRecentReport(reportId: string): RecentReportEntry[] {
+  const next = loadRecentReports().filter((item) => item.reportId !== reportId)
+  saveRecentReports(next)
+  return next
+}

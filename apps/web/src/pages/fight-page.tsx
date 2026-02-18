@@ -339,7 +339,9 @@ export const FightPage: FC = () => {
     <div className="flex flex-wrap items-center gap-2">
       <span>{fightData.name}</span>
       <span className="text-muted-foreground">|</span>
-      <span className="text-muted-foreground">{formatClockDuration(durationMs)}</span>
+      <span className="text-muted-foreground">
+        {formatClockDuration(durationMs)}
+      </span>
       <span className="text-muted-foreground">|</span>
       <a
         aria-label={`Open ${fightData.name} on Warcraft Logs`}

@@ -13,6 +13,11 @@ export interface RecentReportEntry {
   title: string
   sourceHost: WarcraftLogsHost
   lastOpenedAt: number
+  zoneName?: string | null
+  startTime?: number | null
+  bossKillCount?: number | null
+  guildName?: string | null
+  guildFaction?: string | null
 }
 
 export interface ExampleReportLink {

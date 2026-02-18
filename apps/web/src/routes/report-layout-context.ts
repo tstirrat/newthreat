@@ -3,8 +3,8 @@
  */
 import { useOutletContext } from 'react-router-dom'
 
-import type { WarcraftLogsHost } from '../types/app'
 import type { ReportResponse } from '../types/api'
+import type { WarcraftLogsHost } from '../types/app'
 
 export interface ReportRouteContext {
   reportId: string

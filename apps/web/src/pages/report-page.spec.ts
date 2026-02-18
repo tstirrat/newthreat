@@ -38,7 +38,9 @@ test.describe('report page', () => {
     await expect(page.getByRole('region', { name: /Patchwerk/ })).toBeVisible()
   })
 
-  test('does not render legacy report navigation sections', async ({ page }) => {
+  test('does not render legacy report navigation sections', async ({
+    page,
+  }) => {
     await page.goto(`/report/${e2eReportId}`)
 
     await expect(

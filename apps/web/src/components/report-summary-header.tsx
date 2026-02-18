@@ -7,8 +7,8 @@ import type { FC } from 'react'
 import { buildBossKillNavigationFights } from '../lib/fight-navigation'
 import { formatReportHeaderDate } from '../lib/format'
 import { buildReportUrl } from '../lib/wcl-url'
-import type { WarcraftLogsHost } from '../types/app'
 import type { ReportResponse } from '../types/api'
+import type { WarcraftLogsHost } from '../types/app'
 import { Card, CardHeader, CardTitle } from './ui/card'
 
 type ReportGuildFaction = 'alliance' | 'horde' | null
@@ -20,7 +20,9 @@ export type ReportSummaryHeaderProps = {
   threatConfigLabel: string
 }
 
-function normalizeGuildFaction(value: string | null | undefined): ReportGuildFaction {
+function normalizeGuildFaction(
+  value: string | null | undefined,
+): ReportGuildFaction {
   if (!value) {
     return null
   }
@@ -54,7 +56,9 @@ export const ReportSummaryHeader: FC<ReportSummaryHeaderProps> = ({
   reportHost,
   threatConfigLabel,
 }) => {
-  const playerCount = report.actors.filter((actor) => actor.type === 'Player').length
+  const playerCount = report.actors.filter(
+    (actor) => actor.type === 'Player',
+  ).length
   const bossKillCount = buildBossKillNavigationFights(report.fights).length
   const guildName = report.guild?.name ?? null
   const guildFaction = normalizeGuildFaction(report.guild?.faction)
@@ -70,7 +74,9 @@ export const ReportSummaryHeader: FC<ReportSummaryHeaderProps> = ({
           <div className="min-w-0 space-y-1 text-sm">
             <CardTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
               <span className="font-semibold">{report.title}</span>
-              {guildName ? <span className="text-muted-foreground">|</span> : null}
+              {guildName ? (
+                <span className="text-muted-foreground">|</span>
+              ) : null}
               {guildName ? (
                 <span className={`font-medium ${guildTextClass}`}>
                   {`<${guildName}>`}
@@ -94,7 +100,9 @@ export const ReportSummaryHeader: FC<ReportSummaryHeaderProps> = ({
                 target="_blank"
                 title="Open report on Warcraft Logs"
               >
-                <span className="text-[10px] font-medium tracking-wide">WCL</span>
+                <span className="text-[10px] font-medium tracking-wide">
+                  WCL
+                </span>
                 <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
               </a>
             </div>

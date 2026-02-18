@@ -11,8 +11,9 @@ import { ReportSummaryHeader } from '../components/report-summary-header'
 import { useRecentReports } from '../hooks/use-recent-reports'
 import { useReportData } from '../hooks/use-report-data'
 import { useReportHost } from '../hooks/use-report-host'
-import type { ReportRouteContext } from './report-layout-context'
+import { buildBossKillNavigationFights } from '../lib/fight-navigation'
 import type { WarcraftLogsHost } from '../types/app'
+import type { ReportRouteContext } from './report-layout-context'
 
 interface LocationState {
   host?: WarcraftLogsHost
@@ -42,6 +43,11 @@ export const ReportLayout: FC = () => {
       title: data.title,
       sourceHost: reportHost,
       lastOpenedAt: Date.now(),
+      zoneName: data.zone.name,
+      startTime: data.startTime,
+      bossKillCount: buildBossKillNavigationFights(data.fights).length,
+      guildName: data.guild?.name ?? null,
+      guildFaction: data.guild?.faction ?? null,
     })
   }, [addRecentReport, data, reportHost, reportId])
 

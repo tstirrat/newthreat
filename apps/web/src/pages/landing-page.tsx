@@ -15,7 +15,7 @@ import { parseReportInput } from '../lib/wcl-url'
 
 export const LandingPage: FC = () => {
   const navigate = useNavigate()
-  const { recentReports, addRecentReport } = useRecentReports()
+  const { recentReports, addRecentReport, removeRecentReport } = useRecentReports()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   return (
@@ -60,7 +60,12 @@ export const LandingPage: FC = () => {
         title="Recent reports"
         subtitle="Most recently loaded report codes in this browser context."
       >
-        <RecentReportsList reports={recentReports} />
+        <RecentReportsList
+          onRemoveReport={(reportId) => {
+            removeRecentReport(reportId)
+          }}
+          reports={recentReports}
+        />
       </SectionCard>
 
       {recentReports.length === 0 ? (

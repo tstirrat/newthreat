@@ -75,4 +75,22 @@ test.describe('landing page', () => {
     await recentReports.recentReportLink(e2eReportResponse.title).click()
     await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
   })
+
+  test('recent report tiles can be removed manually', async ({ page }) => {
+    const recentReports = new RecentReportsObject(page)
+
+    await page.goto('/')
+    await page.getByLabel('Report URL or ID').fill(e2eValidFreshReportUrl)
+    await page.getByRole('button', { name: 'Load report' }).click()
+    await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
+
+    await page.goBack()
+    await expect(page).toHaveURL('/')
+
+    await expect(recentReports.recentReportsList()).toBeVisible()
+    await recentReports
+      .removeRecentReportButton(e2eReportResponse.title)
+      .click()
+    await expect(recentReports.noRecentReportsText()).toBeVisible()
+  })
 })

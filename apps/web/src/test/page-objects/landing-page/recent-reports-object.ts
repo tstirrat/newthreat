@@ -15,7 +15,7 @@ export class RecentReportsObject {
   }
 
   noRecentReportsText(): Locator {
-    return this.recentReportsSection().getByText('No recent reports yet.')
+    return this.recentReportsSection().getByText('No recent reports yet')
   }
 
   recentReportsList(): Locator {
@@ -27,7 +27,12 @@ export class RecentReportsObject {
   recentReportLink(name: string): Locator {
     return this.recentReportsSection().getByRole('link', {
       name,
-      exact: true,
+    })
+  }
+
+  removeRecentReportButton(name: string): Locator {
+    return this.recentReportsSection().getByRole('button', {
+      name: `Remove recent report ${name}`,
     })
   }
 

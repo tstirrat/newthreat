@@ -3,12 +3,17 @@
  */
 import { useState } from 'react'
 
-import { loadRecentReports, upsertRecentReport } from '../lib/recent-reports'
+import {
+  loadRecentReports,
+  removeRecentReport,
+  upsertRecentReport,
+} from '../lib/recent-reports'
 import type { RecentReportEntry } from '../types/app'
 
 export interface UseRecentReportsResult {
   recentReports: RecentReportEntry[]
   addRecentReport: (entry: RecentReportEntry) => void
+  removeRecentReport: (reportId: string) => void
 }
 
 /** Manage recent reports with local-storage persistence. */
@@ -21,8 +26,13 @@ export function useRecentReports(): UseRecentReportsResult {
     setRecentReports(upsertRecentReport(entry))
   }
 
+  const handleRemoveRecentReport = (reportId: string): void => {
+    setRecentReports(removeRecentReport(reportId))
+  }
+
   return {
     recentReports,
     addRecentReport,
+    removeRecentReport: handleRemoveRecentReport,
   }
 }
