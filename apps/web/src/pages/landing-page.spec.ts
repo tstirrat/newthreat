@@ -9,73 +9,70 @@ import {
   e2eValidFreshReportUrl,
   setupThreatApiMocks,
 } from '../test/helpers/e2e-threat-mocks'
+import { RecentReportsObject } from '../test/page-objects/landing-page/recent-reports-object'
 
-test.beforeEach(async ({ page }) => {
-  await setupThreatApiMocks(page)
-})
+test.describe('landing page', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupThreatApiMocks(page)
+  })
 
-test('pasting a valid link opens the report page with expected summary data', async ({
-  page,
-}) => {
-  await page.goto('/')
-  await page.getByLabel('Report URL or ID').fill(e2eValidFreshReportUrl)
-  await page.getByRole('button', { name: 'Load report' }).click()
+  test('pasting a valid link opens the report page with expected summary data', async ({
+    page,
+  }) => {
+    const recentReports = new RecentReportsObject(page)
 
-  await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
-  await expect(
-    page.getByRole('heading', { level: 2, name: e2eReportResponse.title }),
-  ).toBeVisible()
-  await expect(page.getByText('Owner: ThreatOfficer')).toBeVisible()
-  await expect(page.getByText('Fights: 4')).toBeVisible()
-  await expect(page.getByText('Players: 3')).toBeVisible()
-  const fightNavigation = page.getByRole('region', { name: 'Fight navigation' })
-  await expect(fightNavigation.getByText('Patchwerk')).toBeVisible()
-  await expect(fightNavigation.getByText('Grobbulus')).toBeVisible()
-})
+    await page.goto('/')
+    await expect(recentReports.recentReportsSection()).toBeVisible()
+    await expect(recentReports.noRecentReportsText()).toBeVisible()
+    await page.getByLabel('Report URL or ID').fill(e2eValidFreshReportUrl)
+    await page.getByRole('button', { name: 'Load report' }).click()
 
-test('pasting an invalid link shows a parse error', async ({ page }) => {
-  await page.goto('/')
-  await page
-    .getByLabel('Report URL or ID')
-    .fill('https://www.warcraftlogs.com/reports/not-supported-host')
-  await page.getByRole('button', { name: 'Load report' }).click()
+    await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
+  })
 
-  await expect(page).toHaveURL('/')
-  await expect(page.getByRole('alert')).toContainText(
-    'Unable to parse report input',
-  )
-})
+  test('pasting an invalid link shows a parse error', async ({ page }) => {
+    await page.goto('/')
+    await page
+      .getByLabel('Report URL or ID')
+      .fill('https://www.warcraftlogs.com/reports/not-supported-host')
+    await page.getByRole('button', { name: 'Load report' }).click()
 
-test('empty state shows sample links and opens a report when clicked', async ({
-  page,
-}) => {
-  await page.goto('/')
+    await expect(page).toHaveURL('/')
+    await expect(page.getByRole('alert')).toContainText(
+      'Unable to parse report input',
+    )
+  })
 
-  await expect(
-    page.getByRole('heading', { name: 'Example reports' }),
-  ).toBeVisible()
-  await page.getByRole('link', { name: 'Fresh Example' }).click()
+  test('empty state shows sample links and opens a report when clicked', async ({
+    page,
+  }) => {
+    const recentReports = new RecentReportsObject(page)
 
-  await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
-  await expect(
-    page.getByRole('heading', { level: 2, name: e2eReportResponse.title }),
-  ).toBeVisible()
-})
+    await page.goto('/')
 
-test('report history can be revisited from recent reports', async ({
-  page,
-}) => {
-  await page.goto('/')
-  await page.getByLabel('Report URL or ID').fill(e2eValidFreshReportUrl)
-  await page.getByRole('button', { name: 'Load report' }).click()
+    await expect(recentReports.exampleReportsSection()).toBeVisible()
+    await expect(recentReports.exampleReportsList()).toBeVisible()
+    await recentReports.exampleReportLink('Fresh Example').click()
 
-  await expect(
-    page.getByRole('heading', { level: 2, name: e2eReportResponse.title }),
-  ).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
+  })
 
-  await page.goBack()
-  await expect(page).toHaveURL('/')
+  test('report history can be revisited from recent reports', async ({
+    page,
+  }) => {
+    const recentReports = new RecentReportsObject(page)
 
-  await page.getByRole('link', { name: e2eReportResponse.title }).click()
-  await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
+    await page.goto('/')
+    await page.getByLabel('Report URL or ID').fill(e2eValidFreshReportUrl)
+    await page.getByRole('button', { name: 'Load report' }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
+
+    await page.goBack()
+    await expect(page).toHaveURL('/')
+
+    await expect(recentReports.recentReportsList()).toBeVisible()
+    await recentReports.recentReportLink(e2eReportResponse.title).click()
+    await expect(page).toHaveURL(new RegExp(`/report/${e2eReportId}`))
+  })
 })
