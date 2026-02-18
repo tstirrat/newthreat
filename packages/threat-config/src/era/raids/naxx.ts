@@ -3,12 +3,18 @@
  *
  * Custom threat formulas for Naxxramas bosses in Anniversary Edition.
  */
-import type { ThreatChange, ThreatFormula } from '@wcl-threat/shared'
+import {
+  type ThreatChange,
+  type ThreatFormula,
+  exists,
+} from '@wcl-threat/shared'
 
 import { modifyThreat } from '../../shared/formulas'
 
 export const Spells = {
   HatefulStrike: 28308, // https://wowhead.com/classic/spell=28308/
+  MagneticPullFeugen: 28339, // https://wowhead.com/classic/spell=28339/
+  MagneticPullStalagg: 28338, // https://wowhead.com/classic/spell=28338/
   NothBlink1: 29209, // https://wowhead.com/classic/spell=29209/
   NothBlink2: 29210, // https://wowhead.com/classic/spell=29210/
   NothBlink3: 29211, // https://wowhead.com/classic/spell=29211/
@@ -17,6 +23,76 @@ export const Spells = {
 // Position payloads are raw map units; for this fight, ~200 raw units ~= 1 yard.
 const RAW_DISTANCE_UNITS_PER_YARD = 200
 const PATCHWERK_MELEE_RANGE_YARDS = 7
+
+/**
+ * Feugen/Stalagg - Magnetic Pull
+ *
+ * Set the source boss threat for the highest-threat actor on the opposite
+ * platform to the source boss current max threat.
+ */
+export const magneticPull: ThreatFormula = (ctx) => {
+  if (ctx.event.type !== 'cast') {
+    return undefined
+  }
+
+  const sourceEnemy = {
+    id: ctx.event.sourceID,
+    instanceId: ctx.event.sourceInstance ?? 0,
+  }
+  const sourceThreatEntries = ctx.actors.getTopActorsByThreat(sourceEnemy, 100)
+  const sourceTopThreat = sourceThreatEntries[0]
+  if (!sourceTopThreat) {
+    return undefined
+  }
+  const sourceMaxThreat = sourceTopThreat.threat
+  const sourceTopActorId = sourceTopThreat.actorId
+
+  const otherEnemies = ctx.actors
+    .getFightEnemies()
+    .map((enemy) => ({
+      id: enemy.id,
+      instanceId: enemy.instanceId ?? 0,
+    }))
+    .filter(
+      (enemy) =>
+        enemy.id !== sourceEnemy.id ||
+        enemy.instanceId !== sourceEnemy.instanceId,
+    )
+
+  const topThreat = otherEnemies
+    .map((enemy) =>
+      ctx.actors
+        .getTopActorsByThreat(enemy, 100)
+        .find(({ actorId }) => actorId > 0 && actorId !== sourceTopActorId),
+    )
+    .filter(exists)
+    .sort((a, b) => b.threat - a.threat)[0]
+
+  if (!topThreat) {
+    return undefined
+  }
+
+  return {
+    formula: 'magneticPull(sourceMaxThreat)',
+    value: 0,
+    splitAmongEnemies: false,
+    effects: [
+      {
+        type: 'customThreat',
+        changes: [
+          {
+            sourceId: topThreat.actorId,
+            targetId: sourceEnemy.id,
+            targetInstance: sourceEnemy.instanceId,
+            operator: 'set',
+            amount: sourceMaxThreat,
+            total: sourceMaxThreat,
+          },
+        ],
+      },
+    ],
+  }
+}
 
 /**
  * Patchwerk - Hateful Strike
@@ -131,6 +207,8 @@ export const hatefulStrike =
  */
 export const naxxAbilities = {
   [Spells.HatefulStrike]: hatefulStrike({ amount: 500, playerCount: 4 }),
+  [Spells.MagneticPullFeugen]: magneticPull,
+  [Spells.MagneticPullStalagg]: magneticPull,
   [Spells.NothBlink1]: modifyThreat({ modifier: 0, target: 'all' }),
   [Spells.NothBlink2]: modifyThreat({ modifier: 0, target: 'all' }),
   [Spells.NothBlink3]: modifyThreat({ modifier: 0, target: 'all' }),

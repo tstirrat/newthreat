@@ -1040,6 +1040,20 @@ describe('FightState', () => {
     })
   })
 
+  describe('threat table queries', () => {
+    it('returns configured fight enemies without scanning threat tables', () => {
+      const state = new FightState(defaultActorMap, testConfig, [
+        { id: 99, name: 'Feugen', instance: 0 },
+        { id: 249, name: 'Stalagg', instance: 0 },
+      ])
+
+      expect(state.getFightEnemies()).toEqual([
+        { id: 99, instanceId: 0 },
+        { id: 249, instanceId: 0 },
+      ])
+    })
+  })
+
   describe('cast aura implications', () => {
     it('infers cat form from rake cast when form aura event is missing', () => {
       const actorMap = createActorMap([

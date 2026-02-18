@@ -32,23 +32,6 @@ import { InterceptorTracker } from './interceptor-tracker'
 import { getActiveModifiers, getTotalMultiplier } from './utils'
 
 const ENVIRONMENT_TARGET_ID = -1
-const THREAT_EVENT_TYPES = new Set<WCLEvent['type']>([
-  'damage',
-  'heal',
-  'energize',
-  'resourcechange',
-  'cast',
-  'applybuff',
-  'refreshbuff',
-  'applybuffstack',
-  'removebuff',
-  'removebuffstack',
-  'applydebuff',
-  'refreshdebuff',
-  'applydebuffstack',
-  'removedebuff',
-  'removedebuffstack',
-])
 const BOSS_MELEE_SPELL_ID = 1
 
 const NO_THREAT_FORMULA_RESULT: ThreatFormulaResult = {
@@ -110,7 +93,7 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
     config,
   } = input
 
-  const fightState = new FightState(actorMap, config)
+  const fightState = new FightState(actorMap, config, enemies)
   const interceptorTracker = new InterceptorTracker()
   const stateSpellSets = buildStateSpellSets(config)
   const augmentedEvents: AugmentedEvent[] = []
@@ -152,127 +135,121 @@ export function processEvents(input: ProcessEventsInput): ProcessEventsOutput {
       continue
     }
 
-    // Calculate threat for relevant event types
-    if (shouldCalculateThreat(event)) {
-      // Run event interceptors first
-      const interceptorResults = interceptorTracker.runInterceptors(
-        event,
-        event.timestamp,
-        fightState,
-      )
+    // Run event interceptors first
+    const interceptorResults = interceptorTracker.runInterceptors(
+      event,
+      event.timestamp,
+      fightState,
+    )
 
-      // Check if any interceptor wants to skip this event
-      const shouldSkip = interceptorResults.some((r) => r.action === 'skip')
-      if (shouldSkip) {
-        // Create zero-threat augmented event
-        const zeroCalculation: ThreatCalculation = {
-          formula: '0 (suppressed by effect)',
-          amount: 0,
-          baseThreat: 0,
-          modifiedThreat: 0,
-          isSplit: false,
-          modifiers: [],
-        }
-        augmentedEvents.push(buildAugmentedEvent(event, zeroCalculation, []))
-        continue
+    // Check if any interceptor wants to skip this event
+    const shouldSkip = interceptorResults.some((r) => r.action === 'skip')
+    if (shouldSkip) {
+      // Create zero-threat augmented event
+      const zeroCalculation: ThreatCalculation = {
+        formula: '0 (suppressed by effect)',
+        amount: 0,
+        baseThreat: 0,
+        modifiedThreat: 0,
+        isSplit: false,
+        modifiers: [],
       }
-
-      // Collect augmentations from interceptors
-      const augmentations = interceptorResults.filter(
-        (r) => r.action === 'augment',
-      )
-      const threatRecipientOverride = augmentations.find(
-        (a) => a.action === 'augment' && a.threatRecipientOverride,
-      )?.threatRecipientOverride
-      const interceptorEffects = augmentations.flatMap(
-        (augmentation) => augmentation.effects ?? [],
-      )
-
-      const sourceActor = fightState.getActor({
-        id: event.sourceID,
-        instanceId: event.sourceInstance,
-      }) ??
-        actorMap.get(event.sourceID) ?? {
-          id: event.sourceID,
-          name: 'Unknown',
-          class: null,
-        }
-      const targetActor = fightState.getActor({
-        id: event.targetID,
-        instanceId: event.targetInstance,
-      }) ??
-        actorMap.get(event.targetID) ?? {
-          id: event.targetID,
-          name: 'Unknown',
-          class: null,
-        }
-
-      const threatOptions: CalculateThreatOptions = {
-        sourceAuras: fightState.getAurasForActor({
-          id: event.sourceID,
-          instanceId: event.sourceInstance,
-        }),
-        targetAuras: fightState.getAurasForActor({
-          id: event.targetID,
-          instanceId: event.targetInstance,
-        }),
-        spellSchoolMask: getSpellSchoolMaskForEvent(event, abilitySchoolMap),
-        enemies,
-        sourceActor,
-        targetActor,
-        encounterId,
-        actors: fightState,
-      }
-
-      const threatContext = buildThreatContext(event, threatOptions)
-      const baseCalculation = calculateModifiedThreat(
-        event,
-        threatOptions,
-        config,
-      )
-      const encounterEffects =
-        encounterPreprocessor?.(threatContext)?.effects ?? []
-      const stateEffect = buildStateEffectFromAuraEvent(event, stateSpellSets)
-      const deathMarkerEffect = buildDeathEventMarker(event)
-      const effects = [
-        ...(baseCalculation.effects ?? []),
-        ...encounterEffects,
-        ...interceptorEffects,
-        ...(stateEffect ? [stateEffect] : []),
-        ...(deathMarkerEffect ? [deathMarkerEffect] : []),
-      ]
-      const calculation: ThreatCalculation = {
-        ...baseCalculation,
-        effects: effects.length > 0 ? effects : undefined,
-      }
-
-      for (const effect of effects) {
-        if (effect.type === 'installInterceptor') {
-          interceptorTracker.install(effect.interceptor, event.timestamp)
-        }
-      }
-
-      const validEnemies = enemies.filter((e) => e.id !== ENVIRONMENT_TARGET_ID)
-
-      const changes = applyThreat(
-        fightState,
-        calculation,
-        event,
-        validEnemies,
-        threatRecipientOverride,
-      )
-
-      augmentedEvents.push(
-        buildAugmentedEvent(
-          event,
-          calculation,
-          changes.length > 0 ? changes : undefined,
-        ),
-      )
+      augmentedEvents.push(buildAugmentedEvent(event, zeroCalculation, []))
       continue
     }
 
-    augmentedEvents.push(buildAugmentedEvent(event))
+    // Collect augmentations from interceptors
+    const augmentations = interceptorResults.filter(
+      (r) => r.action === 'augment',
+    )
+    const threatRecipientOverride = augmentations.find(
+      (a) => a.action === 'augment' && a.threatRecipientOverride,
+    )?.threatRecipientOverride
+    const interceptorEffects = augmentations.flatMap(
+      (augmentation) => augmentation.effects ?? [],
+    )
+
+    const sourceActor = fightState.getActor({
+      id: event.sourceID,
+      instanceId: event.sourceInstance,
+    }) ??
+      actorMap.get(event.sourceID) ?? {
+        id: event.sourceID,
+        name: 'Unknown',
+        class: null,
+      }
+    const targetActor = fightState.getActor({
+      id: event.targetID,
+      instanceId: event.targetInstance,
+    }) ??
+      actorMap.get(event.targetID) ?? {
+        id: event.targetID,
+        name: 'Unknown',
+        class: null,
+      }
+
+    const threatOptions: CalculateThreatOptions = {
+      sourceAuras: fightState.getAurasForActor({
+        id: event.sourceID,
+        instanceId: event.sourceInstance,
+      }),
+      targetAuras: fightState.getAurasForActor({
+        id: event.targetID,
+        instanceId: event.targetInstance,
+      }),
+      spellSchoolMask: getSpellSchoolMaskForEvent(event, abilitySchoolMap),
+      enemies,
+      sourceActor,
+      targetActor,
+      encounterId,
+      actors: fightState,
+    }
+
+    const threatContext = buildThreatContext(event, threatOptions)
+    const baseCalculation = calculateModifiedThreat(
+      event,
+      threatOptions,
+      config,
+    )
+    const encounterEffects =
+      encounterPreprocessor?.(threatContext)?.effects ?? []
+    const stateEffect = buildStateEffectFromAuraEvent(event, stateSpellSets)
+    const deathMarkerEffect = buildDeathEventMarker(event)
+    const effects = [
+      ...(baseCalculation.effects ?? []),
+      ...encounterEffects,
+      ...interceptorEffects,
+      ...(stateEffect ? [stateEffect] : []),
+      ...(deathMarkerEffect ? [deathMarkerEffect] : []),
+    ]
+    const calculation: ThreatCalculation = {
+      ...baseCalculation,
+      effects: effects.length > 0 ? effects : undefined,
+    }
+
+    for (const effect of effects) {
+      if (effect.type === 'installInterceptor') {
+        interceptorTracker.install(effect.interceptor, event.timestamp)
+      }
+    }
+
+    const validEnemies = enemies.filter((e) => e.id !== ENVIRONMENT_TARGET_ID)
+
+    const changes = applyThreat(
+      fightState,
+      calculation,
+      event,
+      validEnemies,
+      threatRecipientOverride,
+    )
+
+    augmentedEvents.push(
+      buildAugmentedEvent(
+        event,
+        calculation,
+        changes.length > 0 ? changes : undefined,
+      ),
+    )
   }
 
   return {
@@ -584,27 +561,6 @@ function resolveEventFriendliness({
       friendlyActorIds,
     }),
   }
-}
-
-/**
- * Determine if an event should have threat calculated
- */
-function shouldCalculateThreat(event: FriendlyResolvedEvent): boolean {
-  if (!isThreatRelevantToPlayers(event)) {
-    return false
-  }
-  if (event.targetID === ENVIRONMENT_TARGET_ID) {
-    return false
-  }
-  // Death events can wipe threat (friendly death) and should always be evaluated.
-  if (event.type === 'death') {
-    return true
-  }
-  return THREAT_EVENT_TYPES.has(event.type)
-}
-
-function isThreatRelevantToPlayers(event: FriendlyResolvedEvent): boolean {
-  return event.sourceIsFriendly || event.targetIsFriendly
 }
 
 function isTrackedBossMeleeEvent(

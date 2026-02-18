@@ -8,7 +8,7 @@ import type { ActorContext, ThreatContext } from '@wcl-threat/shared/src/types'
 import type { DamageEvent } from '@wcl-threat/wcl-types'
 import { describe, expect, it } from 'vitest'
 
-import { hatefulStrike, naxxAbilities } from './naxx'
+import { hatefulStrike, magneticPull, naxxAbilities } from './naxx'
 
 describe('Hateful Strike', () => {
   const PATCHWERK_ID = 16028
@@ -334,6 +334,83 @@ describe('Hateful Strike', () => {
 
     expect(result.formula).toBe('hatefulStrike(500)')
     expect(result.splitAmongEnemies).toBe(false)
+  })
+})
+
+describe('Magnetic Pull', () => {
+  function createMagneticPullContext(actors: ActorContext): ThreatContext {
+    const event = createCastEvent({
+      sourceID: 250,
+      sourceIsFriendly: false,
+      targetID: 1,
+      targetIsFriendly: true,
+      abilityGameID: 28339,
+    })
+
+    return {
+      event,
+      amount: 0,
+      spellSchoolMask: 0,
+      sourceAuras: new Set(),
+      targetAuras: new Set(),
+      sourceActor: { id: 250, name: 'Feugen', class: null },
+      targetActor: { id: 1, name: 'Tank', class: 'warrior' },
+      encounterId: null,
+      actors,
+    }
+  }
+
+  it('sets source threat to max source threat for top non-source-tank on other enemy', () => {
+    const sourceEnemy = { id: 250, instanceId: 0 }
+    const partnerEnemy = { id: 249, instanceId: 0 }
+
+    const actors = createMockActorContext({
+      getTopActorsByThreat: (enemy) => {
+        if (enemy.id === sourceEnemy.id) {
+          return [
+            { actorId: 1, threat: 1000 },
+            { actorId: 2, threat: 450 },
+          ]
+        }
+
+        if (enemy.id === partnerEnemy.id) {
+          return [
+            { actorId: 1, threat: 1400 },
+            { actorId: 3, threat: 1100 },
+          ]
+        }
+
+        return []
+      },
+      getFightEnemies: () => [sourceEnemy, partnerEnemy],
+    })
+
+    const result = checkExists(magneticPull(createMagneticPullContext(actors)))
+    expect(result.formula).toBe('magneticPull(sourceMaxThreat)')
+    expect(result.effects?.[0]).toEqual({
+      type: 'customThreat',
+      changes: [
+        {
+          sourceId: 3,
+          targetId: 250,
+          targetInstance: 0,
+          operator: 'set',
+          amount: 1000,
+          total: 1000,
+        },
+      ],
+    })
+  })
+
+  it('returns undefined when no opposite-platform enemy has threat', () => {
+    const actors = createMockActorContext({
+      getTopActorsByThreat: (enemy) =>
+        enemy.id === 250 ? [{ actorId: 1, threat: 1000 }] : [],
+      getFightEnemies: () => [{ id: 250, instanceId: 0 }],
+    })
+
+    const result = magneticPull(createMagneticPullContext(actors))
+    expect(result).toBeUndefined()
   })
 })
 

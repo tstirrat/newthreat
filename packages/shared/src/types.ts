@@ -85,6 +85,8 @@ export interface ActorContext {
     enemy: EnemyRef,
     count: number,
   ) => Array<{ actorId: number; threat: number }>
+  /** Get enemy references in the current fight */
+  getFightEnemies: () => EnemyRef[]
   /** Check if an actor is alive (false if dead or not tracked) */
   isActorAlive: (actor: ActorRef) => boolean
   /** Get the actor's current target (with instance), if known */

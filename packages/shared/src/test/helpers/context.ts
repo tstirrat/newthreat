@@ -26,6 +26,7 @@ export interface MockActorContext {
     enemy: MockEnemyRef,
     count: number,
   ) => Array<{ actorId: number; threat: number }>
+  getFightEnemies: () => MockEnemyRef[]
   isActorAlive: (actor: MockActorRef) => boolean
   getCurrentTarget: (
     actor: MockActorRef,
@@ -65,6 +66,7 @@ export function createMockActorContext(
     getActorsInRange: () => [],
     getThreat: () => 0,
     getTopActorsByThreat: () => [],
+    getFightEnemies: () => [],
     isActorAlive: () => true,
     getCurrentTarget: () => null,
     getLastTarget: () => null,

@@ -3431,7 +3431,7 @@ describe('cumulative threat tracking', () => {
   })
 
   describe('environmental threat filtering', () => {
-    it('generates zero threat when targeting environment (ID -1)', () => {
+    it('calculates threat but applies no target changes when targeting environment (ID -1)', () => {
       const actorMap = new Map<number, Actor>([[warriorActor.id, warriorActor]])
       const events: WCLEvent[] = [
         createDamageEvent({
@@ -3449,7 +3449,71 @@ describe('cumulative threat tracking', () => {
       })
 
       expect(result.augmentedEvents.length).toBe(1)
-      expect(result.augmentedEvents[0]?.threat).toBeUndefined()
+      expect(result.augmentedEvents[0]?.threat?.changes).toBeUndefined()
+      expect(result.augmentedEvents[0]?.threat?.calculation.formula).toBe(
+        '(base) 2 * damage',
+      )
+    })
+
+    it('applies configured ability effects even when targeting environment', () => {
+      const actorMap = new Map<number, Actor>([
+        [warriorActor.id, warriorActor],
+        [bossEnemy.id, { id: bossEnemy.id, name: bossEnemy.name, class: null }],
+      ])
+      const events: WCLEvent[] = [
+        createCastEvent({
+          sourceID: bossEnemy.id,
+          targetID: -1,
+          abilityGameID: 28338,
+        }),
+      ]
+
+      const config = createMockThreatConfig({
+        abilities: {
+          28338: () => ({
+            formula: 'magneticPull(sourceMaxThreat)',
+            value: 0,
+            splitAmongEnemies: false,
+            effects: [
+              {
+                type: 'customThreat',
+                changes: [
+                  {
+                    sourceId: warriorActor.id,
+                    targetId: bossEnemy.id,
+                    targetInstance: 0,
+                    operator: 'set',
+                    amount: 1000,
+                    total: 1000,
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      })
+
+      const result = processEvents({
+        rawEvents: events,
+        actorMap,
+        enemies,
+        config,
+      })
+
+      expect(result.augmentedEvents).toHaveLength(1)
+      expect(result.augmentedEvents[0]?.threat?.calculation.formula).toBe(
+        'magneticPull(sourceMaxThreat)',
+      )
+      expect(result.augmentedEvents[0]?.threat?.changes).toEqual([
+        {
+          sourceId: warriorActor.id,
+          targetId: bossEnemy.id,
+          targetInstance: 0,
+          operator: 'set',
+          amount: 1000,
+          total: 1000,
+        },
+      ])
     })
 
     it('excludes environment from split threat calculations', () => {

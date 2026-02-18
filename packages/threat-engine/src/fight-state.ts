@@ -7,6 +7,7 @@
  */
 import type {
   Actor,
+  Enemy,
   RuntimeActorView,
   ThreatConfig,
   WowClass,
@@ -268,11 +269,20 @@ export class FightState {
   private actorStates = new Map<ActorKey, ActorState>()
   private actorProfiles: Map<ActorId, Actor>
   private allExclusiveAuras: Set<number>[]
+  private fightEnemies: EnemyReference[]
 
-  constructor(actorMap: Map<ActorId, Actor>, config: ThreatConfig) {
+  constructor(
+    actorMap: Map<ActorId, Actor>,
+    config: ThreatConfig,
+    enemies: Enemy[] = [],
+  ) {
     this.actorProfiles = actorMap
     // Consolidate all exclusive aura sets from all class configs
     this.allExclusiveAuras = this.collectAllExclusiveAuras(config)
+    this.fightEnemies = enemies.map((enemy) => ({
+      id: enemy.id,
+      instanceId: enemy.instance,
+    }))
   }
 
   /** Collect all exclusive aura sets from all class configs */
@@ -631,6 +641,13 @@ export class FightState {
       }))
       .sort((a, b) => b.threat - a.threat)
       .slice(0, count)
+  }
+
+  getFightEnemies(): EnemyReference[] {
+    return this.fightEnemies.map((enemy) => ({
+      id: enemy.id,
+      instanceId: enemy.instanceId,
+    }))
   }
 
   getAllActorThreat(enemy: EnemyReference): Map<ActorId, number> {
