@@ -27,12 +27,10 @@ export const SectionCard: FC<SectionCardProps> = ({
 
   return (
     <section aria-labelledby={sectionTitleId}>
-      <Card className="bg-panel shadow-sm">
+      <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <CardTitle className="text-base font-semibold" id={sectionTitleId}>
-              {title}
-            </CardTitle>
+            <CardTitle id={sectionTitleId}>{title}</CardTitle>
             {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
           </div>
           {headerRight ? (
