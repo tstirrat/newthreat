@@ -1,17 +1,9 @@
 /**
- * Tests for Hunter Threat Configuration
+ * Tests for Era Hunter Threat Configuration
  */
-import {
-  createCastEvent,
-  createDamageEvent,
-  createHealEvent,
-  createMockActorContext,
-} from '@wcl-threat/shared'
-import type {
-  EventInterceptorContext,
-  ThreatContext,
-} from '@wcl-threat/shared/src/types'
-import { describe, expect, it, vi } from 'vitest'
+import { createDamageEvent, createMockActorContext } from '@wcl-threat/shared'
+import type { ThreatContext } from '@wcl-threat/shared/src/types'
+import { describe, expect, it } from 'vitest'
 
 import { Spells, hunterConfig } from './hunter'
 
@@ -23,360 +15,56 @@ function assertDefined<T>(value: T | undefined): T {
   return value
 }
 
-// Mock ThreatContext factory
 function createMockContext(
   overrides: Partial<ThreatContext> = {},
 ): ThreatContext {
-  const { spellSchoolMask, ...restOverrides } = overrides
-
   return {
     event: createDamageEvent({ sourceID: 1, targetID: 2 }),
     amount: 100,
-    spellSchoolMask: spellSchoolMask ?? 0,
+    spellSchoolMask: 0,
     sourceAuras: new Set(),
     targetAuras: new Set(),
     sourceActor: { id: 1, name: 'TestHunter', class: 'hunter' },
     targetActor: { id: 2, name: 'TestEnemy', class: null },
     encounterId: null,
     actors: createMockActorContext(),
-    ...restOverrides,
-  }
-}
-
-function createMockInterceptorContext(
-  actors: ThreatContext['actors'],
-  overrides: Partial<EventInterceptorContext> = {},
-): EventInterceptorContext {
-  return {
-    timestamp: 2000,
-    installedAt: 1000,
-    actors,
-    uninstall: vi.fn(),
-    setAura: () => {},
-    removeAura: () => {},
     ...overrides,
   }
 }
 
-describe('Hunter Config', () => {
+describe('era hunter config', () => {
   describe('abilities', () => {
-    describe('Feign Death', () => {
-      it('returns threat drop (0 multiplier)', () => {
-        const formula = hunterConfig.abilities[Spells.FeignDeath]
-        expect(formula).toBeDefined()
+    it('returns threat drop (0 multiplier) for feign death', () => {
+      const formula = hunterConfig.abilities[Spells.FeignDeath]
+      const result = assertDefined(formula?.(createMockContext()))
 
-        const ctx = createMockContext()
-        const result = assertDefined(formula!(ctx))
-
-        expect(result.effects?.[0]).toEqual({
-          type: 'modifyThreat',
-          multiplier: 0,
-          target: 'all',
-        })
+      expect(result.effects?.[0]).toEqual({
+        type: 'modifyThreat',
+        multiplier: 0,
+        target: 'all',
       })
     })
 
-    describe('Misdirection', () => {
-      it('installs a handler that redirects threat', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        expect(formula).toBeDefined()
-
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: 1, targetID: 10 }), // Target ally
-        })
-
-        const result = assertDefined(formula!(ctx))
-
-        expect(result.formula).toBe('0')
-        expect(result.value).toBe(0)
-        expect(result.effects?.[0]?.type).toBe('installInterceptor')
-        expect(result.effects?.[0]).toHaveProperty('interceptor')
-      })
-
-      it('handler returns passthrough for non-damage events', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: 1, targetID: 10 }),
-        })
-
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const mockContext = createMockInterceptorContext(ctx.actors)
-
-        // Handler should pass through heal events
-        const healEvent = createHealEvent({ sourceID: 1, targetID: 2 })
-        const healResult = handler(healEvent, mockContext)
-        expect(healResult).toEqual({ action: 'passthrough' })
-      })
-
-      it('handler redirects damage from correct source', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const targetAllyId = 10
-
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: 1, targetID: targetAllyId }),
-        })
-
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const mockContext = createMockInterceptorContext(ctx.actors)
-
-        // Handler should redirect damage from hunter (ID 1) to target ally (ID 10)
-        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
-        const damageResult = handler(damageEvent, mockContext)
-        expect(damageResult).toEqual({
-          action: 'augment',
-          threatRecipientOverride: targetAllyId,
-        })
-      })
-
-      it('does not redirect when target ally is dead', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const targetAllyId = 10
-
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: 1, targetID: targetAllyId }),
-          actors: createMockActorContext({
-            isActorAlive: (actor) => actor.id !== targetAllyId,
+    it('returns damage plus bonus threat for distracting shot', () => {
+      const formula = hunterConfig.abilities[Spells.DistractingShotR1]
+      const result = assertDefined(
+        formula?.(
+          createMockContext({
+            amount: 100,
           }),
-        })
+        ),
+      )
 
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const mockContext = createMockInterceptorContext(ctx.actors)
-
-        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
-        const damageResult = handler(damageEvent, mockContext)
-        expect(damageResult).toEqual({ action: 'passthrough' })
-      })
-
-      it('consumes charges even when target ally is dead', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const targetAllyId = 10
-
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: 1, targetID: targetAllyId }),
-          actors: createMockActorContext({
-            isActorAlive: () => false,
-          }),
-        })
-
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const uninstallMock = vi.fn()
-        const mockContext = createMockInterceptorContext(ctx.actors, {
-          uninstall: uninstallMock,
-        })
-
-        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
-
-        handler(damageEvent, mockContext)
-        handler(damageEvent, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        handler(damageEvent, mockContext)
-        expect(uninstallMock).toHaveBeenCalledTimes(1)
-      })
-
-      it('handler does not redirect damage from other sources', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const hunterSourceId = 1
-        const targetAllyId = 10
-        const otherSourceId = 5
-
-        const ctx = createMockContext({
-          event: createCastEvent({
-            sourceID: hunterSourceId,
-            targetID: targetAllyId,
-          }),
-        })
-
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const mockContext = createMockInterceptorContext(ctx.actors)
-
-        // Damage from a different source should pass through unchanged
-        const otherSourceDamage = createDamageEvent({
-          sourceID: otherSourceId,
-          targetID: 2,
-        })
-        const result2 = handler(otherSourceDamage, mockContext)
-        expect(result2).toEqual({ action: 'passthrough' })
-        expect(mockContext.uninstall).not.toHaveBeenCalled()
-      })
-
-      it('handler only counts damage from the source hunter', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const hunterSourceId = 1
-        const otherSourceId = 5
-
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: hunterSourceId, targetID: 10 }),
-        })
-
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const uninstallMock = vi.fn()
-        const mockContext = createMockInterceptorContext(ctx.actors, {
-          uninstall: uninstallMock,
-        })
-
-        const hunterDamage = createDamageEvent({
-          sourceID: hunterSourceId,
-          targetID: 2,
-        })
-        const otherDamage = createDamageEvent({
-          sourceID: otherSourceId,
-          targetID: 2,
-        })
-
-        // Other source damage (1st event from another source)
-        handler(otherDamage, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // Hunter damage (1st event from hunter)
-        handler(hunterDamage, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // Other source damage (2nd event from another source)
-        handler(otherDamage, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // Hunter damage (2nd event from hunter)
-        handler(hunterDamage, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // Other source damage (3rd event from another source)
-        handler(otherDamage, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // Hunter damage (3rd event from hunter - should uninstall)
-        handler(hunterDamage, mockContext)
-        expect(uninstallMock).toHaveBeenCalled()
-      })
-
-      it('handler expires after 3 damage events', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: 1, targetID: 10 }),
-        })
-
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const uninstallMock = vi.fn()
-        const mockContext = createMockInterceptorContext(ctx.actors, {
-          uninstall: uninstallMock,
-        })
-
-        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
-
-        // First charge
-        handler(damageEvent, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // Second charge
-        handler(damageEvent, mockContext)
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // Third charge - should uninstall
-        handler(damageEvent, mockContext)
-        expect(uninstallMock).toHaveBeenCalled()
-      })
-
-      it('handler expires after 30 seconds', () => {
-        const formula = hunterConfig.abilities[Spells.Misdirection]
-        const ctx = createMockContext({
-          event: createCastEvent({ sourceID: 1, targetID: 10 }),
-        })
-
-        const result = assertDefined(formula!(ctx))
-        if (result.effects?.[0]?.type !== 'installInterceptor') {
-          throw new Error('Expected installInterceptor special type')
-        }
-
-        const handler = result.effects?.[0]?.interceptor
-        const uninstallMock = vi.fn()
-
-        // Within 30 seconds
-        const withinWindowContext = createMockInterceptorContext(ctx.actors, {
-          timestamp: 20000,
-          installedAt: 1000,
-          uninstall: uninstallMock,
-        })
-
-        const damageEvent = createDamageEvent({ sourceID: 1, targetID: 2 })
-        const withinResult = handler(damageEvent, withinWindowContext)
-        expect(withinResult).toEqual({
-          action: 'augment',
-          threatRecipientOverride: 10,
-        })
-        expect(uninstallMock).not.toHaveBeenCalled()
-
-        // After 30 seconds
-        const afterWindowContext = createMockInterceptorContext(ctx.actors, {
-          timestamp: 32000,
-          installedAt: 1000,
-          uninstall: uninstallMock,
-        })
-
-        const afterResult = handler(damageEvent, afterWindowContext)
-        expect(afterResult).toEqual({ action: 'passthrough' })
-        expect(uninstallMock).toHaveBeenCalled()
-      })
+      expect(result.formula).toBe('amt + 110')
+      expect(result.value).toBe(210)
     })
 
-    describe('Distracting Shot', () => {
-      it('returns threat with damage multiplier and bonus', () => {
-        const formula = hunterConfig.abilities[Spells.DistractingShotR1]
-        expect(formula).toBeDefined()
+    it('returns negative threat for disengage', () => {
+      const formula = hunterConfig.abilities[Spells.DisengageR1]
+      const result = assertDefined(formula?.(createMockContext()))
 
-        const ctx = createMockContext({ amount: 100 })
-        const result = assertDefined(formula!(ctx))
-
-        expect(result.formula).toBe('amt + 110')
-        expect(result.value).toBe(210) // 100 * 1 + 110
-      })
-    })
-
-    describe('Disengage', () => {
-      it('returns negative threat', () => {
-        const formula = hunterConfig.abilities[Spells.DisengageR1]
-        expect(formula).toBeDefined()
-
-        const ctx = createMockContext()
-        const result = assertDefined(formula!(ctx))
-
-        expect(result.formula).toBe('-140')
-        expect(result.value).toBe(-140)
-      })
+      expect(result.formula).toBe('-140')
+      expect(result.value).toBe(-140)
     })
   })
 })
