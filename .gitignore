@@ -46,4 +46,4 @@ coverage/
 
 # Playwright
 apps/web/test-results/
-packages/threat-config/test/fixtures/**/*.txt
+packages/threat-config/src/test/fixtures/**/*.txt

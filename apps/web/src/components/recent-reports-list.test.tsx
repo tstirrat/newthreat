@@ -25,7 +25,9 @@ describe('RecentReportsList', () => {
     const onRemoveReport = vi.fn()
 
     render(
-      <MemoryRouter>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <RecentReportsList
           onRemoveReport={onRemoveReport}
           reports={[
@@ -46,16 +48,16 @@ describe('RecentReportsList', () => {
       'Threat Regression Raid <Threat Officer Guild> (fresh)',
     )
     expect(reportLink).toHaveClass('text-sky-600')
-    expect(
-      screen.getByText(/Naxxramas - .* - 2 bosses/),
-    ).toBeVisible()
+    expect(screen.getByText(/Naxxramas - .* - 2 bosses/)).toBeVisible()
   })
 
   it('renders horde color class when faction is horde', () => {
     const onRemoveReport = vi.fn()
 
     render(
-      <MemoryRouter>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <RecentReportsList
           onRemoveReport={onRemoveReport}
           reports={[
@@ -79,7 +81,9 @@ describe('RecentReportsList', () => {
     const user = userEvent.setup()
 
     render(
-      <MemoryRouter>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <RecentReportsList
           onRemoveReport={onRemoveReport}
           reports={[

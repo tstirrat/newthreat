@@ -8,22 +8,14 @@ import { describe, expect, it } from 'vitest'
 import {
   buildActorThreatTotals,
   buildThreatSnapshotLines,
-  hasConfigFixture,
   loadConfigFixture,
   runConfigFixture,
 } from '../../test/integration/helpers'
 import { eraConfig } from '../index'
 
-const fixtureName = 'anniversary/naxx/patchwerk-fight-26'
+const fixtureName = 'fresh/naxx'
 
 describe('anniversary naxx integration', () => {
-  if (!hasConfigFixture(fixtureName)) {
-    it(`skips when fixture ${fixtureName} is missing`, (context) => {
-      context.skip()
-    })
-    return
-  }
-
   it('snapshots patchwerk threat event lines', async () => {
     const fixture = await loadConfigFixture(fixtureName)
     if (!fixture) {
