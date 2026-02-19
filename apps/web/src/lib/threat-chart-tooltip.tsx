@@ -237,16 +237,26 @@ export function createThreatChartTooltipFormatter({
     const markerKind = payload.markerKind ?? null
     const spellSchool = payload.spellSchool?.toLowerCase() ?? null
     const rawEventType = String(payload.eventType ?? 'unknown').toLowerCase()
+    const targetName =
+      typeof payload.targetName === 'string' && payload.targetName.trim()
+        ? payload.targetName.trim()
+        : null
+    const isTickEvent = payload.isTick === true
     const rawResourceType =
       typeof payload.resourceType === 'number' ? payload.resourceType : null
     const isHealEvent = rawEventType === 'heal'
+    const isAbsorbedEvent = rawEventType === 'absorbed'
     const isResourceEvent =
       rawEventType === 'resourcechange' || rawEventType === 'energize'
     const abilityEventSuffix = isHealEvent
-      ? ` (${rawEventType})`
-      : rawEventType === 'damage'
-        ? ''
-        : ` (${rawEventType})`
+      ? `${targetName ? ` → ${targetName}` : ''} (${isTickEvent ? 'tick' : 'heal'})`
+      : isAbsorbedEvent
+        ? `${targetName ? ` @ ${targetName}` : ''} (absorbed)`
+        : rawEventType === 'damage'
+          ? isTickEvent
+            ? ' (tick)'
+            : ''
+          : ` (${rawEventType})`
     const abilityTitleColor = isHealEvent ? '#22c55e' : null
     const actorId = Number(payload.actorId ?? 0)
     const sourceSeries = series.find((item) => item.actorId === actorId) ?? null

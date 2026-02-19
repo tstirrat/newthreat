@@ -950,6 +950,8 @@ export function buildThreatSeries({
     const modifiers = normalizeThreatModifiers(
       event.threat?.calculation.modifiers,
     )
+    const targetName = actorsById.get(event.targetID)?.name ?? null
+    const isTick = event.tick === true
     const amount = event.threat?.calculation.amount ?? 0
     const baseThreat = event.threat?.calculation.baseThreat ?? 0
     const modifiedThreat = event.threat?.calculation.modifiedThreat ?? 0
@@ -1006,6 +1008,8 @@ export function buildThreatSeries({
         spellSchool,
         eventType: event.type,
         abilityName,
+        targetName,
+        isTick,
         formula,
         modifiers,
       })
@@ -1047,6 +1051,8 @@ export function buildThreatSeries({
         spellSchool,
         eventType: event.type,
         abilityName,
+        targetName,
+        isTick,
         formula,
         modifiers,
         markerKind,
@@ -1077,6 +1083,8 @@ export function buildThreatSeries({
         spellSchool,
         eventType: event.type,
         abilityName,
+        targetName,
+        isTick,
         formula,
         modifiers,
       })

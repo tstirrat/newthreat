@@ -133,4 +133,104 @@ describe('threat-chart-tooltip', () => {
     expect(tooltip).toContain('Threat: -55.00')
     expect(tooltip).not.toContain('Multipliers:')
   })
+
+  it('renders heal target names and tick labels for periodic events', () => {
+    const formatter = createThreatChartTooltipFormatter({
+      series: [baseSeries],
+      themeColors: {
+        border: '#d1d5db',
+        foreground: '#0f172a',
+        muted: '#64748b',
+        panel: '#ffffff',
+      },
+    })
+
+    const directHealTooltip = formatter({
+      seriesName: 'Healer',
+      data: {
+        actorId: 1,
+        actorColor: '#22c55e',
+        abilityName: 'Wild Growth',
+        targetName: 'TargetPlayer',
+        amount: 2000,
+        baseThreat: 0,
+        eventType: 'heal',
+        formula: 'heal * 0.5',
+        modifiedThreat: 1000,
+        spellSchool: null,
+        modifiers: [],
+        threatDelta: 500,
+        timeMs: 1000,
+        totalThreat: 500,
+      },
+    })
+
+    const healTickTooltip = formatter({
+      seriesName: 'Healer',
+      data: {
+        actorId: 1,
+        actorColor: '#22c55e',
+        abilityName: 'Wild Growth',
+        targetName: 'TargetPlayer',
+        amount: 500,
+        baseThreat: 0,
+        eventType: 'heal',
+        isTick: true,
+        formula: 'heal * 0.5',
+        modifiedThreat: 250,
+        spellSchool: null,
+        modifiers: [],
+        threatDelta: 125,
+        timeMs: 2000,
+        totalThreat: 625,
+      },
+    })
+
+    const damageTickTooltip = formatter({
+      seriesName: 'Warlock',
+      data: {
+        actorId: 1,
+        actorColor: '#a78bfa',
+        abilityName: 'Corruption',
+        amount: 300,
+        baseThreat: 300,
+        eventType: 'damage',
+        isTick: true,
+        formula: 'damage',
+        modifiedThreat: 300,
+        spellSchool: 'Shadow',
+        modifiers: [],
+        threatDelta: 300,
+        timeMs: 3000,
+        totalThreat: 925,
+      },
+    })
+
+    const absorbedTooltip = formatter({
+      seriesName: 'Priest',
+      data: {
+        actorId: 1,
+        actorColor: '#ffffff',
+        abilityName: 'Power Word: Shield',
+        targetName: 'TargetPlayer',
+        amount: 800,
+        baseThreat: 0,
+        eventType: 'absorbed',
+        formula: 'absorbed',
+        modifiedThreat: 0,
+        spellSchool: null,
+        modifiers: [],
+        threatDelta: 0,
+        timeMs: 3500,
+        totalThreat: 925,
+      },
+    })
+
+    expect(directHealTooltip).toContain('Wild Growth → TargetPlayer (heal)')
+    expect(healTickTooltip).toContain('Wild Growth → TargetPlayer (tick)')
+    expect(damageTickTooltip).toContain('Corruption (tick)')
+    expect(absorbedTooltip).toContain(
+      'Power Word: Shield @ TargetPlayer (absorbed)',
+    )
+  })
 })

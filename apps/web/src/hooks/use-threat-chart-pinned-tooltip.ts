@@ -13,9 +13,11 @@ export interface TooltipPointPayload {
   actorId: number
   actorColor: string
   abilityName: string
+  targetName?: string | null
   amount: number
   baseThreat: number
   eventType: string
+  isTick?: boolean
   formula: string
   modifiedThreat: number
   resourceType?: number | null
