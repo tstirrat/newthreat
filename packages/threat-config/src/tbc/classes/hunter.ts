@@ -9,11 +9,13 @@ import {
   Spells as EraSpells,
   hunterConfig as eraHunterConfig,
 } from '../../era/classes/hunter'
+import { threat } from '../../shared/formulas'
 
 export const Spells = {
   ...EraSpells,
   Misdirection: 34477, // https://www.wowhead.com/tbc/spell=34477/
   MisdirectionBuff: 35079, // https://www.wowhead.com/tbc/spell=35079/
+  DistractingShotR7: 27020, // https://www.wowhead.com/tbc/spell=27020/
   ExplosiveTrapEffectR1: 13812, // https://www.wowhead.com/tbc/spell=13812/
   ExplosiveTrapEffectR2: 14314, // https://www.wowhead.com/tbc/spell=14314/
   ExplosiveTrapEffectR3: 14315, // https://www.wowhead.com/tbc/spell=14315/
@@ -112,6 +114,7 @@ export const hunterConfig: ClassThreatConfig = {
 
   abilities: {
     ...eraHunterConfig.abilities,
+    [Spells.DistractingShotR7]: threat({ bonus: 900, eventTypes: ['cast'] }),
     [Spells.Misdirection]: (ctx) => ({
       formula: '0',
       value: 0,

@@ -36,12 +36,36 @@ export const hunterConfig: ClassThreatConfig = {
     [Spells.FeignDeath]: modifyThreat({ modifier: 0, target: 'all' }),
 
     // Distracting Shot - damage + flat threat per rank
-    [Spells.DistractingShotR1]: threat({ modifier: 1, bonus: 110 }),
-    [Spells.DistractingShotR2]: threat({ modifier: 1, bonus: 160 }),
-    [Spells.DistractingShotR3]: threat({ modifier: 1, bonus: 250 }),
-    [Spells.DistractingShotR4]: threat({ modifier: 1, bonus: 350 }),
-    [Spells.DistractingShotR5]: threat({ modifier: 1, bonus: 465 }),
-    [Spells.DistractingShotR6]: threat({ modifier: 1, bonus: 600 }),
+    [Spells.DistractingShotR1]: threat({
+      modifier: 1,
+      bonus: 110,
+      eventTypes: ['cast'],
+    }),
+    [Spells.DistractingShotR2]: threat({
+      modifier: 1,
+      bonus: 160,
+      eventTypes: ['cast'],
+    }),
+    [Spells.DistractingShotR3]: threat({
+      modifier: 1,
+      bonus: 250,
+      eventTypes: ['cast'],
+    }),
+    [Spells.DistractingShotR4]: threat({
+      modifier: 1,
+      bonus: 350,
+      eventTypes: ['cast'],
+    }),
+    [Spells.DistractingShotR5]: threat({
+      modifier: 1,
+      bonus: 465,
+      eventTypes: ['cast'],
+    }),
+    [Spells.DistractingShotR6]: threat({
+      modifier: 1,
+      bonus: 600,
+      eventTypes: ['cast'],
+    }),
 
     // Disengage - negative threat
     [Spells.DisengageR1]: threat({ modifier: 0, bonus: -140 }),
