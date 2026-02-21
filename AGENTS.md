@@ -68,6 +68,20 @@ pnpm --filter @wow-threat/web dev             # Starts Vite on default port 5173
 - If 5173 is already in use, Vite auto-selects another port (for example 5174); always share the actual printed URL.
 - Keep the dev server running while the user validates changes; stop it with `Ctrl+C` when done.
 
+### Main Merge Policy (Worktrees)
+
+When merging into `main` from a worktree:
+
+- Always fetch first and sync with the latest remote state (`origin/main`) before merging.
+- Use fast-forward only merges into `main` (`--ff-only`); do not create merge commits.
+- If fast-forward is not possible, rebase the feature branch onto `origin/main` and then retry the fast-forward merge.
+
+```bash
+git fetch origin --prune
+git rebase origin/main                      # run on feature branch if needed
+git -C /path/to/main-worktree merge --ff-only <feature-branch>
+```
+
 ## Quality Expectations
 
 - Every change must be linted, type checked, and tested before it is considered complete; use the workspace commands (`pnpm lint`, `pnpm typecheck`, `pnpm test`, etc.) that cover the touched areas.
