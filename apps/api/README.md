@@ -90,9 +90,14 @@ Behavior notes:
 
 ## Cache Headers
 
-Production/staging responses are immutable:
+Production/staging responses are immutable for report/fight responses and for
+versioned event responses (`?configVersion=<active-version>`):
 
 - `Cache-Control: public, max-age=31536000, immutable`
+
+Unversioned public event responses require revalidation:
+
+- `Cache-Control: public, max-age=0, must-revalidate`
 
 Development responses disable caching:
 

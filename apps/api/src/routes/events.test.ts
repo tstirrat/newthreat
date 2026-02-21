@@ -2,6 +2,7 @@
  * Integration Tests for Events API
  */
 import type { ApiError } from '@/middleware/error'
+import { resolveConfigOrNull } from '@wow-threat/config'
 import {
   createAbsorbedEvent,
   createApplyBuffEvent,
@@ -61,6 +62,13 @@ const mockEvents = [
 
 // Extract the actual report object from the fixture
 const reportData = anniversaryReport.data.reportData.report
+const configVersion = resolveConfigOrNull({
+  report: reportData,
+})?.version
+
+if (!configVersion) {
+  throw new Error('Expected report fixture to resolve a threat config version')
+}
 
 describe('Events API', () => {
   beforeEach(() => {
@@ -104,7 +112,6 @@ describe('Events API', () => {
       const damageEvent = data.events.find(
         (e: { type: string }) => e.type === 'damage',
       )
-      console.warn('ghere', damageEvent)
 
       expect(damageEvent).toBeDefined()
       expect(damageEvent!.threat).toBeDefined()
@@ -157,14 +164,28 @@ describe('Events API', () => {
       expect(data.summary.duration).toBe(180000)
     })
 
-    it('sets cache headers on response', async () => {
+    it('sets revalidation cache headers for unversioned responses', async () => {
       const res = await app.request(
         'http://localhost/v1/reports/ABC123xyz/fights/1/events',
         {},
         createMockBindings(),
       )
 
+      expect(res.headers.get('Cache-Control')).toContain('must-revalidate')
+      expect(res.headers.get('Cache-Control')).not.toContain('immutable')
+      expect(res.headers.get('X-Config-Version')).toBe(configVersion)
+      expect(res.headers.get('X-Game-Version')).toBe('2')
+    })
+
+    it('sets immutable cache headers for versioned responses', async () => {
+      const res = await app.request(
+        `http://localhost/v1/reports/ABC123xyz/fights/1/events?configVersion=${configVersion}`,
+        {},
+        createMockBindings(),
+      )
+
       expect(res.headers.get('Cache-Control')).toContain('immutable')
+      expect(res.headers.get('X-Config-Version')).toBe(configVersion)
       expect(res.headers.get('X-Game-Version')).toBe('2')
     })
 

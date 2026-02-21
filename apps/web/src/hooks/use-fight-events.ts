@@ -10,15 +10,20 @@ import type { AugmentedEventsResponse } from '../types/api'
 export function useFightEvents(
   reportId: string,
   fightId: number,
+  configVersion: string | null,
 ): {
   data: AugmentedEventsResponse | undefined
   isLoading: boolean
   error: Error | null
 } {
   const query = useQuery({
-    queryKey: fightEventsQueryKey(reportId, fightId),
-    queryFn: () => getFightEvents(reportId, fightId),
-    enabled: reportId.length > 0 && Number.isFinite(fightId),
+    queryKey: fightEventsQueryKey(reportId, fightId, configVersion),
+    queryFn: () => getFightEvents(reportId, fightId, configVersion),
+    enabled:
+      reportId.length > 0 &&
+      Number.isFinite(fightId) &&
+      typeof configVersion === 'string' &&
+      configVersion.length > 0,
   })
 
   return {

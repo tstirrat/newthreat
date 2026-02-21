@@ -30,9 +30,16 @@ export function getFight(
 export function getFightEvents(
   reportId: string,
   fightId: number,
+  configVersion: string | null,
 ): Promise<AugmentedEventsResponse> {
+  const searchParams = new URLSearchParams()
+  if (configVersion) {
+    searchParams.set('configVersion', configVersion)
+  }
+  const query = searchParams.toString()
+
   return requestJson<AugmentedEventsResponse>(
-    `${defaultApiBaseUrl}/v1/reports/${reportId}/fights/${fightId}/events`,
+    `${defaultApiBaseUrl}/v1/reports/${reportId}/fights/${fightId}/events${query ? `?${query}` : ''}`,
   )
 }
 
@@ -48,8 +55,10 @@ export const fightQueryKey = (
 export const fightEventsQueryKey = (
   reportId: string,
   fightId: number,
-): readonly ['fight-events', string, number] => [
+  configVersion: string | null,
+): readonly ['fight-events', string, number, string | null] => [
   'fight-events',
   reportId,
   fightId,
+  configVersion,
 ]

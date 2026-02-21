@@ -100,7 +100,11 @@ export const FightPage: FC = () => {
       : 'canvas'
 
   const fightQuery = useFightData(reportId, fightId)
-  const eventsQuery = useFightEvents(reportId, fightId)
+  const eventsQuery = useFightEvents(
+    reportId,
+    fightId,
+    reportData.threatConfig?.version ?? null,
+  )
   const fightData = fightQuery.data ?? null
   const eventsData = eventsQuery.data ?? null
 
@@ -280,7 +284,7 @@ export const FightPage: FC = () => {
     return buildFocusedPlayerThreatRows({
       events: eventsData?.events ?? [],
       actors: fightData?.actors ?? [],
-      abilities: reportData?.abilities ?? [],
+      abilities: reportData.abilities,
       fightStartTime: fightData?.startTime ?? 0,
       target: selectedTarget,
       focusedPlayerId,
@@ -292,7 +296,7 @@ export const FightPage: FC = () => {
     fightData?.actors,
     fightData?.startTime,
     focusedPlayerId,
-    reportData?.abilities,
+    reportData.abilities,
     selectedTarget,
     selectedWindowEndMs,
     selectedWindowStartMs,

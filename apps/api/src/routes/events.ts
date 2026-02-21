@@ -90,6 +90,16 @@ eventsRoutes.get('/', async (c) => {
     throw invalidConfigVersion(configVersionParam, config.version)
   }
   const configVersion = config.version
+  const isVersionedRequest = configVersionParam === configVersion
+
+  const cacheControl =
+    c.env.ENVIRONMENT === 'development'
+      ? 'no-store, no-cache, must-revalidate'
+      : visibility === 'public'
+        ? isVersionedRequest
+          ? 'public, max-age=31536000, immutable'
+          : 'public, max-age=0, must-revalidate'
+        : 'private, no-store'
 
   // Check augmented cache
   const augmentedCache = createCache(c.env, 'augmented')
@@ -105,13 +115,6 @@ eventsRoutes.get('/', async (c) => {
     : await augmentedCache.get<AugmentedEventsResponse>(cacheKey)
 
   if (cached) {
-    const cacheControl =
-      c.env.ENVIRONMENT === 'development'
-        ? 'no-store, no-cache, must-revalidate'
-        : visibility === 'public'
-          ? 'public, max-age=31536000, immutable'
-          : 'private, no-store'
-
     return c.json(cached, 200, {
       'Cache-Control': cacheControl,
       'X-Cache-Status': 'HIT',
@@ -168,13 +171,6 @@ eventsRoutes.get('/', async (c) => {
 
   // Cache the result
   await augmentedCache.set(cacheKey, response)
-
-  const cacheControl =
-    c.env.ENVIRONMENT === 'development'
-      ? 'no-store, no-cache, must-revalidate'
-      : visibility === 'public'
-        ? 'public, max-age=31536000, immutable'
-        : 'private, no-store'
 
   return new Response(serializedResponse, {
     headers: {
