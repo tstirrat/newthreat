@@ -956,6 +956,14 @@ export function buildThreatSeries({
     const baseThreat = event.threat?.calculation.baseThreat ?? 0
     const modifiedThreat = event.threat?.calculation.modifiedThreat ?? 0
     const resourceType = event.resourceChangeType ?? null
+    const hitType =
+      typeof event.hitType === 'number'
+        ? event.hitType === 1
+          ? undefined
+          : event.hitType
+        : event.hitType !== 'hit'
+          ? event.hitType
+          : undefined
     const timeMs = resolveRelativeTimeMs(
       event.timestamp,
       fightStartTime,
@@ -1009,6 +1017,7 @@ export function buildThreatSeries({
         eventType: event.type,
         abilityName,
         targetName,
+        ...(hitType ? { hitType } : {}),
         isTick,
         formula,
         modifiers,
@@ -1052,6 +1061,7 @@ export function buildThreatSeries({
         eventType: event.type,
         abilityName,
         targetName,
+        ...(hitType ? { hitType } : {}),
         isTick,
         formula,
         modifiers,
@@ -1084,6 +1094,7 @@ export function buildThreatSeries({
         eventType: event.type,
         abilityName,
         targetName,
+        ...(hitType ? { hitType } : {}),
         isTick,
         formula,
         modifiers,

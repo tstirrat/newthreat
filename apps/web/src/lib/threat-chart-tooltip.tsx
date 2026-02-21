@@ -77,6 +77,43 @@ function resolveSplitCount(
   return Math.abs(ratio - rounded) < 0.001 ? rounded : 1
 }
 
+const hitTypeLabelByCode: Record<number, string> = {
+  0: 'miss',
+  1: 'hit',
+  2: 'crit',
+  3: 'absorb',
+  4: 'block',
+  5: 'crit block',
+  6: 'glancing',
+  7: 'dodge',
+  8: 'parry',
+  10: 'immune',
+  14: 'resist',
+  15: 'crushing',
+  16: 'partial resist',
+  17: 'crit (partial resist)',
+}
+
+function resolveTooltipHitTypeLabel(
+  hitType: TooltipPointPayload['hitType'] | null | undefined,
+): string | null {
+  if (hitType === null || hitType === undefined) {
+    return null
+  }
+
+  if (typeof hitType === 'string') {
+    const normalized = hitType.toLowerCase()
+    return normalized === 'hit' ? null : normalized
+  }
+
+  const normalized = hitTypeLabelByCode[hitType]
+  if (!normalized || normalized === 'hit') {
+    return null
+  }
+
+  return normalized
+}
+
 interface TooltipRenderData {
   abilityEventSuffix: string
   abilityName: string
@@ -96,6 +133,7 @@ interface TooltipRenderData {
   timeMs: number
   totalThreat: number
   visibleModifiers: TooltipPointPayload['modifiers']
+  hitTypeLabel: string | null
   formula: string
 }
 
@@ -124,6 +162,7 @@ function tooltipContent({ data }: { data: TooltipRenderData }): JSX.Element {
           }
         >
           {data.abilityName}
+          {data.hitTypeLabel ? ` [${data.hitTypeLabel}]` : ''}
           {data.abilityEventSuffix}
         </strong>
         <strong style={{ color: data.actorColor }}>{data.actorName}</strong>
@@ -291,6 +330,7 @@ export function createThreatChartTooltipFormatter({
     const amountLabel = isResourceEvent
       ? (formatResourceTypeLabel(rawResourceType) ?? 'Amt')
       : 'Amt'
+    const hitTypeLabel = resolveTooltipHitTypeLabel(payload.hitType)
 
     const html = renderToString(
       tooltipContent({
@@ -314,6 +354,7 @@ export function createThreatChartTooltipFormatter({
           timeMs,
           totalThreat,
           visibleModifiers,
+          hitTypeLabel,
           formula: payload.formula ?? 'n/a',
         },
       }),

@@ -1,6 +1,7 @@
 /**
  * Pointer interaction state for nearest-point and pinned tooltip behavior.
  */
+import type { HitType } from '@wow-threat/wcl-types'
 import type ReactEChartsCore from 'echarts-for-react/lib/core'
 import type { MutableRefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
@@ -17,6 +18,7 @@ export interface TooltipPointPayload {
   amount: number
   baseThreat: number
   eventType: string
+  hitType?: HitType | number
   isTick?: boolean
   formula: string
   modifiedThreat: number

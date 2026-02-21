@@ -59,6 +59,7 @@ describe('threat-chart-tooltip', () => {
         amount: 240,
         baseThreat: 0,
         eventType: 'damage',
+        hitType: 6,
         formula: 'base < calc',
         modifiedThreat: 300,
         spellSchool: 'Fire',
@@ -76,7 +77,7 @@ describe('threat-chart-tooltip', () => {
       },
     })
 
-    expect(tooltip).toContain('Sunder &lt;Armor&gt;')
+    expect(tooltip).toContain('Sunder &lt;Armor&gt; [glancing]')
     expect(tooltip).toContain('Tank &lt;A&gt;')
     expect(tooltip).toContain('T: 0:15.000')
     expect(tooltip).toContain('Amt: 240.00 (fire)')
@@ -132,6 +133,74 @@ describe('threat-chart-tooltip', () => {
     expect(tooltip).toContain('Rage: 20.00')
     expect(tooltip).toContain('Threat: -55.00')
     expect(tooltip).not.toContain('Multipliers:')
+  })
+
+  it('does not render hit type when result is a normal hit', () => {
+    const formatter = createThreatChartTooltipFormatter({
+      series: [baseSeries],
+      themeColors: {
+        border: '#d1d5db',
+        foreground: '#0f172a',
+        muted: '#64748b',
+        panel: '#ffffff',
+      },
+    })
+
+    const tooltip = formatter({
+      seriesName: 'Tank',
+      data: {
+        actorId: 1,
+        actorColor: '#c79c6e',
+        abilityName: 'Heroic Strike',
+        amount: 400,
+        baseThreat: 400,
+        eventType: 'damage',
+        hitType: 1,
+        formula: 'damage',
+        modifiedThreat: 400,
+        spellSchool: 'Physical',
+        modifiers: [],
+        threatDelta: 400,
+        timeMs: 10000,
+        totalThreat: 400,
+      },
+    })
+
+    expect(tooltip).not.toContain('Heroic Strike [')
+  })
+
+  it('renders non-hit string hit types in the title', () => {
+    const formatter = createThreatChartTooltipFormatter({
+      series: [baseSeries],
+      themeColors: {
+        border: '#d1d5db',
+        foreground: '#0f172a',
+        muted: '#64748b',
+        panel: '#ffffff',
+      },
+    })
+
+    const tooltip = formatter({
+      seriesName: 'Tank',
+      data: {
+        actorId: 1,
+        actorColor: '#c79c6e',
+        abilityName: 'Heroic Strike',
+        amount: 400,
+        baseThreat: 400,
+        eventType: 'damage',
+        hitType: 'crit',
+        formula: 'damage',
+        modifiedThreat: 400,
+        spellSchool: 'Physical',
+        modifiers: [],
+        threatDelta: 400,
+        timeMs: 10000,
+        totalThreat: 400,
+      },
+    })
+
+    expect(tooltip).toContain('Heroic Strike [crit]')
   })
 
   it('renders heal target names and tick labels for periodic events', () => {

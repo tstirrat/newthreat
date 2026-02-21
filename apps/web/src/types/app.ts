@@ -1,7 +1,7 @@
 /**
  * Shared frontend app-level types.
  */
-import type { PlayerClass } from '@wow-threat/wcl-types'
+import type { HitType, PlayerClass } from '@wow-threat/wcl-types'
 
 export type WarcraftLogsHost =
   | 'fresh.warcraftlogs.com'
@@ -66,6 +66,7 @@ export interface ThreatPoint {
   eventType: string
   abilityName: string
   targetName?: string | null
+  hitType?: HitType | number
   isTick?: boolean
   formula: string
   modifiers: ThreatPointModifier[]
