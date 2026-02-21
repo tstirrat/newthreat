@@ -107,6 +107,12 @@ describe('Error factory functions', () => {
       expect(error.code).toBe(ErrorCodes.WCL_RATE_LIMITED)
       expect(error.statusCode).toBe(429)
     })
+
+    it('accepts optional details', () => {
+      const error = wclRateLimited({ retryAfterSeconds: 15 })
+
+      expect(error.details).toEqual({ retryAfterSeconds: 15 })
+    })
   })
 
   describe('unauthorized', () => {

@@ -77,7 +77,7 @@ function createWclFetchMock(options: {
     }
 
     // WCL GraphQL API
-    if (url.includes('warcraftlogs.com/api/v2/client')) {
+    if (url.includes('warcraftlogs.com/api/v2/')) {
       const authHeader =
         init?.headers instanceof Headers
           ? init.headers.get('Authorization')
@@ -160,6 +160,12 @@ describe('WCLClient.getReport', () => {
     const result = await client.getReport('PRIVATE1')
 
     expect(result.reportData.report).toBeTruthy()
+
+    const userApiCalls = mockFetch.mock.calls.filter((call) => {
+      const callUrl = typeof call[0] === 'string' ? call[0] : call[0].toString()
+      return callUrl.includes('warcraftlogs.com/api/v2/user')
+    })
+    expect(userApiCalls).toHaveLength(1)
 
     // Verify the Firestore token lookup was called
     const firestoreCalls = mockFetch.mock.calls.filter((call) => {

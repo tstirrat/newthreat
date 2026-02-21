@@ -22,7 +22,8 @@ import {
 } from './cache'
 import { refreshWclAccessToken } from './wcl-oauth'
 
-const WCL_API_URL = 'https://www.warcraftlogs.com/api/v2/client'
+const WCL_CLIENT_API_URL = 'https://www.warcraftlogs.com/api/v2/client'
+const WCL_USER_API_URL = 'https://www.warcraftlogs.com/api/v2/user'
 const WCL_TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token'
 
 interface OAuthToken {
@@ -132,10 +133,12 @@ export class WCLClient {
   private async query<T>(
     graphqlQuery: string,
     variables: Record<string, unknown>,
-    options: { accessToken?: string } = {},
+    options: { accessToken?: string; scope?: 'client' | 'user' } = {},
   ): Promise<T> {
     const accessToken = options.accessToken ?? (await this.getClientToken())
-    const response = await fetch(WCL_API_URL, {
+    const scope = options.scope ?? (options.accessToken ? 'user' : 'client')
+    const apiUrl = scope === 'user' ? WCL_USER_API_URL : WCL_CLIENT_API_URL
+    const response = await fetch(apiUrl, {
       body: JSON.stringify({
         query: graphqlQuery,
         variables,

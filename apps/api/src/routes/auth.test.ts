@@ -41,8 +41,14 @@ function createAuthFetchMock() {
     if (url.toString().includes('warcraftlogs.com/api/v2/user')) {
       return new Response(
         JSON.stringify({
-          id: 12345,
-          name: 'TestWclUser',
+          data: {
+            userData: {
+              currentUser: {
+                id: 12345,
+                name: 'TestWclUser',
+              },
+            },
+          },
         }),
         {
           status: 200,
@@ -215,6 +221,77 @@ describe('Auth Routes', () => {
     )
 
     expect(res.status).toBe(401)
+  })
+
+  it('returns rate-limited response details when WCL user endpoint responds 429', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const requestUrl = typeof input === 'string' ? input : input.toString()
+
+      if (requestUrl.includes('warcraftlogs.com/oauth/token')) {
+        return new Response(
+          JSON.stringify({
+            access_token: 'wcl-access-token',
+            expires_in: 3600,
+            refresh_token: 'wcl-refresh-token',
+            token_type: 'Bearer',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+      }
+
+      if (requestUrl.includes('warcraftlogs.com/api/v2/user')) {
+        return new Response('rate limited', {
+          status: 429,
+          headers: {
+            'Retry-After': '15',
+          },
+        })
+      }
+
+      throw new Error(`Unexpected fetch request in auth tests: ${requestUrl}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bindings = createMockBindings()
+    const loginRes = await app.request(
+      'http://localhost/auth/wcl/login?origin=http://localhost:5173',
+      {},
+      bindings,
+    )
+    const loginLocation = new URL(loginRes.headers.get('Location')!)
+    const state = loginLocation.searchParams.get('state')
+
+    expect(state).toBeTruthy()
+
+    const callbackRes = await app.request(
+      `http://localhost/auth/wcl/callback?code=oauth-code-123&state=${encodeURIComponent(state!)}`,
+      {},
+      bindings,
+    )
+    expect(callbackRes.status).toBe(429)
+
+    const callbackBody = (await callbackRes.json()) as {
+      error: {
+        code: string
+        details?: Record<string, unknown>
+      }
+    }
+    expect(callbackBody.error.code).toBe('WCL_RATE_LIMITED')
+    expect(callbackBody.error.details).toEqual({
+      context: 'wcl-user-profile',
+      retryAfter: '15',
+      retryAfterSeconds: 15,
+    })
+
+    const userCalls = fetchMock.mock.calls.filter(([input]) =>
+      String(input).includes('warcraftlogs.com/api/v2/user'),
+    )
+    expect(userCalls).toHaveLength(1)
   })
 
   it('exchanges bridge code once and rejects reuse', async () => {

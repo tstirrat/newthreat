@@ -115,11 +115,12 @@ export function wclApiError(
   return new AppError(ErrorCodes.WCL_API_ERROR, message, 502, details)
 }
 
-export function wclRateLimited(): AppError {
+export function wclRateLimited(details?: Record<string, unknown>): AppError {
   return new AppError(
     ErrorCodes.WCL_RATE_LIMITED,
     'WCL API rate limit exceeded. Please try again later.',
     429,
+    details,
   )
 }
 

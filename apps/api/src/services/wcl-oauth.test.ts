@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createMockBindings } from '../../test/setup'
+import { type AppError, ErrorCodes } from '../middleware/error'
 import {
   buildWclLoginUrl,
   exchangeWclAuthorizationCode,
@@ -105,30 +106,61 @@ describe('fetchCurrentWclUser', () => {
     vi.unstubAllGlobals()
   })
 
-  it('extracts id and name from response', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ id: 42, name: 'Thrall' }), {
+  it('extracts id and name from graphql response', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            userData: {
+              currentUser: {
+                id: 42,
+                name: 'Thrall',
+              },
+            },
+          },
+        }),
+        {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }),
+        },
       ),
     )
+    vi.stubGlobal('fetch', mockFetch)
 
     const user = await fetchCurrentWclUser('token')
     expect(user.id).toBe('42')
     expect(user.name).toBe('Thrall')
+
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(init.method).toBe('POST')
+    expect(init.headers).toMatchObject({
+      Authorization: 'Bearer token',
+      'Content-Type': 'application/json',
+    })
+    const body = JSON.parse(String(init.body)) as { query: string }
+    expect(body.query).toContain('currentUser')
   })
 
-  it('falls back to alternative id fields', async () => {
+  it('falls back to generated name when name is missing', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ userId: 99 }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            data: {
+              userData: {
+                currentUser: {
+                  id: 99,
+                  name: null,
+                },
+              },
+            },
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
       ),
     )
 
@@ -141,14 +173,44 @@ describe('fetchCurrentWclUser', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ something: 'else' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            data: {
+              userData: {
+                currentUser: null,
+              },
+            },
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
       ),
     )
 
     await expect(fetchCurrentWclUser('token')).rejects.toThrow(/user id/i)
+  })
+
+  it('throws when graphql returns errors', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            errors: [{ message: 'Forbidden field' }],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
+
+    await expect(fetchCurrentWclUser('token')).rejects.toThrow(
+      /Forbidden field/,
+    )
   })
 
   it('throws on non-ok response', async () => {
@@ -160,5 +222,48 @@ describe('fetchCurrentWclUser', () => {
     await expect(fetchCurrentWclUser('token')).rejects.toThrow(
       /Failed to fetch WCL user profile/,
     )
+  })
+
+  it('throws rate-limited error with retry-after details from WCL', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('rate limited', {
+          status: 429,
+          headers: {
+            'Retry-After': '12',
+          },
+        }),
+      ),
+    )
+
+    await expect(fetchCurrentWclUser('token')).rejects.toMatchObject({
+      code: ErrorCodes.WCL_RATE_LIMITED,
+      details: {
+        context: 'wcl-user-profile',
+        retryAfter: '12',
+        retryAfterSeconds: 12,
+      },
+      statusCode: 429,
+    } satisfies Partial<AppError>)
+  })
+
+  it('throws rate-limited error without retry-after details when absent', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('rate limited', {
+          status: 429,
+        }),
+      ),
+    )
+
+    await expect(fetchCurrentWclUser('token')).rejects.toMatchObject({
+      code: ErrorCodes.WCL_RATE_LIMITED,
+      details: {
+        context: 'wcl-user-profile',
+      },
+      statusCode: 429,
+    } satisfies Partial<AppError>)
   })
 })

@@ -1,12 +1,22 @@
 /**
  * Warcraft Logs OAuth helpers for login, refresh, and user profile lookups.
  */
-import { wclApiError } from '../middleware/error'
+import { wclApiError, wclRateLimited } from '../middleware/error'
 import type { Bindings } from '../types/bindings'
 
 const WCL_AUTHORIZE_URL = 'https://www.warcraftlogs.com/oauth/authorize'
 const WCL_TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token'
 const WCL_USER_URL = 'https://www.warcraftlogs.com/api/v2/user'
+const WCL_CURRENT_USER_QUERY = `
+  query CurrentUser {
+    userData {
+      currentUser {
+        id
+        name
+      }
+    }
+  }
+`
 
 export interface WclOAuthTokenResponse {
   access_token: string
@@ -18,6 +28,39 @@ export interface WclOAuthTokenResponse {
 export interface WclUserProfile {
   id: string
   name: string
+}
+
+interface WclCurrentUserQueryResponse {
+  data?: {
+    userData?: {
+      currentUser?: {
+        id?: number | string
+        name?: string | null
+      } | null
+    } | null
+  }
+  errors?: Array<{
+    message?: string
+  }>
+}
+
+function parseRetryAfterSeconds(retryAfter: string | null): number | null {
+  if (!retryAfter) {
+    return null
+  }
+
+  const seconds = Number(retryAfter)
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.ceil(seconds)
+  }
+
+  const retryAtMs = Date.parse(retryAfter)
+  if (Number.isNaN(retryAtMs)) {
+    return null
+  }
+
+  const deltaMs = retryAtMs - Date.now()
+  return Math.max(0, Math.ceil(deltaMs / 1000))
 }
 
 /** Build a Warcraft Logs OAuth authorization URL. */
@@ -88,27 +131,55 @@ export async function fetchCurrentWclUser(
   accessToken: string,
 ): Promise<WclUserProfile> {
   const response = await fetch(WCL_USER_URL, {
+    body: JSON.stringify({
+      query: WCL_CURRENT_USER_QUERY,
+    }),
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
     },
+    method: 'POST',
   })
+
+  if (response.status === 429) {
+    const retryAfter = response.headers.get('Retry-After')
+    const retryAfterSeconds = parseRetryAfterSeconds(retryAfter)
+    const details: Record<string, unknown> = {
+      context: 'wcl-user-profile',
+    }
+
+    if (retryAfter) {
+      details.retryAfter = retryAfter
+    }
+    if (retryAfterSeconds !== null) {
+      details.retryAfterSeconds = retryAfterSeconds
+    }
+
+    throw wclRateLimited(details)
+  }
 
   if (!response.ok) {
     throw wclApiError(`Failed to fetch WCL user profile: ${response.status}`)
   }
 
-  const payload = (await response.json()) as Record<string, unknown>
-  const idCandidate =
-    payload.id ?? payload.userId ?? payload.userID ?? payload.sub
+  const payload = (await response.json()) as WclCurrentUserQueryResponse
+  if (payload.errors?.length) {
+    throw wclApiError(
+      payload.errors[0]?.message ?? 'WCL user profile query failed',
+    )
+  }
+
+  const currentUser = payload.data?.userData?.currentUser ?? null
+  const idCandidate = currentUser?.id
 
   if (idCandidate == null) {
     throw wclApiError('WCL user profile did not include a user id')
   }
 
-  const nameCandidate = payload.name ?? payload.username ?? payload.displayName
   const id = String(idCandidate)
-  const name = typeof nameCandidate === 'string' ? nameCandidate : `wcl:${id}`
+  const name =
+    typeof currentUser?.name === 'string' ? currentUser.name : `wcl:${id}`
 
   return {
     id,
