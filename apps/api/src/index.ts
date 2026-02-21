@@ -16,6 +16,7 @@ import { errorHandler } from './middleware/error'
 import { authRoutes } from './routes/auth'
 import { reportRoutes } from './routes/reports'
 import { isOriginAllowed, parseAllowedOrigins } from './services/origins'
+import { validateRuntimeConfig } from './services/runtime-config'
 import type { Bindings, Variables } from './types/bindings'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -24,6 +25,12 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 app.use('*', async (c, next) => {
   c.set('requestId', generateRequestId())
   c.set('startTime', Date.now())
+  await next()
+})
+
+// Runtime configuration validation (non-test environments)
+app.use('*', async (c, next) => {
+  await validateRuntimeConfig(c.env)
   await next()
 })
 
