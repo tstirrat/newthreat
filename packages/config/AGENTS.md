@@ -5,6 +5,15 @@
 Use this package guide when adding or updating class/raid threat configs in
 `packages/threat-config/src/**`.
 
+## Mandatory Config Version Bumps
+
+- Any effective threat-config change must bump the owning config `version` in:
+  - `packages/config/src/era/index.ts`
+  - `packages/config/src/sod/index.ts`
+  - `packages/config/src/tbc/index.ts`
+- Era changes require bumping all three versions (Era + SoD + TBC/Anniversary),
+  because SoD and TBC import/inherit Era config behavior.
+
 ## Core Rule: Declare Spells First
 
 Every config file should define a top-level `Spells` object near the top of the
