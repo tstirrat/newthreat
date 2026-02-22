@@ -3,8 +3,14 @@
  */
 import { useAuth } from '@/auth/auth-provider'
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 
 import { getRecentReports, recentReportsQueryKey } from '../api/reports'
+import {
+  loadAccountRecentReportsCache,
+  saveAccountRecentReportsCache,
+} from '../lib/account-recent-reports-cache'
+import { accountRecentReportsCacheTtlMs } from '../lib/constants'
 import type { RecentReportSummary } from '../types/api'
 
 const defaultRecentReportsLimit = 10
@@ -12,7 +18,9 @@ const defaultRecentReportsLimit = 10
 export interface UseUserRecentReportsResult {
   reports: RecentReportSummary[]
   isLoading: boolean
+  isRefreshing: boolean
   error: Error | null
+  refresh: () => Promise<void>
 }
 
 /** Fetch recent reports for the signed-in Warcraft Logs account. */
@@ -20,19 +28,36 @@ export function useUserRecentReports(
   limit = defaultRecentReportsLimit,
 ): UseUserRecentReportsResult {
   const { authEnabled, user } = useAuth()
+  const uid = user?.uid ?? null
+  const cached = uid ? loadAccountRecentReportsCache(uid) : null
 
   const query = useQuery({
-    queryKey: recentReportsQueryKey(limit),
+    queryKey: recentReportsQueryKey(limit, uid),
     queryFn: async () => {
       const response = await getRecentReports(limit)
       return response.reports
     },
-    enabled: authEnabled && Boolean(user),
+    enabled: authEnabled && Boolean(uid),
+    staleTime: accountRecentReportsCacheTtlMs,
+    initialData: cached?.reports,
+    initialDataUpdatedAt: cached?.fetchedAtMs,
   })
+
+  useEffect(() => {
+    if (!uid || !query.data || query.dataUpdatedAt <= 0) {
+      return
+    }
+
+    saveAccountRecentReportsCache(uid, query.data, query.dataUpdatedAt)
+  }, [uid, query.data, query.dataUpdatedAt])
 
   return {
     reports: query.data ?? [],
     isLoading: query.isLoading,
+    isRefreshing: query.isFetching,
     error: query.error,
+    refresh: async () => {
+      await query.refetch()
+    },
   }
 }

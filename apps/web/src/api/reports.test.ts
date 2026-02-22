@@ -56,6 +56,10 @@ describe('reports api helpers', () => {
   })
 
   it('includes limit in recent reports query keys', () => {
-    expect(recentReportsQueryKey(10)).toEqual(['recent-reports', 10])
+    expect(recentReportsQueryKey(10, 'wcl:12345')).toEqual([
+      'recent-reports',
+      10,
+      'wcl:12345',
+    ])
   })
 })

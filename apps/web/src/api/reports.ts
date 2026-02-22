@@ -61,7 +61,12 @@ export const reportQueryKey = (
 
 export const recentReportsQueryKey = (
   limit: number,
-): readonly ['recent-reports', number] => ['recent-reports', limit]
+  uid: string | null,
+): readonly ['recent-reports', number, string | null] => [
+  'recent-reports',
+  limit,
+  uid,
+]
 
 export const fightQueryKey = (
   reportId: string,

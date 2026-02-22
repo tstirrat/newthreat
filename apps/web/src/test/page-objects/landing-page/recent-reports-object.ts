@@ -11,7 +11,7 @@ export class RecentReportsObject {
   }
 
   recentReportsSection(): Locator {
-    return this.page.getByRole('region', { name: 'Recent reports' })
+    return this.page.getByRole('region', { name: 'Recently viewed' })
   }
 
   noRecentReportsText(): Locator {

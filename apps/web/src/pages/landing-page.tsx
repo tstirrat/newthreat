@@ -12,6 +12,7 @@ import { RecentReportsList } from '../components/recent-reports-list'
 import { ReportUrlForm } from '../components/report-url-form'
 import { SectionCard } from '../components/section-card'
 import { Alert, AlertDescription } from '../components/ui/alert'
+import { Button } from '../components/ui/button'
 import { useRecentReports } from '../hooks/use-recent-reports'
 import { useUserRecentReports } from '../hooks/use-user-recent-reports'
 import { defaultHost, exampleReports } from '../lib/constants'
@@ -26,7 +27,9 @@ export const LandingPage: FC = () => {
   const {
     reports: accountRecentReports,
     isLoading: isLoadingAccountReports,
+    isRefreshing: isRefreshingAccountReports,
     error: accountRecentReportsError,
+    refresh: refreshAccountReports,
   } = useUserRecentReports(10)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -106,7 +109,7 @@ export const LandingPage: FC = () => {
 
       <div className="grid gap-5 xl:grid-cols-2">
         <SectionCard
-          title="Recent reports"
+          title="Recently viewed"
           subtitle="Most recently loaded report codes in this browser context."
         >
           <RecentReportsList
@@ -118,6 +121,19 @@ export const LandingPage: FC = () => {
         </SectionCard>
         {shouldShowAccountReports ? (
           <SectionCard
+            headerRight={
+              <Button
+                disabled={isRefreshingAccountReports}
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  void refreshAccountReports()
+                }}
+              >
+                {isRefreshingAccountReports ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            }
             title="Recent Warcraft Logs"
             subtitle="Latest personal and guild logs for your signed-in account."
           >
