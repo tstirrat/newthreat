@@ -281,7 +281,7 @@ describe('Druid Config', () => {
       expect(result).toEqual([Spells.FeralInstinctRank4])
     })
 
-    it('infers Feral Instinct rank 5 from bear-form feral split at threshold', () => {
+    it('infers Feral Instinct from feral threshold', () => {
       const result = druidConfig.talentImplications!(
         createTalentContext({
           event: {
@@ -298,14 +298,14 @@ describe('Druid Config', () => {
               },
             ],
           },
-          talentPoints: [44, 7, 0],
+          talentPoints: [0, 14, 0],
         }),
       )
 
       expect(result).toEqual([Spells.FeralInstinctRank5])
     })
 
-    it('does not infer Feral Instinct when bear-form feral split is below threshold', () => {
+    it('infers Feral Instinct when combatantinfo hasbear-form', () => {
       const result = druidConfig.talentImplications!(
         createTalentContext({
           event: {
@@ -322,17 +322,17 @@ describe('Druid Config', () => {
               },
             ],
           },
-          talentPoints: [0, 6, 14],
+          talentPoints: [0, 0, 0],
         }),
       )
 
-      expect(result).toEqual([])
+      expect(result).toEqual([Spells.FeralInstinctRank5])
     })
 
-    it('does not infer Feral Instinct from non-bear split even above threshold', () => {
+    it('does not infer Feral Instinct when below feral threashold', () => {
       const result = druidConfig.talentImplications!(
         createTalentContext({
-          talentPoints: [0, 20, 14],
+          talentPoints: [31, 13, 12],
         }),
       )
 

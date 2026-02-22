@@ -140,7 +140,7 @@ const HEALING_SPELLS = new Set([
 ])
 
 const FERAL = 1
-const FERAL_INSTINCT_THRESHOLD = 7
+const FERAL_INSTINCT_THRESHOLD = 14
 const RESTO = 2
 const SUBTLETY_THRESHOLD = 15
 
@@ -153,25 +153,6 @@ function hasCombatantInfoBearFormAura(ctx: TalentImplicationContext): boolean {
     const auraId = aura.ability ?? aura.ability ?? null
     return auraId === Spells.BearForm || auraId === Spells.DireBearForm
   })
-}
-
-function inferFeralInstinctRank(
-  ctx: TalentImplicationContext,
-): SpellId | undefined {
-  const fromExplicit = inferTalent(ctx, FERAL_INSTINCT_RANKS)
-  if (fromExplicit) {
-    return fromExplicit
-  }
-
-  const feralPoints = ctx.talentPoints[FERAL] ?? 0
-  if (
-    feralPoints >= FERAL_INSTINCT_THRESHOLD &&
-    hasCombatantInfoBearFormAura(ctx)
-  ) {
-    return FERAL_INSTINCT_RANKS[FERAL_INSTINCT_RANKS.length - 1]
-  }
-
-  return undefined
 }
 
 function hasBearForm(sourceAuras: ReadonlySet<SpellId>): boolean {
@@ -406,7 +387,15 @@ export const druidConfig: ClassThreatConfig = {
   talentImplications: (ctx: TalentImplicationContext) => {
     const syntheticAuras: SpellId[] = []
 
-    const feralInstinctSpellId = inferFeralInstinctRank(ctx)
+    const feralInstinctSpellId = inferTalent(
+      ctx,
+      FERAL_INSTINCT_RANKS,
+      (points) =>
+        points[FERAL] >= FERAL_INSTINCT_THRESHOLD ||
+        hasCombatantInfoBearFormAura(ctx)
+          ? 5
+          : 0,
+    )
     if (feralInstinctSpellId) {
       syntheticAuras.push(feralInstinctSpellId)
     }
