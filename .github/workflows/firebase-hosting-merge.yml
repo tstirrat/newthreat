@@ -19,6 +19,15 @@ jobs:
           cache: pnpm
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck && pnpm lint
+      - run: pnpm test
+      - run: pnpm --filter @wow-threat/web e2e
+      - name: Deploy BE
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: 'apps/api'
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - run: |
           test -n "$VITE_FIREBASE_API_KEY"
           test -n "$VITE_FIREBASE_PROJECT_ID"
@@ -32,6 +41,7 @@ jobs:
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        name: Deploy FE
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WOW_THREAT }}
