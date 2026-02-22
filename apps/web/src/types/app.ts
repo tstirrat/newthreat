@@ -64,6 +64,7 @@ export interface ThreatPoint {
   amount: number
   baseThreat: number
   modifiedThreat: number
+  spellId?: number
   spellSchool: string | null
   resourceType?: number | null
   eventType: string

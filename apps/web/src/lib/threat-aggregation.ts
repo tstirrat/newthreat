@@ -924,6 +924,7 @@ export function buildThreatSeries({
 
   sortedEvents.forEach((event) => {
     const abilityId = event.abilityGameID ?? null
+    const spellId = abilityId ?? undefined
     const abilityName =
       abilityId !== null
         ? (abilityById.get(abilityId)?.name ?? `Ability #${abilityId}`)
@@ -1012,6 +1013,7 @@ export function buildThreatSeries({
         amount,
         baseThreat,
         modifiedThreat,
+        ...(spellId ? { spellId } : {}),
         resourceType,
         spellSchool,
         eventType: event.type,
@@ -1056,6 +1058,7 @@ export function buildThreatSeries({
         amount,
         baseThreat,
         modifiedThreat,
+        ...(spellId ? { spellId } : {}),
         resourceType,
         spellSchool,
         eventType: event.type,
@@ -1089,6 +1092,7 @@ export function buildThreatSeries({
         amount,
         baseThreat,
         modifiedThreat,
+        ...(spellId ? { spellId } : {}),
         resourceType,
         spellSchool,
         eventType: event.type,

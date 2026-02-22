@@ -135,6 +135,8 @@ interface TooltipRenderData {
   visibleModifiers: TooltipPointPayload['modifiers']
   hitTypeLabel: string | null
   formula: string
+  mutedColor: string
+  spellId: number | null
 }
 
 function tooltipContent({ data }: { data: TooltipRenderData }): JSX.Element {
@@ -246,6 +248,19 @@ function tooltipContent({ data }: { data: TooltipRenderData }): JSX.Element {
           Marker: <strong style={{ color: deathMarkerColor }}>Death</strong>
         </div>
       ) : null}
+      {data.spellId ? (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-start',
+            marginTop: 4,
+            color: data.mutedColor,
+            fontSize: 11,
+          }}
+        >
+          ID: {data.spellId}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -331,6 +346,10 @@ export function createThreatChartTooltipFormatter({
       ? (formatResourceTypeLabel(rawResourceType) ?? 'Amt')
       : 'Amt'
     const hitTypeLabel = resolveTooltipHitTypeLabel(payload.hitType)
+    const spellId =
+      typeof payload.spellId === 'number' && payload.spellId > 0
+        ? payload.spellId
+        : null
 
     const html = renderToString(
       tooltipContent({
@@ -356,6 +375,8 @@ export function createThreatChartTooltipFormatter({
           visibleModifiers,
           hitTypeLabel,
           formula: payload.formula ?? 'n/a',
+          mutedColor: themeColors.muted,
+          spellId,
         },
       }),
     )

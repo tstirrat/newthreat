@@ -62,6 +62,7 @@ describe('threat-chart-tooltip', () => {
         hitType: 6,
         formula: 'base < calc',
         modifiedThreat: 300,
+        spellId: 7386,
         spellSchool: 'Fire',
         modifiers: [
           {
@@ -96,6 +97,7 @@ describe('threat-chart-tooltip', () => {
     expect(tooltip).toContain(
       'Marker: <strong style="color:#ef4444">Boss melee</strong>',
     )
+    expect(tooltip).toContain('ID: 7386')
   })
 
   it('renders resource labels and non-damage event suffixes', () => {
@@ -133,6 +135,7 @@ describe('threat-chart-tooltip', () => {
     expect(tooltip).toContain('Rage: 20.00')
     expect(tooltip).toContain('Threat: -55.00')
     expect(tooltip).not.toContain('Multipliers:')
+    expect(tooltip).not.toContain('ID:')
   })
 
   it('does not render hit type when result is a normal hit', () => {

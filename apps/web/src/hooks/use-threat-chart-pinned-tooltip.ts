@@ -14,6 +14,7 @@ export interface TooltipPointPayload {
   actorId: number
   actorColor: string
   abilityName: string
+  spellId?: number
   targetName?: string | null
   amount: number
   baseThreat: number
