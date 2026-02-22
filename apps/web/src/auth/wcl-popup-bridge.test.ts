@@ -6,10 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearWclAuthPopupResult,
   createWclAuthPopupErrorResult,
+  createWclAuthPopupResultMessage,
   createWclAuthPopupSuccessResult,
   parseWclAuthPopupResult,
+  parseWclAuthPopupResultMessage,
   publishWclAuthPopupResult,
   readWclAuthPopupResult,
+  wclAuthPopupResultMessageType,
   wclAuthPopupResultStorageKey,
 } from './wcl-popup-bridge'
 
@@ -102,6 +105,23 @@ describe('wcl-popup-bridge', () => {
       message: 'Boom',
       status: 'error',
     })
+  })
+
+  it('creates and parses popup result message payloads', () => {
+    const successResult = createWclAuthPopupSuccessResult('bridge-msg')
+    const message = createWclAuthPopupResultMessage(successResult)
+
+    expect(message).toEqual({
+      result: successResult,
+      type: wclAuthPopupResultMessageType,
+    })
+    expect(parseWclAuthPopupResultMessage(message)).toEqual(successResult)
+    expect(
+      parseWclAuthPopupResultMessage({
+        result: successResult,
+        type: 'invalid-type',
+      }),
+    ).toBeNull()
   })
 
   it('publishes, reads, and clears localStorage payloads', () => {

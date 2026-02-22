@@ -8,10 +8,13 @@ import { useAuth } from '../auth/auth-provider'
 import {
   type WclAuthPopupResult,
   createWclAuthPopupErrorResult,
+  createWclAuthPopupResultMessage,
   createWclAuthPopupSuccessResult,
   publishWclAuthPopupResult,
 } from '../auth/wcl-popup-bridge'
 import { Alert, AlertDescription } from '../components/ui/alert'
+
+const popupCloseDelayMs = 500
 
 function readBridgeCode(hash: string): string | null {
   const normalizedHash = hash.startsWith('#') ? hash.slice(1) : hash
@@ -49,20 +52,38 @@ export const AuthCompletePage: FC = () => {
   )
 
   useEffect(() => {
+    let hasBridgeDelivery = hasPublished.current
+
     if (!hasPublished.current) {
       try {
         publishWclAuthPopupResult(result)
         hasPublished.current = true
+        hasBridgeDelivery = true
       } catch {
-        // If storage is unavailable, keep this page visible so users can
-        // manually return to the main window and retry.
-        return
+        // Fall through to postMessage fallback.
       }
+    }
+
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(
+          createWclAuthPopupResultMessage(result),
+          window.location.origin,
+        )
+        hasBridgeDelivery = true
+      }
+    } catch {
+      // If opener messaging is unavailable, localStorage remains the primary
+      // bridge. Keep the popup open only if neither bridge can be used.
+    }
+
+    if (!hasBridgeDelivery) {
+      return
     }
 
     const closeTimer = window.setTimeout(() => {
       window.close()
-    }, 250)
+    }, popupCloseDelayMs)
 
     return () => {
       window.clearTimeout(closeTimer)

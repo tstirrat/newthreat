@@ -8,7 +8,10 @@ import { type FC } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider, useAuth } from './auth-provider'
-import { wclAuthPopupResultStorageKey } from './wcl-popup-bridge'
+import {
+  createWclAuthPopupResultMessage,
+  wclAuthPopupResultStorageKey,
+} from './wcl-popup-bridge'
 
 const onAuthStateChangedMock = vi.fn()
 const signInWithCustomTokenMock = vi.fn()
@@ -208,6 +211,111 @@ describe('AuthProvider', () => {
       )
     })
     expect(screen.getByTestId('auth-error')).toHaveTextContent('')
+  })
+
+  it('accepts callback success payload with slight pre-start timestamp skew', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        customToken: 'firebase-custom-token',
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const popupWindow = {
+      close: vi.fn(),
+      closed: false,
+    } as unknown as Window
+    vi.spyOn(window, 'open').mockReturnValue(popupWindow)
+    const user = userEvent.setup()
+
+    render(
+      <AuthProvider>
+        <AuthHarness />
+      </AuthProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'start login' }))
+
+    const skewedSuccessPayload = JSON.stringify({
+      bridgeCode: 'bridge-code-skewed',
+      createdAtMs: Date.now() - 500,
+      status: 'success',
+    })
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: wclAuthPopupResultStorageKey,
+        newValue: skewedSuccessPayload,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/firebase-custom-token'),
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      )
+    })
+    await waitFor(() => {
+      expect(signInWithCustomTokenMock).toHaveBeenCalledWith(
+        fakeAuth,
+        'firebase-custom-token',
+      )
+    })
+  })
+
+  it('accepts callback success delivered through postMessage', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        customToken: 'firebase-custom-token',
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const popupWindow = {
+      close: vi.fn(),
+      closed: false,
+    } as unknown as Window
+    vi.spyOn(window, 'open').mockReturnValue(popupWindow)
+    const user = userEvent.setup()
+
+    render(
+      <AuthProvider>
+        <AuthHarness />
+      </AuthProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'start login' }))
+
+    const messageResult = createWclAuthPopupResultMessage({
+      bridgeCode: 'bridge-message-123',
+      createdAtMs: Date.now() + 1,
+      status: 'success',
+    })
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: messageResult,
+        origin: window.location.origin,
+        source: popupWindow,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/firebase-custom-token'),
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      )
+    })
+    await waitFor(() => {
+      expect(signInWithCustomTokenMock).toHaveBeenCalledWith(
+        fakeAuth,
+        'firebase-custom-token',
+      )
+    })
   })
 
   it('sets an error when popup is blocked', async () => {

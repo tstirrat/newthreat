@@ -3,10 +3,14 @@
  */
 import type { AuthContextValue } from '@/auth/auth-provider'
 import { render, screen } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { wclAuthPopupResultStorageKey } from '../auth/wcl-popup-bridge'
+import {
+  wclAuthPopupResultMessageType,
+  wclAuthPopupResultStorageKey,
+} from '../auth/wcl-popup-bridge'
 import { AuthCompletePage } from './auth-complete-page'
 
 const useAuthMock = vi.fn()
@@ -28,6 +32,21 @@ function renderPage(initialPath: string): void {
   )
 }
 
+function renderPageInStrictMode(initialPath: string): void {
+  render(
+    <StrictMode>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        initialEntries={[initialPath]}
+      >
+        <Routes>
+          <Route path="/auth/complete" element={<AuthCompletePage />} />
+        </Routes>
+      </MemoryRouter>
+    </StrictMode>,
+  )
+}
+
 function createMockAuthValue(authEnabled: boolean): AuthContextValue {
   return {
     authEnabled,
@@ -43,6 +62,7 @@ function createMockAuthValue(authEnabled: boolean): AuthContextValue {
 
 describe('AuthCompletePage', () => {
   let originalLocalStorage: Storage
+  let originalOpener: Window | null
   let closeSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
@@ -74,6 +94,12 @@ describe('AuthCompletePage', () => {
       configurable: true,
       value: mockLocalStorage,
     })
+
+    originalOpener = window.opener
+    Object.defineProperty(window, 'opener', {
+      configurable: true,
+      value: null,
+    })
   })
 
   afterEach(() => {
@@ -83,6 +109,10 @@ describe('AuthCompletePage', () => {
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
       value: originalLocalStorage,
+    })
+    Object.defineProperty(window, 'opener', {
+      configurable: true,
+      value: originalOpener,
     })
   })
 
@@ -98,7 +128,14 @@ describe('AuthCompletePage', () => {
       status: 'success',
     })
 
-    vi.advanceTimersByTime(250)
+    vi.advanceTimersByTime(500)
+    expect(closeSpy).toHaveBeenCalled()
+  })
+
+  it('closes popup when rendered in StrictMode', () => {
+    renderPageInStrictMode('/auth/complete#bridge=bridge-123')
+
+    vi.advanceTimersByTime(500)
     expect(closeSpy).toHaveBeenCalled()
   })
 
@@ -117,7 +154,7 @@ describe('AuthCompletePage', () => {
       status: 'error',
     })
 
-    vi.advanceTimersByTime(250)
+    vi.advanceTimersByTime(500)
     expect(closeSpy).toHaveBeenCalled()
   })
 
@@ -137,6 +174,30 @@ describe('AuthCompletePage', () => {
       message: 'Firebase auth configuration is missing for this environment.',
       status: 'error',
     })
+  })
+
+  it('posts result to opener window when available', () => {
+    const openerPostMessage = vi.fn()
+    Object.defineProperty(window, 'opener', {
+      configurable: true,
+      value: {
+        closed: false,
+        postMessage: openerPostMessage,
+      },
+    })
+
+    renderPage('/auth/complete#bridge=bridge-123')
+
+    expect(openerPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          bridgeCode: 'bridge-123',
+          status: 'success',
+        }),
+        type: wclAuthPopupResultMessageType,
+      }),
+      window.location.origin,
+    )
   })
 
   it('does not close popup when storage publish throws', () => {

@@ -2,6 +2,7 @@
  * LocalStorage bridge helpers for popup-based Warcraft Logs OAuth completion.
  */
 export const wclAuthPopupResultStorageKey = 'wow-threat.wcl-auth-popup-result'
+export const wclAuthPopupResultMessageType = 'wow-threat.wcl-auth-popup-result'
 
 interface WclAuthPopupResultBase {
   createdAtMs: number
@@ -20,6 +21,18 @@ export interface WclAuthPopupErrorResult extends WclAuthPopupResultBase {
 export type WclAuthPopupResult =
   | WclAuthPopupSuccessResult
   | WclAuthPopupErrorResult
+
+interface WclAuthPopupResultRawPayload {
+  bridgeCode?: unknown
+  createdAtMs?: unknown
+  message?: unknown
+  status?: unknown
+}
+
+interface WclAuthPopupResultMessage {
+  result?: unknown
+  type?: unknown
+}
 
 /** Build a success payload from a bridge code. */
 export function createWclAuthPopupSuccessResult(
@@ -43,6 +56,49 @@ export function createWclAuthPopupErrorResult(
   }
 }
 
+/** Build a cross-window message payload from a popup result. */
+export function createWclAuthPopupResultMessage(result: WclAuthPopupResult): {
+  result: WclAuthPopupResult
+  type: typeof wclAuthPopupResultMessageType
+} {
+  return {
+    result,
+    type: wclAuthPopupResultMessageType,
+  }
+}
+
+function parseWclAuthPopupResultPayload(
+  payload: WclAuthPopupResultRawPayload,
+): WclAuthPopupResult | null {
+  if (
+    payload.status === 'success' &&
+    typeof payload.bridgeCode === 'string' &&
+    payload.bridgeCode.length > 0 &&
+    typeof payload.createdAtMs === 'number'
+  ) {
+    return {
+      bridgeCode: payload.bridgeCode,
+      createdAtMs: payload.createdAtMs,
+      status: 'success',
+    }
+  }
+
+  if (
+    payload.status === 'error' &&
+    typeof payload.message === 'string' &&
+    payload.message.length > 0 &&
+    typeof payload.createdAtMs === 'number'
+  ) {
+    return {
+      createdAtMs: payload.createdAtMs,
+      message: payload.message,
+      status: 'error',
+    }
+  }
+
+  return null
+}
+
 /** Parse a raw localStorage value into a typed popup result. */
 export function parseWclAuthPopupResult(
   rawValue: string | null,
@@ -52,43 +108,11 @@ export function parseWclAuthPopupResult(
   }
 
   try {
-    const parsed = JSON.parse(rawValue) as {
-      bridgeCode?: unknown
-      createdAtMs?: unknown
-      message?: unknown
-      status?: unknown
-    }
-
-    if (
-      parsed.status === 'success' &&
-      typeof parsed.bridgeCode === 'string' &&
-      parsed.bridgeCode.length > 0 &&
-      typeof parsed.createdAtMs === 'number'
-    ) {
-      return {
-        bridgeCode: parsed.bridgeCode,
-        createdAtMs: parsed.createdAtMs,
-        status: 'success',
-      }
-    }
-
-    if (
-      parsed.status === 'error' &&
-      typeof parsed.message === 'string' &&
-      parsed.message.length > 0 &&
-      typeof parsed.createdAtMs === 'number'
-    ) {
-      return {
-        createdAtMs: parsed.createdAtMs,
-        message: parsed.message,
-        status: 'error',
-      }
-    }
+    const parsed = JSON.parse(rawValue) as WclAuthPopupResultRawPayload
+    return parseWclAuthPopupResultPayload(parsed)
   } catch {
     return null
   }
-
-  return null
 }
 
 /** Persist a popup result into localStorage for the main window to consume. */
@@ -109,4 +133,26 @@ export function readWclAuthPopupResult(): WclAuthPopupResult | null {
 /** Clear any stale popup result from localStorage. */
 export function clearWclAuthPopupResult(): void {
   window.localStorage.removeItem(wclAuthPopupResultStorageKey)
+}
+
+/** Parse a postMessage payload into a typed popup result. */
+export function parseWclAuthPopupResultMessage(
+  payload: unknown,
+): WclAuthPopupResult | null {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const message = payload as WclAuthPopupResultMessage
+  if (
+    message.type !== wclAuthPopupResultMessageType ||
+    !message.result ||
+    typeof message.result !== 'object'
+  ) {
+    return null
+  }
+
+  return parseWclAuthPopupResultPayload(
+    message.result as WclAuthPopupResultRawPayload,
+  )
 }

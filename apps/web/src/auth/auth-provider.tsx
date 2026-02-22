@@ -13,6 +13,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react'
 
@@ -22,6 +23,7 @@ import {
   type WclAuthPopupResult,
   clearWclAuthPopupResult,
   parseWclAuthPopupResult,
+  parseWclAuthPopupResultMessage,
   wclAuthPopupResultStorageKey,
 } from './wcl-popup-bridge'
 
@@ -44,7 +46,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 const popupWidthPx = 520
 const popupHeightPx = 760
 const popupPollIntervalMs = 250
-const popupClosedResultGraceMs = 1000
+const popupClosedResultGraceMs = 5000
+const popupResultStaleToleranceMs = 30 * 1000
 const popupTimeoutMs = 3 * 60 * 1000
 
 async function parseErrorMessage(response: Response): Promise<string> {
@@ -109,14 +112,26 @@ function waitForWclPopupResult(
 
       completed = true
       window.removeEventListener('storage', onStorage)
+      window.removeEventListener('message', onMessage)
       window.clearInterval(intervalId)
       window.clearTimeout(timeoutId)
       callback()
     }
 
-    function maybeResolveResult(rawValue: string | null): boolean {
-      const parsedResult = parseWclAuthPopupResult(rawValue)
-      if (!parsedResult || parsedResult.createdAtMs < flowStartMs) {
+    function maybeResolveResult(
+      parsedResult: WclAuthPopupResult | null,
+      options?: {
+        ignoreFlowStart?: boolean
+      },
+    ): boolean {
+      const ignoreFlowStart = options?.ignoreFlowStart ?? false
+      if (!parsedResult) {
+        return false
+      }
+
+      const isResultTooOldForFlow =
+        parsedResult.createdAtMs < flowStartMs - popupResultStaleToleranceMs
+      if (!ignoreFlowStart && isResultTooOldForFlow) {
         return false
       }
 
@@ -128,30 +143,39 @@ function waitForWclPopupResult(
       return true
     }
 
+    function maybeResolveResultFromStorage(): boolean {
+      return maybeResolveResult(
+        parseWclAuthPopupResult(
+          window.localStorage.getItem(wclAuthPopupResultStorageKey),
+        ),
+      )
+    }
+
     function onStorage(event: StorageEvent): void {
       if (event.key !== wclAuthPopupResultStorageKey) {
         return
       }
 
-      maybeResolveResult(event.newValue)
+      maybeResolveResult(parseWclAuthPopupResult(event.newValue))
+    }
+
+    function onMessage(event: MessageEvent): void {
+      if (event.origin !== window.location.origin) {
+        return
+      }
+
+      maybeResolveResult(parseWclAuthPopupResultMessage(event.data))
     }
 
     window.addEventListener('storage', onStorage)
+    window.addEventListener('message', onMessage)
 
-    if (
-      maybeResolveResult(
-        window.localStorage.getItem(wclAuthPopupResultStorageKey),
-      )
-    ) {
+    if (maybeResolveResultFromStorage()) {
       return
     }
 
     intervalId = window.setInterval(() => {
-      if (
-        maybeResolveResult(
-          window.localStorage.getItem(wclAuthPopupResultStorageKey),
-        )
-      ) {
+      if (maybeResolveResultFromStorage()) {
         return
       }
 
@@ -166,9 +190,18 @@ function waitForWclPopupResult(
           return
         }
 
+        if (maybeResolveResultFromStorage()) {
+          return
+        }
+
         if (
           maybeResolveResult(
-            window.localStorage.getItem(wclAuthPopupResultStorageKey),
+            parseWclAuthPopupResult(
+              window.localStorage.getItem(wclAuthPopupResultStorageKey),
+            ),
+            {
+              ignoreFlowStart: true,
+            },
           )
         ) {
           return
@@ -198,6 +231,7 @@ function waitForWclPopupResult(
 export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   const authEnabled = isFirebaseAuthEnabled
   const auth = getFirebaseAuth()
+  const loginInFlightRef = useRef(false)
   const [user, setUser] = useState<User | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState<boolean>(authEnabled)
@@ -254,27 +288,28 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }
 
   const startWclLogin = (): void => {
-    if (!authEnabled || isBusy) {
+    if (!authEnabled || isBusy || loginInFlightRef.current) {
       return
     }
 
+    loginInFlightRef.current = true
     setAuthError(null)
     setIsBusy(true)
 
     const loginUrl = new URL('/auth/wcl/login', defaultApiBaseUrl)
     loginUrl.searchParams.set('origin', window.location.origin)
+    const flowStartMs = Date.now()
     clearWclAuthPopupResult()
-
     const popupWindow = openWclLoginPopup(loginUrl.toString())
     if (!popupWindow) {
       setAuthError(
         'Unable to open the sign-in window. Disable popup blocking and try again.',
       )
       setIsBusy(false)
+      loginInFlightRef.current = false
       return
     }
 
-    const flowStartMs = Date.now()
     void waitForWclPopupResult(popupWindow, flowStartMs)
       .then(async (result) => {
         if (result.status === 'error') {
@@ -294,6 +329,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
           popupWindow.close()
         }
         setIsBusy(false)
+        loginInFlightRef.current = false
       })
   }
 
