@@ -19,11 +19,7 @@ export function useFightEvents(
   const query = useQuery({
     queryKey: fightEventsQueryKey(reportId, fightId, configVersion),
     queryFn: () => getFightEvents(reportId, fightId, configVersion),
-    enabled:
-      reportId.length > 0 &&
-      Number.isFinite(fightId) &&
-      typeof configVersion === 'string' &&
-      configVersion.length > 0,
+    enabled: reportId.length > 0 && Number.isFinite(fightId),
   })
 
   return {

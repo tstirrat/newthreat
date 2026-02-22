@@ -1,7 +1,6 @@
 /**
  * Fight-level page with target filter and player-focused chart interactions.
  */
-import { resolveConfigOrNull } from '@wow-threat/config'
 import { ExternalLink } from 'lucide-react'
 import { type FC, useCallback, useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
@@ -24,6 +23,7 @@ import {
   resolveSeriesWindowBounds,
   selectDefaultTarget,
 } from '../lib/threat-aggregation'
+import { resolveCurrentThreatConfig } from '../lib/threat-config'
 import { buildFightRankingsUrl } from '../lib/wcl-url'
 import { useReportRouteContext } from '../routes/report-layout-context'
 import type { ThreatSeries, WowheadLinksConfig } from '../types/app'
@@ -96,11 +96,15 @@ export const FightPage: FC = () => {
       ? 'svg'
       : 'canvas'
 
+  const threatConfig = useMemo(
+    () => resolveCurrentThreatConfig(reportData),
+    [reportData],
+  )
   const fightQuery = useFightData(reportId, fightId)
   const eventsQuery = useFightEvents(
     reportId,
     fightId,
-    reportData.threatConfig?.version ?? null,
+    threatConfig?.version ?? null,
   )
   const fightData = fightQuery.data ?? null
   const eventsData = eventsQuery.data ?? null
@@ -139,25 +143,6 @@ export const FightPage: FC = () => {
     const fightDuration = fightData.endTime - fightData.startTime
     return fightDuration > 0 ? fightDuration : eventsData.summary.duration
   }, [eventsData, fightData])
-
-  const threatConfig = useMemo(() => {
-    if (!reportData) {
-      return null
-    }
-
-    return resolveConfigOrNull({
-      report: {
-        startTime: reportData.startTime,
-        masterData: {
-          gameVersion: reportData.gameVersion,
-        },
-        zone: reportData.zone,
-        fights: reportData.fights.map(() => ({
-          classicSeasonID: null,
-        })),
-      },
-    })
-  }, [reportData])
 
   const queryState = useFightQueryState({
     validPlayerIds,

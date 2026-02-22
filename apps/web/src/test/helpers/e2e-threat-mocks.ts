@@ -173,6 +173,7 @@ export const e2eReportResponse: ReportResponse = {
   fights: [
     {
       bossPercentage: 12.4,
+      classicSeasonID: 3,
       difficulty: 3,
       encounterID: 1602,
       endTime: 1070000,
@@ -188,6 +189,7 @@ export const e2eReportResponse: ReportResponse = {
     },
     {
       bossPercentage: null,
+      classicSeasonID: 3,
       difficulty: 3,
       encounterID: 1602,
       endTime: 1220000,
@@ -203,6 +205,7 @@ export const e2eReportResponse: ReportResponse = {
     },
     {
       bossPercentage: null,
+      classicSeasonID: 3,
       difficulty: 3,
       encounterID: 1603,
       endTime: 1325000,
@@ -218,6 +221,7 @@ export const e2eReportResponse: ReportResponse = {
     },
     {
       bossPercentage: null,
+      classicSeasonID: 3,
       difficulty: null,
       encounterID: null,
       endTime: 1360000,
@@ -248,6 +252,7 @@ export const e2eReportResponse: ReportResponse = {
   zone: {
     id: 1001,
     name: 'Naxxramas',
+    partitions: [{ id: 3, name: 'Discovery' }],
   },
 }
 

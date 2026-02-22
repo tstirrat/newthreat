@@ -12,6 +12,7 @@ import { useRecentReports } from '../hooks/use-recent-reports'
 import { useReportData } from '../hooks/use-report-data'
 import { useReportHost } from '../hooks/use-report-host'
 import { buildBossKillNavigationFights } from '../lib/fight-navigation'
+import { resolveCurrentThreatConfig } from '../lib/threat-config'
 import type { WarcraftLogsHost } from '../types/app'
 import type { ReportRouteContext } from './report-layout-context'
 
@@ -76,8 +77,9 @@ export const ReportLayout: FC = () => {
     )
   }
 
-  const threatConfigLabel = data.threatConfig
-    ? `${data.threatConfig.displayName} ${data.threatConfig.version}`
+  const threatConfig = resolveCurrentThreatConfig(data)
+  const threatConfigLabel = threatConfig
+    ? `${threatConfig.displayName} ${threatConfig.version}`
     : 'No supported config'
   const selectedFightId = Number.isNaN(fightId) ? null : fightId
   const outletContext: ReportRouteContext = {

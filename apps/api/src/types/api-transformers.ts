@@ -68,6 +68,7 @@ export function toReportFightSummary(fight: ReportFight): ReportFightSummary {
   return {
     id: fight.id,
     encounterID: fight.encounterID ?? null,
+    classicSeasonID: fight.classicSeasonID ?? null,
     name: fight.name,
     startTime: fight.startTime,
     endTime: fight.endTime,

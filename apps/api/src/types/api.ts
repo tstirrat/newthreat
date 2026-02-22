@@ -37,6 +37,7 @@ export interface ReportFightParticipant {
 export interface ReportFightSummary {
   id: number
   encounterID: number | null
+  classicSeasonID?: number | null
   name: string
   startTime: number
   endTime: number
