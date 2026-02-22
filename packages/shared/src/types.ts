@@ -134,6 +134,8 @@ export interface Actor {
   id: number
   name: string
   class: WowClass | null
+  /** Owning actor ID when this actor is a pet. */
+  petOwner?: number | null
 }
 
 /** Read-only runtime actor view exposed to formulas/interceptors. */
@@ -300,6 +302,15 @@ export interface ClassThreatConfig {
 
   /** Implied aura state keyed by aura spell ID -> cast spell IDs that imply it */
   auraImplications?: AuraImplications
+
+  /**
+   * Implied aura state keyed by owner aura spell ID -> ability spell IDs that imply it.
+   *
+   * These implications apply when:
+   * - the owner casts the matching ability (e.g. summon spell), or
+   * - one of the owner's pets uses the matching ability.
+   */
+  petAuraImplications?: AuraImplications
 
   /** Buffs that indicate fixate (taunt) state */
   fixateBuffs?: Set<number>

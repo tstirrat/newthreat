@@ -54,6 +54,9 @@ const TEST_SPELLS = {
   RAKE: 9904,
   SYNTHETIC_AURA: 99999,
   GLOBAL_COMBATANT_AURA: 99998,
+  IMP_ACTIVE: 910210,
+  SUMMON_IMP: 688,
+  FIREBOLT: 3110,
 } as const
 
 /** Minimal test config with exclusive auras for testing */
@@ -1142,6 +1145,69 @@ describe('FightState', () => {
 
       expect(state.getAuras(3).has(TEST_SPELLS.BEAR_FORM)).toBe(false)
       expect(state.getAuras(3).has(TEST_SPELLS.CAT_FORM)).toBe(true)
+    })
+  })
+
+  describe('pet aura implications', () => {
+    const configWithPetAuraImplications = createMockThreatConfig({
+      classes: {
+        warlock: {
+          baseThreatFactor: 1.0,
+          auraModifiers: {},
+          abilities: {},
+          petAuraImplications: new Map([
+            [
+              TEST_SPELLS.IMP_ACTIVE,
+              new Set([TEST_SPELLS.SUMMON_IMP, TEST_SPELLS.FIREBOLT]),
+            ],
+          ]),
+        },
+      },
+    })
+
+    it('infers owner aura from owner summon events', () => {
+      const actorMap = createActorMap([
+        { id: 9, name: 'Warlock', class: 'warlock' },
+      ])
+      const state = new FightState(actorMap, configWithPetAuraImplications)
+
+      state.processEvent(
+        {
+          timestamp: 100,
+          type: 'summon',
+          sourceID: 9,
+          sourceIsFriendly: true,
+          targetID: 50,
+          targetIsFriendly: true,
+          abilityGameID: TEST_SPELLS.SUMMON_IMP,
+        },
+        configWithPetAuraImplications,
+      )
+
+      expect(state.getAuras(9).has(TEST_SPELLS.IMP_ACTIVE)).toBe(true)
+    })
+
+    it('infers owner aura from owned pet combat events', () => {
+      const actorMap = new Map<number, Actor>([
+        [9, { id: 9, name: 'Warlock', class: 'warlock' }],
+        [50, { id: 50, name: 'Pet', class: null, petOwner: 9 }],
+      ])
+      const state = new FightState(actorMap, configWithPetAuraImplications)
+
+      state.processEvent(
+        createDamageEvent({
+          timestamp: 200,
+          sourceID: 50,
+          sourceIsFriendly: true,
+          targetID: 99,
+          targetIsFriendly: false,
+          abilityGameID: TEST_SPELLS.FIREBOLT,
+        }),
+        configWithPetAuraImplications,
+      )
+
+      expect(state.getAuras(9).has(TEST_SPELLS.IMP_ACTIVE)).toBe(true)
+      expect(state.getAuras(50).has(TEST_SPELLS.IMP_ACTIVE)).toBe(false)
     })
   })
 

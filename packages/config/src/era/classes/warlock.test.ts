@@ -9,7 +9,7 @@ import {
 import type { ThreatContext } from '@wow-threat/shared/src/types'
 import { describe, expect, it } from 'vitest'
 
-import { Spells, warlockConfig } from './warlock'
+import { Mods, Spells, warlockConfig } from './warlock'
 
 function createMockContext(
   overrides: Partial<ThreatContext> = {},
@@ -29,6 +29,40 @@ function createMockContext(
 }
 
 describe('Warlock Config', () => {
+  describe('pet aura implications', () => {
+    it('maps summon imp and firebolt to the imp active synthetic aura', () => {
+      const implicationSpells = warlockConfig.petAuraImplications?.get(
+        Spells.ImpActive,
+      )
+
+      expect(implicationSpells).toBeDefined()
+      expect(implicationSpells?.has(Spells.SummonImp)).toBe(true)
+      expect(implicationSpells?.has(Spells.FireboltR1)).toBe(true)
+      expect(implicationSpells?.has(Spells.FireboltR8)).toBe(true)
+    })
+  })
+
+  describe('aura modifiers', () => {
+    it('applies master demonologist only while imp is active', () => {
+      const modifier = warlockConfig.auraModifiers[Spells.MasterDemonologistR5]
+      expect(modifier).toBeDefined()
+
+      const withImp = modifier!(
+        createMockContext({
+          sourceAuras: new Set([Spells.MasterDemonologistR5, Spells.ImpActive]),
+        }),
+      )
+      const withoutImp = modifier!(
+        createMockContext({
+          sourceAuras: new Set([Spells.MasterDemonologistR5]),
+        }),
+      )
+
+      expect(withImp.value).toBe(1 - Mods.MasterDemonologist * 5)
+      expect(withoutImp.value).toBe(1)
+    })
+  })
+
   describe('abilities', () => {
     it('calculates Searing Pain with 2x threat', () => {
       const formula = warlockConfig.abilities[Spells.SearingPainR1]

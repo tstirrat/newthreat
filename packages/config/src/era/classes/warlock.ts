@@ -17,6 +17,20 @@ import {
 // ============================================================================
 
 export const Spells = {
+  // Synthetic aura inferred from summon/pet spell evidence
+  ImpActive: 910210,
+
+  // Pet summon/ability signals
+  SummonImp: 688, // https://www.wowhead.com/classic/spell=688/summon-imp
+  FireboltR1: 3110, // https://www.wowhead.com/classic/spell=3110/firebolt
+  FireboltR2: 7799, // https://www.wowhead.com/classic/spell=7799/firebolt
+  FireboltR3: 7800, // https://www.wowhead.com/classic/spell=7800/firebolt
+  FireboltR4: 7801, // https://www.wowhead.com/classic/spell=7801/firebolt
+  FireboltR5: 7802, // https://www.wowhead.com/classic/spell=7802/firebolt
+  FireboltR6: 11762, // https://www.wowhead.com/classic/spell=11762/firebolt
+  FireboltR7: 11763, // https://www.wowhead.com/classic/spell=11763/firebolt
+  FireboltR8: 27267, // https://www.wowhead.com/classic/spell=27267/firebolt
+
   // Searing Pain - 2x threat
   SearingPainR1: 5676,
   SearingPainR2: 17919,
@@ -100,31 +114,58 @@ export const Mods = {
 // ============================================================================
 
 export const warlockConfig: ClassThreatConfig = {
+  petAuraImplications: new Map([
+    [
+      Spells.ImpActive,
+      new Set([
+        Spells.SummonImp,
+        Spells.FireboltR1,
+        Spells.FireboltR2,
+        Spells.FireboltR3,
+        Spells.FireboltR4,
+        Spells.FireboltR5,
+        Spells.FireboltR6,
+        Spells.FireboltR7,
+        Spells.FireboltR8,
+      ]),
+    ],
+  ]),
+
   auraModifiers: {
-    [Spells.MasterDemonologistR1]: () => ({
+    [Spells.MasterDemonologistR1]: (ctx) => ({
       source: 'talent',
       name: 'Master Demonologist (Rank 1)',
-      value: 1 - Mods.MasterDemonologist,
+      value: ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1 - Mods.MasterDemonologist
+        : 1,
     }),
-    [Spells.MasterDemonologistR2]: () => ({
+    [Spells.MasterDemonologistR2]: (ctx) => ({
       source: 'talent',
       name: 'Master Demonologist (Rank 2)',
-      value: 1 - Mods.MasterDemonologist * 2,
+      value: ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1 - Mods.MasterDemonologist * 2
+        : 1,
     }),
-    [Spells.MasterDemonologistR3]: () => ({
+    [Spells.MasterDemonologistR3]: (ctx) => ({
       source: 'talent',
       name: 'Master Demonologist (Rank 3)',
-      value: 1 - Mods.MasterDemonologist * 3,
+      value: ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1 - Mods.MasterDemonologist * 3
+        : 1,
     }),
-    [Spells.MasterDemonologistR4]: () => ({
+    [Spells.MasterDemonologistR4]: (ctx) => ({
       source: 'talent',
       name: 'Master Demonologist (Rank 4)',
-      value: 1 - Mods.MasterDemonologist * 4,
+      value: ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1 - Mods.MasterDemonologist * 4
+        : 1,
     }),
-    [Spells.MasterDemonologistR5]: () => ({
+    [Spells.MasterDemonologistR5]: (ctx) => ({
       source: 'talent',
       name: 'Master Demonologist (Rank 5)',
-      value: 1 - Mods.MasterDemonologist * 5,
+      value: ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1 - Mods.MasterDemonologist * 5
+        : 1,
     }),
   },
 

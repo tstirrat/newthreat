@@ -116,7 +116,7 @@ function inferGlobalGearAuras(gear: GearItem[]): number[] {
 }
 
 export const anniversaryConfig: ThreatConfig = {
-  version: '1.3.1',
+  version: '1.3.2',
   displayName: 'TBC (Anniversary)',
   wowhead: {
     domain: 'tbc',

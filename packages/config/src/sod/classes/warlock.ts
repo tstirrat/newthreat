@@ -3,9 +3,13 @@
  */
 import type { ClassThreatConfig } from '@wow-threat/shared'
 
-import { warlockConfig as eraWarlockConfig } from '../../era/classes/warlock'
+import {
+  Spells as EraSpells,
+  warlockConfig as eraWarlockConfig,
+} from '../../era/classes/warlock'
 
 export const Spells = {
+  ...EraSpells,
   Menace: 403828,
   DemonicHowl: 412789,
 } as const
@@ -51,37 +55,47 @@ export const warlockConfig: ClassThreatConfig = {
     [Buffs.MasterDemonologistR1]: (ctx) => ({
       source: 'aura',
       name: 'Master Demonologist (Rank 1)',
-      value: ctx.sourceAuras.has(Buffs.Metamorphosis)
-        ? Mods.MasterDemonologist
-        : -Mods.MasterDemonologist,
+      value: !ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1
+        : ctx.sourceAuras.has(Buffs.Metamorphosis)
+          ? Mods.MasterDemonologist
+          : -Mods.MasterDemonologist,
     }),
     [Buffs.MasterDemonologistR2]: (ctx) => ({
       source: 'aura',
       name: 'Master Demonologist (Rank 2)',
-      value: ctx.sourceAuras.has(Buffs.Metamorphosis)
-        ? Mods.MasterDemonologist * 2
-        : -Mods.MasterDemonologist * 2,
+      value: !ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1
+        : ctx.sourceAuras.has(Buffs.Metamorphosis)
+          ? Mods.MasterDemonologist * 2
+          : -Mods.MasterDemonologist * 2,
     }),
     [Buffs.MasterDemonologistR3]: (ctx) => ({
       source: 'aura',
       name: 'Master Demonologist (Rank 3)',
-      value: ctx.sourceAuras.has(Buffs.Metamorphosis)
-        ? Mods.MasterDemonologist * 3
-        : -Mods.MasterDemonologist * 3,
+      value: !ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1
+        : ctx.sourceAuras.has(Buffs.Metamorphosis)
+          ? Mods.MasterDemonologist * 3
+          : -Mods.MasterDemonologist * 3,
     }),
     [Buffs.MasterDemonologistR4]: (ctx) => ({
       source: 'aura',
       name: 'Master Demonologist (Rank 4)',
-      value: ctx.sourceAuras.has(Buffs.Metamorphosis)
-        ? Mods.MasterDemonologist * 4
-        : -Mods.MasterDemonologist * 4,
+      value: !ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1
+        : ctx.sourceAuras.has(Buffs.Metamorphosis)
+          ? Mods.MasterDemonologist * 4
+          : -Mods.MasterDemonologist * 4,
     }),
     [Buffs.MasterDemonologistR5]: (ctx) => ({
       source: 'aura',
       name: 'Master Demonologist (Rank 5)',
-      value: ctx.sourceAuras.has(Buffs.Metamorphosis)
-        ? Mods.MasterDemonologist * 5
-        : -Mods.MasterDemonologist * 5,
+      value: !ctx.sourceAuras.has(Spells.ImpActive)
+        ? 1
+        : ctx.sourceAuras.has(Buffs.Metamorphosis)
+          ? Mods.MasterDemonologist * 5
+          : -Mods.MasterDemonologist * 5,
     }),
   },
 

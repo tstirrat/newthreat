@@ -46,7 +46,11 @@ describe('sod warlock config', () => {
             targetInstance: 0,
             abilityGameID: 1,
           },
-          new Set([Buffs.MasterDemonologistR5, Buffs.Metamorphosis]),
+          new Set([
+            Buffs.MasterDemonologistR5,
+            Buffs.Metamorphosis,
+            Spells.ImpActive,
+          ]),
         ),
       ),
     )
@@ -63,7 +67,7 @@ describe('sod warlock config', () => {
             targetInstance: 0,
             abilityGameID: 1,
           },
-          new Set([Buffs.MasterDemonologistR5]),
+          new Set([Buffs.MasterDemonologistR5, Spells.ImpActive]),
         ),
       ),
     )
@@ -95,7 +99,7 @@ describe('sod warlock config', () => {
               targetInstance: 0,
               abilityGameID: 1,
             },
-            new Set([buffId, Buffs.Metamorphosis]),
+            new Set([buffId, Buffs.Metamorphosis, Spells.ImpActive]),
           ),
         ),
       )
@@ -112,7 +116,7 @@ describe('sod warlock config', () => {
               targetInstance: 0,
               abilityGameID: 1,
             },
-            new Set([buffId]),
+            new Set([buffId, Spells.ImpActive]),
           ),
         ),
       )
@@ -120,6 +124,31 @@ describe('sod warlock config', () => {
       expect(withMetamorphosis.value).toBeCloseTo(expected)
       expect(withoutMetamorphosis.value).toBeCloseTo(-expected)
     })
+  })
+
+  it('returns a neutral modifier when imp is not active', () => {
+    const masterDemonologistModifier =
+      warlockConfig.auraModifiers[Buffs.MasterDemonologistR5]
+
+    const result = checkExists(
+      masterDemonologistModifier?.(
+        createDamageContext(
+          {
+            timestamp: 1000,
+            sourceID: 1,
+            sourceIsFriendly: true,
+            sourceInstance: 0,
+            targetID: 99,
+            targetIsFriendly: false,
+            targetInstance: 0,
+            abilityGameID: 1,
+          },
+          new Set([Buffs.MasterDemonologistR5]),
+        ),
+      ),
+    )
+
+    expect(result.value).toBe(1)
   })
 
   it('adds menace and demonic howl fixate and aura implications', () => {

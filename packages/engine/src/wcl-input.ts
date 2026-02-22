@@ -60,6 +60,7 @@ function createActorEntry(
         isPlayer && actor?.type === 'Player' && actor.subType
           ? normalizeWowClass(actor.subType)
           : null,
+      petOwner: actor?.type === 'Pet' ? (actor.petOwner ?? null) : undefined,
     },
   ]
 }

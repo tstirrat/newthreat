@@ -7,6 +7,7 @@
  */
 import type {
   Actor,
+  AuraImplications,
   Enemy,
   RuntimeActorView,
   ThreatConfig,
@@ -227,6 +228,19 @@ function dedupeIds(ids: number[]): number[] {
   return [...new Set(ids)]
 }
 
+function getImpliedAurasByAbility(
+  auraImplications: AuraImplications | undefined,
+  abilityGameID: number,
+): number[] {
+  if (!auraImplications || auraImplications.size === 0) {
+    return []
+  }
+
+  return [...auraImplications.entries()]
+    .filter(([, spellIds]) => spellIds.has(abilityGameID))
+    .map(([auraId]) => auraId)
+}
+
 function getSpecId(
   event: Extract<WCLEvent, { type: 'combatantinfo' }>,
 ): number | null {
@@ -383,12 +397,17 @@ export class FightState {
 
         if (event.type === 'cast') {
           this.processCastAuraImplications(event, config, sourceState)
+          this.processPetAuraImplications(event, config, sourceState)
         }
         break
       case 'damage':
         if (event.overkill > 0) {
           targetState?.markDead()
         }
+        this.processPetAuraImplications(event, config, sourceState)
+        break
+      case 'summon':
+        this.processPetAuraImplications(event, config, sourceState)
         break
       case 'applybuff':
       case 'refreshbuff':
@@ -431,12 +450,50 @@ export class FightState {
       return
     }
 
-    const impliedAuras = [...auraImplications.entries()]
-      .filter(([, spellIds]) => spellIds.has(event.abilityGameID))
-      .map(([auraId]) => auraId)
+    const impliedAuras = getImpliedAurasByAbility(
+      auraImplications,
+      event.abilityGameID,
+    )
 
     if (impliedAuras.length > 0) {
       sourceState.auraTracker.seedAuras(dedupeIds(impliedAuras))
+    }
+  }
+
+  /** Process owner/pet-driven aura implications from summon and pet ability usage. */
+  private processPetAuraImplications(
+    event: Extract<WCLEvent, { type: 'cast' | 'damage' | 'summon' }>,
+    config: ThreatConfig,
+    sourceState: ActorState,
+  ): void {
+    const sourceClass = sourceState.actorClass as WowClass | null
+    const sourceClassConfig = sourceClass
+      ? config.classes[sourceClass]
+      : undefined
+    const sourceImpliedAuras = getImpliedAurasByAbility(
+      sourceClassConfig?.petAuraImplications,
+      event.abilityGameID,
+    )
+    if (sourceImpliedAuras.length > 0) {
+      sourceState.auraTracker.seedAuras(dedupeIds(sourceImpliedAuras))
+    }
+
+    const petOwner = this.getActorProfile(sourceState.id).petOwner
+    if (petOwner === null || petOwner === undefined) {
+      return
+    }
+
+    const ownerState = this.getOrCreateActorState(
+      this.getCompatActorReference(petOwner),
+    )
+    const ownerClass = ownerState.actorClass as WowClass | null
+    const ownerClassConfig = ownerClass ? config.classes[ownerClass] : undefined
+    const ownerImpliedAuras = getImpliedAurasByAbility(
+      ownerClassConfig?.petAuraImplications,
+      event.abilityGameID,
+    )
+    if (ownerImpliedAuras.length > 0) {
+      ownerState.auraTracker.seedAuras(dedupeIds(ownerImpliedAuras))
     }
   }
 

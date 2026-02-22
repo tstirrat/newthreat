@@ -88,6 +88,14 @@ git -C /path/to/main-worktree merge --ff-only <feature-branch>
 - Introduce targeted tests for any new code or functionality whenever practical—unit, integration, or e2e tests that guard the behavior you add are preferred and should live alongside the relevant source files.
 - Run `pnpm fmt` using the project’s Prettier formatter before considering a change complete.
 
+## Config Versioning Rule
+
+- Any effective threat-config change under `packages/config/src/**` must bump the owning config version in its index file:
+  - Era: `packages/config/src/era/index.ts`
+  - SoD: `packages/config/src/sod/index.ts`
+  - Anniversary/TBC: `packages/config/src/tbc/index.ts`
+- If a change is made in Era config code, also bump SoD and Anniversary/TBC config versions, because those configs import and inherit Era behavior.
+
 ## Testing
 
 Framework: Vitest.
