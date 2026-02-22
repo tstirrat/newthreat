@@ -1,7 +1,7 @@
 /**
  * Firebase authentication provider and WCL bridge actions.
  */
-import type { User } from 'firebase/auth'
+import type { IdTokenResult, User } from 'firebase/auth'
 import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -31,6 +31,11 @@ interface FirebaseCustomTokenResponse {
   customToken: string
 }
 
+interface WclIdentityClaims {
+  wclUserId: string | null
+  wclUserName: string | null
+}
+
 export interface AuthContextValue {
   authEnabled: boolean
   authError: string | null
@@ -40,6 +45,8 @@ export interface AuthContextValue {
   signOut: () => Promise<void>
   startWclLogin: () => void
   user: User | null
+  wclUserId: string | null
+  wclUserName: string | null
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -49,6 +56,21 @@ const popupPollIntervalMs = 250
 const popupClosedResultGraceMs = 5000
 const popupResultStaleToleranceMs = 30 * 1000
 const popupTimeoutMs = 3 * 60 * 1000
+
+function readStringClaim(
+  claims: IdTokenResult['claims'],
+  claimName: string,
+): string | null {
+  const value = claims[claimName]
+  return typeof value === 'string' ? value : null
+}
+
+function parseWclIdentityClaims(tokenResult: IdTokenResult): WclIdentityClaims {
+  return {
+    wclUserId: readStringClaim(tokenResult.claims, 'wclUserId'),
+    wclUserName: readStringClaim(tokenResult.claims, 'wclUserName'),
+  }
+}
 
 async function parseErrorMessage(response: Response): Promise<string> {
   const body = await response.text()
@@ -233,6 +255,8 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   const auth = getFirebaseAuth()
   const loginInFlightRef = useRef(false)
   const [user, setUser] = useState<User | null>(null)
+  const [wclUserId, setWclUserId] = useState<string | null>(null)
+  const [wclUserName, setWclUserName] = useState<string | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState<boolean>(authEnabled)
   const [isBusy, setIsBusy] = useState<boolean>(false)
@@ -256,6 +280,40 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     if (user) {
       setAuthError(null)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) {
+      setWclUserId(null)
+      setWclUserName(null)
+      return
+    }
+
+    let isCancelled = false
+
+    void user
+      .getIdTokenResult()
+      .then((tokenResult) => {
+        if (isCancelled) {
+          return
+        }
+
+        const identity = parseWclIdentityClaims(tokenResult)
+        setWclUserId(identity.wclUserId)
+        setWclUserName(identity.wclUserName)
+      })
+      .catch(() => {
+        if (isCancelled) {
+          return
+        }
+
+        setWclUserId(null)
+        setWclUserName(null)
+      })
+
+    return () => {
+      isCancelled = true
     }
   }, [user])
 
@@ -381,6 +439,8 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     signOut,
     startWclLogin,
     user,
+    wclUserId,
+    wclUserName,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

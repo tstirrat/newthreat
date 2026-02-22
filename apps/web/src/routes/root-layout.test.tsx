@@ -26,6 +26,8 @@ function createMockAuthValue(
     signOut: vi.fn(),
     startWclLogin: vi.fn(),
     user: null,
+    wclUserId: null,
+    wclUserName: null,
     ...overrides,
   }
 }
@@ -72,7 +74,27 @@ describe('RootLayout', () => {
       'Finishing authentication...',
     )
     expect(
-      screen.getByRole('button', { name: 'Finishing sign-in...' }),
-    ).toBeDisabled()
+      screen.getByText('Logging in...', {
+        selector: 'span',
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: 'Sign in with Warcraft Logs' }),
+    ).toBeNull()
+  })
+
+  it('shows signed-in username in account dropdown trigger', () => {
+    useAuthMock.mockReturnValue(
+      createMockAuthValue({
+        user: {
+          uid: 'wcl:12345',
+        } as AuthContextValue['user'],
+        wclUserName: 'TestUser',
+      }),
+    )
+
+    renderLayout('/')
+
+    expect(screen.getByRole('button', { name: /TestUser/i })).toBeTruthy()
   })
 })

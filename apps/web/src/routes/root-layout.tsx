@@ -5,9 +5,19 @@ import { useAuth } from '@/auth/auth-provider'
 import { ModeToggle } from '@/components/mode-toggle'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ChevronDown, Loader2 } from 'lucide-react'
 import type { FC } from 'react'
 import { Link, Outlet } from 'react-router-dom'
+
+const warcraftLogsHomeUrl = 'https://www.warcraftlogs.com'
 
 export const RootLayout: FC = () => {
   const {
@@ -18,9 +28,13 @@ export const RootLayout: FC = () => {
     signOut,
     startWclLogin,
     user,
+    wclUserId,
+    wclUserName,
   } = useAuth()
   const shouldShowAuthGate = authEnabled && !isInitializing && !user
   const isSignInInProgress = shouldShowAuthGate && isBusy
+  const displayUserName =
+    wclUserName ?? user?.displayName ?? user?.uid ?? 'Warcraft Logs user'
 
   return (
     <div className="min-h-screen text-text">
@@ -36,30 +50,60 @@ export const RootLayout: FC = () => {
                 Auth disabled
               </span>
             ) : user ? (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  Signed in as {user.uid}
-                </span>
-                <Button
-                  disabled={isBusy}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    void signOut()
-                  }}
-                >
-                  Sign out
-                </Button>
-              </>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" type="button" variant="outline">
+                    {displayUserName}
+                    <ChevronDown aria-hidden="true" className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>{displayUserName}</DropdownMenuLabel>
+                  {wclUserId ? (
+                    <DropdownMenuLabel className="pt-0">
+                      WCL ID: {wclUserId}
+                    </DropdownMenuLabel>
+                  ) : null}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <a
+                      href={warcraftLogsHomeUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Warcraft Logs
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={isBusy}
+                    variant="destructive"
+                    onClick={() => {
+                      void signOut()
+                    }}
+                  >
+                    {isBusy ? 'Signing out...' : 'Sign out'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : isBusy ? (
+              <span
+                aria-live="polite"
+                className="text-sm text-muted-foreground"
+              >
+                Logging in...
+              </span>
+            ) : isInitializing ? (
+              <span className="text-sm text-muted-foreground">
+                Checking auth...
+              </span>
             ) : (
               <Button
-                disabled={isBusy || isInitializing}
+                disabled={isBusy}
                 size="sm"
                 type="button"
                 onClick={startWclLogin}
               >
-                {isBusy ? 'Finishing sign-in...' : 'Sign in with Warcraft Logs'}
+                Sign in with Warcraft Logs
               </Button>
             )}
           </div>

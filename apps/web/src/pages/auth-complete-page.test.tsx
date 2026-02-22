@@ -57,6 +57,8 @@ function createMockAuthValue(authEnabled: boolean): AuthContextValue {
     signOut: vi.fn(),
     startWclLogin: vi.fn(),
     user: null,
+    wclUserId: null,
+    wclUserName: null,
   }
 }
 
