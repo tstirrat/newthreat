@@ -30,12 +30,12 @@ export const Spells = {
   Exorcism: 27138,
 
   // Blessings (generate threat when cast)
-  BlessingOfKings: 25898,
-  BlessingOfSalvation: 25846,
-  BlessingOfMight: 27140,
-  BlessingOfWisdom: 27142,
-  BlessingOfSanctuary: 20914,
-  BlessingOfLight: 27144,
+  BlessingOfKings: 20217,
+  BlessingOfSalvation: 1038,
+  BlessingOfMightR7: 25291,
+  BlessingOfWisdomR6: 25290,
+  BlessingOfSanctuaryR4: 20914,
+  BlessingOfLightR3: 19979,
   GreaterBlessingOfKings: 25894,
   GreaterBlessingOfMight: 25896, // 25782 ??
   GreaterBlessingOfWisdom: 25918,
@@ -105,10 +105,10 @@ export const exclusiveAuras: Set<SpellId>[] = [
   // Blessing are exclusive between lesser and greater. i.e. Salvation replaces Greater Salvation
   new Set([Spells.BlessingOfKings, Spells.GreaterBlessingOfKings]),
   new Set([Spells.BlessingOfSalvation, Spells.GreaterBlessingOfSalvation]),
-  new Set([Spells.BlessingOfMight, Spells.GreaterBlessingOfMight]),
-  new Set([Spells.BlessingOfWisdom, Spells.GreaterBlessingOfWisdom]),
-  new Set([Spells.BlessingOfSanctuary, Spells.GreaterBlessingOfSanctuary]),
-  new Set([Spells.BlessingOfLight, Spells.GreaterBlessingOfLight]),
+  new Set([Spells.BlessingOfMightR7, Spells.GreaterBlessingOfMight]),
+  new Set([Spells.BlessingOfWisdomR6, Spells.GreaterBlessingOfWisdom]),
+  new Set([Spells.BlessingOfSanctuaryR4, Spells.GreaterBlessingOfSanctuary]),
+  new Set([Spells.BlessingOfLightR3, Spells.GreaterBlessingOfLight]),
 ]
 
 export const paladinConfig: ClassThreatConfig = {
@@ -214,10 +214,10 @@ export const paladinConfig: ClassThreatConfig = {
     // Blessings: 60 threat split among enemies
     [Spells.BlessingOfKings]: threatOnBuff(60, { split: true }),
     [Spells.BlessingOfSalvation]: threatOnBuff(60, { split: true }),
-    [Spells.BlessingOfMight]: threatOnBuff(60, { split: true }),
-    [Spells.BlessingOfWisdom]: threatOnBuff(60, { split: true }),
-    [Spells.BlessingOfSanctuary]: threatOnBuff(60, { split: true }),
-    [Spells.BlessingOfLight]: threatOnBuff(60, { split: true }),
+    [Spells.BlessingOfMightR7]: threatOnBuff(60, { split: true }),
+    [Spells.BlessingOfWisdomR6]: threatOnBuff(60, { split: true }),
+    [Spells.BlessingOfSanctuaryR4]: threatOnBuff(60, { split: true }),
+    [Spells.BlessingOfLightR3]: threatOnBuff(60, { split: true }),
     [Spells.GreaterBlessingOfKings]: threatOnBuff(60, { split: true }),
     [Spells.GreaterBlessingOfSalvation]: threatOnBuff(60, { split: true }),
   },

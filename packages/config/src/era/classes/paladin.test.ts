@@ -72,7 +72,7 @@ describe('Paladin Config', () => {
       expect(
         exclusiveAuras.some(
           (set) =>
-            set.has(Spells.BlessingOfMight) &&
+            set.has(Spells.BlessingOfMightR7) &&
             set.has(Spells.GreaterBlessingOfMight),
         ),
       ).toBe(true)
@@ -82,7 +82,7 @@ describe('Paladin Config', () => {
       expect(
         exclusiveAuras.some(
           (set) =>
-            set.has(Spells.BlessingOfWisdom) &&
+            set.has(Spells.BlessingOfWisdomR6) &&
             set.has(Spells.GreaterBlessingOfWisdom),
         ),
       ).toBe(true)
@@ -92,7 +92,7 @@ describe('Paladin Config', () => {
       expect(
         exclusiveAuras.some(
           (set) =>
-            set.has(Spells.BlessingOfSanctuary) &&
+            set.has(Spells.BlessingOfSanctuaryR4) &&
             set.has(Spells.GreaterBlessingOfSanctuary),
         ),
       ).toBe(true)
@@ -102,7 +102,7 @@ describe('Paladin Config', () => {
       expect(
         exclusiveAuras.some(
           (set) =>
-            set.has(Spells.BlessingOfLight) &&
+            set.has(Spells.BlessingOfLightR3) &&
             set.has(Spells.GreaterBlessingOfSalvation),
         ),
       ).toBe(false)

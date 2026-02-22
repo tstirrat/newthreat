@@ -32,6 +32,7 @@ export const Spells = {
   GreaterBlessingOfWisdomR3: 27143,
   BlessingOfLightR4: 27144,
   GreaterBlessingOfLightR2: 27145,
+  BlessingOfSanctuaryR5: 27168,
   GreaterBlessingOfSanctuaryR2: 27169,
 
   SealOfRighteousnessR9: 27155,
