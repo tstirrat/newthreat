@@ -3,6 +3,7 @@
  */
 import { wclApiError, wclRateLimited } from '../middleware/error'
 import type { Bindings } from '../types/bindings'
+import { buildWclRateLimitDetails } from './wcl-rate-limit'
 
 const WCL_AUTHORIZE_URL = 'https://www.warcraftlogs.com/oauth/authorize'
 const WCL_TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token'
@@ -42,25 +43,6 @@ interface WclCurrentUserQueryResponse {
   errors?: Array<{
     message?: string
   }>
-}
-
-function parseRetryAfterSeconds(retryAfter: string | null): number | null {
-  if (!retryAfter) {
-    return null
-  }
-
-  const seconds = Number(retryAfter)
-  if (Number.isFinite(seconds) && seconds >= 0) {
-    return Math.ceil(seconds)
-  }
-
-  const retryAtMs = Date.parse(retryAfter)
-  if (Number.isNaN(retryAtMs)) {
-    return null
-  }
-
-  const deltaMs = retryAtMs - Date.now()
-  return Math.max(0, Math.ceil(deltaMs / 1000))
 }
 
 /** Build a Warcraft Logs OAuth authorization URL. */
@@ -144,19 +126,9 @@ export async function fetchCurrentWclUser(
 
   if (response.status === 429) {
     const retryAfter = response.headers.get('Retry-After')
-    const retryAfterSeconds = parseRetryAfterSeconds(retryAfter)
-    const details: Record<string, unknown> = {
-      context: 'wcl-user-profile',
-    }
-
-    if (retryAfter) {
-      details.retryAfter = retryAfter
-    }
-    if (retryAfterSeconds !== null) {
-      details.retryAfterSeconds = retryAfterSeconds
-    }
-
-    throw wclRateLimited(details)
+    throw wclRateLimited(
+      buildWclRateLimitDetails('wcl-user-profile', retryAfter),
+    )
   }
 
   if (!response.ok) {

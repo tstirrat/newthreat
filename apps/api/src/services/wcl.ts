@@ -21,6 +21,7 @@ import {
   normalizeVisibility,
 } from './cache'
 import { refreshWclAccessToken } from './wcl-oauth'
+import { buildWclRateLimitDetails } from './wcl-rate-limit'
 
 const WCL_CLIENT_API_URL = 'https://www.warcraftlogs.com/api/v2/client'
 const WCL_USER_API_URL = 'https://www.warcraftlogs.com/api/v2/user'
@@ -270,7 +271,10 @@ export class WCLClient {
     })
 
     if (response.status === 429) {
-      throw wclRateLimited()
+      const retryAfter = response.headers.get('Retry-After')
+      throw wclRateLimited(
+        buildWclRateLimitDetails(`wcl-${scope}-graphql`, retryAfter),
+      )
     }
     if (!response.ok) {
       throw wclApiError(`WCL API error: ${response.status}`)

@@ -132,6 +132,26 @@ export function firestoreError(message: string): AppError {
   return new AppError(ErrorCodes.FIRESTORE_ERROR, message, 500)
 }
 
+function resolveRetryAfterHeader(
+  details?: Record<string, unknown>,
+): string | null {
+  const retryAfter = details?.retryAfter
+  if (typeof retryAfter === 'string' && retryAfter.length > 0) {
+    return retryAfter
+  }
+
+  const retryAfterSeconds = details?.retryAfterSeconds
+  if (
+    typeof retryAfterSeconds === 'number' &&
+    Number.isFinite(retryAfterSeconds) &&
+    retryAfterSeconds >= 0
+  ) {
+    return String(Math.ceil(retryAfterSeconds))
+  }
+
+  return null
+}
+
 /**
  * Global error handler
  */
@@ -153,6 +173,14 @@ export const errorHandler: ErrorHandler<{
       },
       requestId,
     }
+
+    if (err.code === ErrorCodes.WCL_RATE_LIMITED) {
+      const retryAfter = resolveRetryAfterHeader(err.details)
+      if (retryAfter) {
+        c.header('Retry-After', retryAfter)
+      }
+    }
+
     return c.json(response, err.statusCode as 400 | 401 | 404 | 429 | 500 | 502)
   }
 

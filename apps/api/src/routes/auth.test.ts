@@ -274,6 +274,7 @@ describe('Auth Routes', () => {
       bindings,
     )
     expect(callbackRes.status).toBe(429)
+    expect(callbackRes.headers.get('Retry-After')).toBe('15')
 
     const callbackBody = (await callbackRes.json()) as {
       error: {

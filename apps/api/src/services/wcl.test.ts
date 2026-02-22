@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createMockBindings } from '../../test/setup'
+import { type AppError, ErrorCodes } from '../middleware/error'
 import { encryptSecret, importAesGcmKey } from './token-utils'
 import { WCLClient } from './wcl'
 
@@ -173,6 +174,47 @@ describe('WCLClient.getReport', () => {
       return callUrl.startsWith(firestorePrefix)
     })
     expect(firestoreCalls.length).toBeGreaterThan(0)
+  })
+
+  it('surfaces retry-after details when graphql is rate limited', async () => {
+    const mockFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString()
+
+      if (url.includes('warcraftlogs.com/oauth/token')) {
+        return new Response(
+          JSON.stringify({
+            access_token: 'client-token',
+            expires_in: 3600,
+            token_type: 'Bearer',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+
+      if (url.includes('warcraftlogs.com/api/v2/client')) {
+        return new Response('rate limited', {
+          status: 429,
+          headers: {
+            'Retry-After': '27',
+          },
+        })
+      }
+
+      return new Response(null, { status: 404 })
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const client = new WCLClient(createMockBindings(), 'wcl:12345')
+
+    await expect(client.getReport('RATE429')).rejects.toMatchObject({
+      code: ErrorCodes.WCL_RATE_LIMITED,
+      details: {
+        context: 'wcl-client-graphql',
+        retryAfter: '27',
+        retryAfterSeconds: 27,
+      },
+      statusCode: 429,
+    } satisfies Partial<AppError>)
   })
 })
 
