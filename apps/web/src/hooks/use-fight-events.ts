@@ -13,11 +13,15 @@ import { useEffect, useRef, useState } from 'react'
 import {
   fightEventsQueryKey,
   fightQueryKey,
+  fightRawEventsQueryKey,
   getFight,
   getReport,
   reportQueryKey,
 } from '../api/reports'
-import { getFightEventsClientSide } from '../lib/client-threat-engine'
+import {
+  getFightEventsClientSide,
+  getFightRawEventsClientSide,
+} from '../lib/client-threat-engine'
 import {
   loadFightEventsResultCache,
   saveFightEventsResultCache,
@@ -82,6 +86,19 @@ async function fetchFightEvents(params: {
     }),
   ])
   throwIfAborted(signal)
+  const rawEventsData = await queryClient.ensureQueryData({
+    queryKey: fightRawEventsQueryKey(reportId, fightId),
+    queryFn: ({ signal: rawEventsSignal }) =>
+      getFightRawEventsClientSide({
+        reportId,
+        fightId,
+        signal: rawEventsSignal,
+        onProgress: (progress) => {
+          onProgressMessage?.(progress.message)
+        },
+      }),
+  })
+  throwIfAborted(signal)
 
   const response = await getFightEventsClientSide({
     reportId,
@@ -89,6 +106,7 @@ async function fetchFightEvents(params: {
     reportData,
     fightData,
     inferThreatReduction,
+    rawEventsData,
     signal,
     onProgress: (progress) => {
       onProgressMessage?.(progress.message)
@@ -161,6 +179,16 @@ export function useFightEvents(
           setLoadingMessage(message)
         },
       })
+    },
+    placeholderData: (previousData) => {
+      if (
+        previousData?.reportCode === reportId &&
+        previousData.fightId === fightId
+      ) {
+        return previousData
+      }
+
+      return undefined
     },
     enabled: reportId.length > 0 && Number.isFinite(fightId) && enabled,
   })

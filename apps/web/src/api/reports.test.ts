@@ -10,6 +10,7 @@ import { requestJson } from './client'
 import {
   entityReportsQueryKey,
   fightEventsQueryKey,
+  fightRawEventsQueryKey,
   getEntityReports,
   getFight,
   getFightEventsPage,
@@ -46,6 +47,15 @@ describe('reports api helpers', () => {
       12,
       configCacheVersion,
       true,
+    ])
+  })
+
+  it('includes config version in raw fight events query key', () => {
+    expect(fightRawEventsQueryKey('ABC123xyz', 12)).toEqual([
+      'fight-raw-events',
+      'ABC123xyz',
+      12,
+      configCacheVersion,
     ])
   })
 

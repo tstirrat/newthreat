@@ -9,7 +9,8 @@ import {
 import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { fightEventsQueryKey } from '../api/reports'
+import { fightEventsQueryKey, fightRawEventsQueryKey } from '../api/reports'
+import { getFightEventsClientSide } from '../lib/client-threat-engine'
 import { useFightEvents, useSuspenseFightEvents } from './use-fight-events'
 
 vi.mock('@tanstack/react-query', () => ({
@@ -23,13 +24,24 @@ vi.mock('@tanstack/react-query', () => ({
 
 vi.mock('../api/reports', () => ({
   fightEventsQueryKey: vi.fn(() => ['fight-events-query-key']),
+  fightRawEventsQueryKey: vi.fn(() => ['fight-raw-events-query-key']),
   fightQueryKey: vi.fn(() => ['fight-query-key']),
   getFight: vi.fn(),
   getReport: vi.fn(),
   reportQueryKey: vi.fn(() => ['report-query-key']),
 }))
 
+vi.mock('../lib/client-threat-engine', () => ({
+  getFightEventsClientSide: vi.fn(),
+  getFightRawEventsClientSide: vi.fn(),
+}))
+
 describe('useFightEvents', () => {
+  const queryClientMock = {
+    cancelQueries: vi.fn(),
+    ensureQueryData: vi.fn(),
+  }
+
   beforeEach(() => {
     vi.mocked(useQuery).mockReset()
     vi.mocked(useQuery).mockReturnValue({
@@ -49,8 +61,36 @@ describe('useFightEvents', () => {
         reportCode: 'ABC123xyz',
       },
     } as never)
+    vi.mocked(getFightEventsClientSide).mockReset()
+    vi.mocked(getFightEventsClientSide).mockResolvedValue({
+      configVersion: 'test',
+      events: [],
+      fightId: 12,
+      fightName: 'Patchwerk',
+      gameVersion: 2,
+      initialAurasByActor: {},
+      reportCode: 'ABC123xyz',
+    })
     vi.mocked(fightEventsQueryKey).mockClear()
+    vi.mocked(fightRawEventsQueryKey).mockClear()
     vi.mocked(useQueryClient).mockClear()
+    queryClientMock.cancelQueries.mockReset()
+    queryClientMock.ensureQueryData.mockReset()
+    queryClientMock.ensureQueryData.mockResolvedValue({
+      events: [],
+      metadata: {
+        configVersion: 'test',
+        events: [],
+        fightId: 12,
+        fightName: 'Patchwerk',
+        gameVersion: 2,
+        initialAurasByActor: {},
+        nextPageTimestamp: null,
+        reportCode: 'ABC123xyz',
+      },
+      pageCount: 1,
+    })
+    vi.mocked(useQueryClient).mockReturnValue(queryClientMock as never)
   })
 
   it('keeps query disabled when enabled flag is false', () => {
@@ -87,6 +127,53 @@ describe('useFightEvents', () => {
     expect(useSuspenseQuery).toHaveBeenCalledWith(
       expect.objectContaining({
         queryKey: ['fight-events-query-key'],
+      }),
+    )
+  })
+
+  it('reuses cached raw events payload when infer toggle changes', async () => {
+    renderHook(() => useFightEvents('ABC123xyz', 12, false, true))
+    renderHook(() => useFightEvents('ABC123xyz', 12, true, true))
+
+    const firstQueryCall = vi.mocked(useQuery).mock.calls[0]?.[0]
+    const secondQueryCall = vi.mocked(useQuery).mock.calls[1]?.[0]
+    expect(firstQueryCall).toBeDefined()
+    expect(secondQueryCall).toBeDefined()
+
+    await firstQueryCall?.queryFn({
+      signal: new AbortController().signal,
+    })
+    await secondQueryCall?.queryFn({
+      signal: new AbortController().signal,
+    })
+
+    expect(fightRawEventsQueryKey).toHaveBeenCalledTimes(2)
+    expect(fightRawEventsQueryKey).toHaveBeenNthCalledWith(1, 'ABC123xyz', 12)
+    expect(fightRawEventsQueryKey).toHaveBeenNthCalledWith(2, 'ABC123xyz', 12)
+
+    expect(queryClientMock.ensureQueryData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['fight-raw-events-query-key'],
+      }),
+    )
+
+    expect(getFightEventsClientSide).toHaveBeenCalledTimes(2)
+    expect(getFightEventsClientSide).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        inferThreatReduction: false,
+        rawEventsData: expect.objectContaining({
+          pageCount: 1,
+        }),
+      }),
+    )
+    expect(getFightEventsClientSide).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        inferThreatReduction: true,
+        rawEventsData: expect.objectContaining({
+          pageCount: 1,
+        }),
       }),
     )
   })

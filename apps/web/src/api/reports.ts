@@ -150,6 +150,16 @@ export const fightQueryKey = (
   fightId: number,
 ): readonly ['fight', string, number] => ['fight', reportId, fightId]
 
+export const fightRawEventsQueryKey = (
+  reportId: string,
+  fightId: number,
+): readonly ['fight-raw-events', string, number, string] => [
+  'fight-raw-events',
+  reportId,
+  fightId,
+  configCacheVersion,
+]
+
 export const fightEventsQueryKey = (
   reportId: string,
   fightId: number,

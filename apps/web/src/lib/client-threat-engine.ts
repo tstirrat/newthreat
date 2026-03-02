@@ -452,6 +452,23 @@ async function fetchAllRawEvents(
   }
 }
 
+export interface RawFightEventsData {
+  events: WCLEvent[]
+  metadata: FightEventsResponse
+  pageCount: number
+}
+
+/** Fetch all paginated raw events for a fight. */
+export async function getFightRawEventsClientSide(params: {
+  reportId: string
+  fightId: number
+  signal?: AbortSignal
+  onProgress?: (progress: ClientThreatEngineProgressUpdate) => void
+}): Promise<RawFightEventsData> {
+  const { reportId, fightId, signal, onProgress } = params
+  return fetchAllRawEvents(reportId, fightId, signal, onProgress)
+}
+
 /**
  * Fetch raw event pages and process threat calculations client-side.
  */
@@ -461,6 +478,7 @@ export async function getFightEventsClientSide(params: {
   reportData: ReportResponse
   fightData: FightsResponse
   inferThreatReduction: boolean
+  rawEventsData?: RawFightEventsData
   signal?: AbortSignal
   onProgress?: (progress: ClientThreatEngineProgressUpdate) => void
 }): Promise<AugmentedEventsResponse> {
@@ -470,6 +488,7 @@ export async function getFightEventsClientSide(params: {
     reportData,
     fightData,
     inferThreatReduction,
+    rawEventsData,
     signal,
     onProgress,
   } = params
@@ -505,7 +524,9 @@ export async function getFightEventsClientSide(params: {
     events: rawEvents,
     metadata,
     pageCount,
-  } = await fetchAllRawEvents(reportId, fightId, signal, onProgress)
+  } = rawEventsData
+    ? rawEventsData
+    : await fetchAllRawEvents(reportId, fightId, signal, onProgress)
   throwIfAborted(signal)
   const tankActorIds = extractTankActorIds(fightData)
   const workerPayload: ThreatEngineWorkerPayload = {
