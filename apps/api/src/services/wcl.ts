@@ -149,7 +149,7 @@ export interface GuildWclReports {
 }
 
 const maxRecentReportsLimit = 20
-const wclEventsPageLimit = 5000
+const wclEventsPageLimit = 10000
 const maxCacheableWclEvents = 15000
 
 interface WclFriendlyBuffTableAuraBand {
