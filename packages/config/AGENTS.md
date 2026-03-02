@@ -27,6 +27,7 @@ Use this package guide when adding or updating class/raid threat configs in
    - `pnpm --filter @wow-threat/config lint`
    - `pnpm --filter @wow-threat/config typecheck`
    - `pnpm --filter @wow-threat/config test`
+6. When the user asks to publish/finalize config changes, invoke `$push-pr` for branch/commit/push/PR operations.
 
 ## Mandatory Config Cache Version Bump
 

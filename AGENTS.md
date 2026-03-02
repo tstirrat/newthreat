@@ -19,6 +19,7 @@ Use this sequence to route work quickly:
 3. Jump to package landmarks in [Task Routing](#task-routing-open-these-files-first)
 4. Run scoped commands first (`pnpm --filter <pkg> ...`) and avoid top-level turbo commands unless needed
 5. Validate with lint + typecheck + tests for touched areas, then run formatting
+6. When publishing/finalizing changes for review, invoke `$push-pr` for branch/commit/push/PR workflow
 
 Quick worktree sanity check before edits/runs:
 
@@ -151,10 +152,12 @@ git -C /path/to/main-worktree merge --ff-only <feature-branch>
 - Run `pnpm fmt` using the project’s Prettier formatter before considering a change complete.
 - Finalization workflow: after all planned code changes and standard lint/typecheck/unit or integration tests are complete, run Playwright E2E for frontend app changes before considering the task complete.
 - Frontend E2E requirement: if the change touches `apps/web/src/**`, run at least one relevant Playwright spec (`pnpm --filter @wow-threat/web exec playwright test <spec>`) as final validation; if multiple user flows are affected, run the full web E2E suite (`pnpm --filter @wow-threat/web e2e`).
+- Publish workflow: after validation is complete and the user wants changes published, use `$push-pr` instead of manually handling git branch creation, commits, push, or PR create/edit steps.
 
 ## Commit conventions
 
 - Prefer [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) format by default (for example `feat`, `fix`, `chore`).
+- `$push-pr` is the default mechanism for creating/updating commits and PR metadata during finalization.
 
 ## Config Versioning Rule
 

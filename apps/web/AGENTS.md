@@ -25,6 +25,7 @@
    - `pnpm --filter @wow-threat/web test`
    - `pnpm --filter @wow-threat/web exec playwright test <relevant-spec>` (required final validation for frontend app changes)
    - `pnpm --filter @wow-threat/web e2e` (required when multiple or broad user flows are impacted)
+5. After validation, when publishing/finalizing web changes, invoke `$push-pr` for branch/commit/push/PR operations.
 
 ## Frontend Architecture (v0)
 
@@ -165,7 +166,7 @@ Playwright page object conventions:
 - Keep assertions (`expect`) in test files, not inside page object classes.
 - Page objects should expose actions, locators, and lightweight state helpers only.
 - Page objects may compose other page objects (sub-page objects) when it improves reuse and clarity.
-- When updating UI components, check whether related page objects and specs need updates before finalizing the change.
+- When updating UI components, check whether related page objects and specs need updates before finalizing the change and invoking `$push-pr`.
 
 Critical e2e flows:
 
