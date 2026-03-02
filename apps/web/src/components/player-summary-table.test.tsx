@@ -266,6 +266,54 @@ describe('PlayerSummaryTable', () => {
     })
   })
 
+  it('shows x1.00 with tooltip when multiple modifiers net to one', () => {
+    render(
+      <PlayerSummaryTable
+        summary={summary}
+        rows={[
+          {
+            key: 'ability-23922',
+            abilityId: 23922,
+            abilityName: 'Shield Slam',
+            spellSchool: 'physical',
+            amount: 600,
+            threat: 300,
+            tps: 2.5,
+            isHeal: false,
+            isFixate: false,
+            modifierTotal: 1,
+            modifierBreakdown: [
+              {
+                name: 'Defensive Stance',
+                schoolLabels: [],
+                value: 1.3,
+              },
+              {
+                name: 'Blessing of Salvation',
+                schoolLabels: [],
+                value: 0.7692307692,
+              },
+            ],
+          },
+        ]}
+        initialAuras={[]}
+        wowhead={{
+          domain: 'tbc',
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'x1.00' })).toBeInTheDocument()
+
+    const tooltip = openModifierTooltip('x1.00')
+    expect(within(tooltip).getByText('Defensive Stance')).toBeInTheDocument()
+    expect(
+      within(tooltip).getByText('Blessing of Salvation'),
+    ).toBeInTheDocument()
+    expect(within(tooltip).getByText('Total')).toBeInTheDocument()
+    expect(within(tooltip).getByText('x1.00')).toBeInTheDocument()
+  })
+
   it('keeps heal row color without spell-school override on modifier cell', () => {
     render(
       <PlayerSummaryTable

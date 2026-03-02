@@ -397,12 +397,7 @@ function ModifierCell({ row }: { row: FocusedPlayerThreatRow }) {
     hasVisibleSpellBonus ||
     Boolean(row.note)
 
-  if (
-    !hasAnyModifierDetails ||
-    (!hasFlatBonusOnlySpellModifier &&
-      Math.abs(row.modifierTotal - 1) <= modifierValueTolerance &&
-      !row.note)
-  ) {
+  if (!hasAnyModifierDetails) {
     return <span className="text-muted-foreground">-</span>
   }
 
@@ -421,9 +416,11 @@ function ModifierCell({ row }: { row: FocusedPlayerThreatRow }) {
   const multiplierDetailRowCount =
     visibleModifiers.length + (spellModifierValueLabel ? 1 : 0)
   const renderTotalAfterDetails = multiplierDetailRowCount > 1
+  const shouldShowUnityTotalLabel =
+    !hasVisibleTotalMultiplier && hasMultiplierDetails
   const primaryLabel = hasFlatBonusOnlySpellModifier
     ? `${formatSignedModifierBonus(spellModifierBonus)}*`
-    : hasVisibleTotalMultiplier
+    : hasVisibleTotalMultiplier || shouldShowUnityTotalLabel
       ? `x${formatModifierValue(row.modifierTotal)}${hasVisibleSpellBonus ? '*' : ''}`
       : hasVisibleSpellBonus
         ? '*'
