@@ -58,10 +58,10 @@ ahead="${divergence##* }"
 echo "behind=$behind ahead=$ahead"
 ```
 
-Treat divergence as significant when `behind` is greater than or equal to `5` commits by default. You can override this threshold with `PUSH_PR_DIVERGENCE_THRESHOLD`.
+Treat divergence as significant when `behind` is greater than or equal to `1` commit by default. You can override this threshold with `PUSH_PR_DIVERGENCE_THRESHOLD`.
 
 ```bash
-threshold="${PUSH_PR_DIVERGENCE_THRESHOLD:-5}"
+threshold="${PUSH_PR_DIVERGENCE_THRESHOLD:-1}"
 if [ "$behind" -ge "$threshold" ]; then
   git merge --no-edit origin/main
 fi
