@@ -5,9 +5,9 @@
  */
 import { chromium } from '@playwright/test'
 import { constants as fsConstants } from 'node:fs'
-import { access } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { resolve } from 'node:path'
+import { basename, extname, resolve } from 'node:path'
 import process from 'node:process'
 
 const defaultIssueUrl = 'https://github.com/tstirrat/wow-threat/issues/new'
@@ -140,9 +140,9 @@ const waitForAttachmentUrl = async (page, editor, timeoutMs) => {
 }
 
 /**
- * Finds the markdown uploader file input associated with the issue form.
+ * Finds a markdown uploader file input when one is present in the DOM.
  */
-const findUploaderInput = async (form) => {
+const findUploaderInput = async (root) => {
   const selectors = [
     'input[type="file"][data-upload-policy-url]',
     'input[type="file"][data-upload-url]',
@@ -150,16 +150,76 @@ const findUploaderInput = async (form) => {
   ]
 
   for (const selector of selectors) {
-    const candidate = form.locator(selector).first()
+    const candidate = root.locator(selector).first()
 
     if ((await candidate.count()) > 0) {
       return candidate
     }
   }
 
-  throw new Error(
-    'Could not find a file input associated with the markdown form',
+  return null
+}
+
+/**
+ * Guesses mime type from image extension for drag-drop upload fallback.
+ */
+const guessMimeType = (imagePath) => {
+  const extension = extname(imagePath).toLowerCase()
+
+  if (extension === '.png') {
+    return 'image/png'
+  }
+
+  if (extension === '.jpg' || extension === '.jpeg') {
+    return 'image/jpeg'
+  }
+
+  if (extension === '.webp') {
+    return 'image/webp'
+  }
+
+  if (extension === '.gif') {
+    return 'image/gif'
+  }
+
+  if (extension === '.svg') {
+    return 'image/svg+xml'
+  }
+
+  return 'application/octet-stream'
+}
+
+/**
+ * Simulates drag-drop upload directly into the markdown textarea.
+ */
+const dropFileIntoEditor = async (page, editor, imagePath) => {
+  const fileBuffer = await readFile(imagePath)
+  const fileBase64 = fileBuffer.toString('base64')
+  const filename = basename(imagePath)
+  const mimeType = guessMimeType(imagePath)
+
+  const dataTransfer = await page.evaluateHandle(
+    ({ encodedFile, filename, mimeType }) => {
+      const binary = atob(encodedFile)
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+      const file = new File([bytes], filename, { type: mimeType })
+      const transfer = new DataTransfer()
+
+      transfer.items.add(file)
+      return transfer
+    },
+    {
+      encodedFile: fileBase64,
+      filename,
+      mimeType,
+    },
   )
+
+  await editor.click()
+  await editor.dispatchEvent('dragenter', { dataTransfer })
+  await editor.dispatchEvent('dragover', { dataTransfer })
+  await editor.dispatchEvent('drop', { dataTransfer })
+  await dataTransfer.dispose()
 }
 
 /**
@@ -217,11 +277,15 @@ const run = async () => {
       timeout: args.timeoutMs,
     })
 
-    const issueForm = page.locator('form').filter({ has: editor }).first()
-    const uploaderInput = await findUploaderInput(issueForm)
+    const uploaderInput = await findUploaderInput(page)
 
     console.error(`Uploading ${args.imagePath}`)
-    await uploaderInput.setInputFiles(args.imagePath)
+    if (uploaderInput) {
+      await uploaderInput.setInputFiles(args.imagePath)
+    } else {
+      console.error('No file input found, falling back to drag-drop upload')
+      await dropFileIntoEditor(page, editor, args.imagePath)
+    }
 
     if (args.settleMs > 0) {
       await page.waitForTimeout(args.settleMs)
