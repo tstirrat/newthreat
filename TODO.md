@@ -47,7 +47,7 @@
 | WEB-018 | `@wow-threat/web`    | DISCOVERY   | P2       | M    | Fuzzy fight selector                                      |
 | WEB-019 | `@wow-threat/web`    | DISCOVERY   | P0       | M    | Fight event pagination currently blocks the UI thread     |
 | WEB-021 | `@wow-threat/web`    | READY       | P2       | S    | Keyboard shortcut for filter to tanks only                |
-| WEB-024 | `@wow-threat/web`    | IN_PROGRESS | P3       | XS   | Fixate band styling + legend explanation                  |
+| WEB-024 | `@wow-threat/web`    | IN_REVIEW   | P3       | XS   | Fixate band styling + legend explanation                  |
 | WEB-027 | `@wow-threat/web`    | READY       | P3       | XS   | Make toggled players in legend more prominent             |
 | WEB-028 | `@wow-threat/web`    | IN_PROGRESS | P3       | XS   | Add symbol/icon for healers                               |
 | WEB-032 | `@wow-threat/web`    | DISCOVERY   | P0       | L    | Batch + stream events to worker/IndexedDB to prevent jank |
@@ -400,7 +400,7 @@ commit_sha: null
 id: WEB-024
 title: Fixate band should have orange left border and legend explanation
 package: @wow-threat/web
-status: IN_PROGRESS
+status: IN_REVIEW
 priority: P3
 size: XS
 depends_on: []
@@ -420,8 +420,8 @@ validation:
 branch_name: codex/web-024-fixate-band-legend
 worktree_path: ../wow-threat-web-024
 publish: auto_push_pr
-pr_url: null
-commit_sha: null
+pr_url: https://github.com/tstirrat/wow-threat/pull/40
+commit_sha: 5058ee0b150c4727f26cc8a8a719f4f6c660beab
 ```
 
 ### WEB-027 - Make toggled players in legend more prominent
