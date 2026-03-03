@@ -26,7 +26,8 @@ Options:
   --profile-dir <path>       Persistent Chromium profile dir (default: ${defaultProfileDir})
   --timeout-ms <ms>          Timeout for editor/url waits (default: ${defaultTimeoutMs})
   --settle-ms <ms>           Delay after upload before polling textarea (default: ${defaultSettleMs})
-  --headless                 Run browser in headless mode
+  --headless                 Run browser in headless mode (default)
+  --headed                   Run browser in headed mode (for interactive login)
   -h, --help                 Show this help
 `
 
@@ -35,7 +36,7 @@ Options:
  */
 const parseArgs = (argv) => {
   const parsed = {
-    headless: false,
+    headless: true,
     help: false,
     imagePath: '',
     profileDir: defaultProfileDir,
@@ -95,6 +96,11 @@ const parseArgs = (argv) => {
       continue
     }
 
+    if (arg === '--headed') {
+      parsed.headless = false
+      continue
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown option: ${arg}`)
     }
@@ -116,6 +122,12 @@ const parseArgs = (argv) => {
 
   return parsed
 }
+
+/**
+ * Returns true when the current page is GitHub login/session auth UI.
+ */
+const isGithubLoginPage = (url) =>
+  /^https:\/\/github\.com\/(login|session|sessions)(?:\/|\?|#|$)/.test(url)
 
 /**
  * Waits for a GitHub attachment URL to appear in the markdown textarea value.
@@ -249,57 +261,74 @@ const run = async () => {
 
   await access(args.imagePath, fsConstants.R_OK)
 
-  const context = await chromium.launchPersistentContext(args.profileDir, {
-    headless: args.headless,
-    viewport: {
-      height: 900,
-      width: 1440,
-    },
-  })
+  let headless = args.headless
 
-  const page = context.pages()[0] ?? (await context.newPage())
-
-  try {
-    console.error(`Opening ${args.url}`)
-    console.error(
-      'If GitHub prompts for login, complete it in the opened browser window.',
-    )
-
-    await page.goto(args.url, {
-      timeout: args.timeoutMs,
-      waitUntil: 'domcontentloaded',
+  while (true) {
+    const context = await chromium.launchPersistentContext(args.profileDir, {
+      headless,
+      viewport: {
+        height: 900,
+        width: 1440,
+      },
     })
 
-    const editor = page.getByLabel('Markdown value')
+    const page = context.pages()[0] ?? (await context.newPage())
 
-    await editor.waitFor({
-      state: 'visible',
-      timeout: args.timeoutMs,
-    })
+    try {
+      console.error(`Opening ${args.url}`)
+      if (headless) {
+        console.error('Running in headless mode')
+      } else {
+        console.error(
+          'If GitHub prompts for login, complete it in the opened browser window.',
+        )
+      }
 
-    const uploaderInput = await findUploaderInput(page)
+      await page.goto(args.url, {
+        timeout: args.timeoutMs,
+        waitUntil: 'domcontentloaded',
+      })
 
-    console.error(`Uploading ${args.imagePath}`)
-    if (uploaderInput) {
-      await uploaderInput.setInputFiles(args.imagePath)
-    } else {
-      console.error('No file input found, falling back to drag-drop upload')
-      await dropFileIntoEditor(page, editor, args.imagePath)
+      if (headless && isGithubLoginPage(page.url())) {
+        console.error(
+          'GitHub login is required, retrying automatically in headed mode.',
+        )
+        headless = false
+        continue
+      }
+
+      const editor = page.getByLabel('Markdown value')
+
+      await editor.waitFor({
+        state: 'visible',
+        timeout: args.timeoutMs,
+      })
+
+      const uploaderInput = await findUploaderInput(page)
+
+      console.error(`Uploading ${args.imagePath}`)
+      if (uploaderInput) {
+        await uploaderInput.setInputFiles(args.imagePath)
+      } else {
+        console.error('No file input found, falling back to drag-drop upload')
+        await dropFileIntoEditor(page, editor, args.imagePath)
+      }
+
+      if (args.settleMs > 0) {
+        await page.waitForTimeout(args.settleMs)
+      }
+
+      const attachmentUrl = await waitForAttachmentUrl(
+        page,
+        editor,
+        args.timeoutMs,
+      )
+
+      console.log(attachmentUrl)
+      return
+    } finally {
+      await context.close()
     }
-
-    if (args.settleMs > 0) {
-      await page.waitForTimeout(args.settleMs)
-    }
-
-    const attachmentUrl = await waitForAttachmentUrl(
-      page,
-      editor,
-      args.timeoutMs,
-    )
-
-    console.log(attachmentUrl)
-  } finally {
-    await context.close()
   }
 }
 
