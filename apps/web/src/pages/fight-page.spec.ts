@@ -99,9 +99,17 @@ test.describe('fight page', () => {
       'aria-pressed',
       'true',
     )
+    await expect(fightPage.chart.legendToggle('Aegistank')).toHaveAttribute(
+      'data-legend-state',
+      'isolated',
+    )
     await expect(fightPage.chart.legendToggle('Bladefury')).toHaveAttribute(
       'aria-pressed',
       'false',
+    )
+    await expect(fightPage.chart.legendToggle('Bladefury')).toHaveAttribute(
+      'data-legend-state',
+      'hidden',
     )
     await fightPage.chart.clearIsolate()
     await expect(fightPage.chart.legendToggle('Bladefury')).toHaveAttribute(
@@ -130,9 +138,17 @@ test.describe('fight page', () => {
       'aria-pressed',
       'true',
     )
+    await expect(fightPage.chart.legendToggle('Aegistank')).toHaveAttribute(
+      'data-legend-state',
+      'toggled',
+    )
     await expect(fightPage.chart.legendToggle('Bladefury')).toHaveAttribute(
       'aria-pressed',
       'false',
+    )
+    await expect(fightPage.chart.legendToggle('Bladefury')).toHaveAttribute(
+      'data-legend-state',
+      'hidden',
     )
     await expect(fightPage.chart.clearIsolateButton()).toBeVisible()
 

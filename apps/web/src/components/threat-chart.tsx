@@ -420,6 +420,8 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         <ThreatChartLegend
           series={series}
           isActorVisible={isActorVisible}
+          hasHiddenActors={hasHiddenActors}
+          isolatedActorId={visibleIsolatedActorId}
           onActorClick={handleLegendItemClick}
           onActorFocus={onSeriesClick}
           pinnedPlayerIds={pinnedPlayerIds}

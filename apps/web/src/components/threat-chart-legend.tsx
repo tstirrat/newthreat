@@ -20,6 +20,8 @@ import {
 export interface ThreatChartLegendProps {
   series: ThreatSeries[]
   isActorVisible: (actorId: number) => boolean
+  hasHiddenActors: boolean
+  isolatedActorId: number | null
   onActorClick: (actorId: number) => void
   onActorFocus: (actorId: number) => void
   pinnedPlayerIds: number[]
@@ -33,6 +35,8 @@ export interface ThreatChartLegendProps {
 export const ThreatChartLegend: FC<ThreatChartLegendProps> = ({
   series,
   isActorVisible,
+  hasHiddenActors,
+  isolatedActorId,
   onActorClick,
   onActorFocus,
   pinnedPlayerIds,
@@ -98,6 +102,16 @@ export const ThreatChartLegend: FC<ThreatChartLegendProps> = ({
             <ul className="py-1">
               {series.map((item) => {
                 const isVisible = isActorVisible(item.actorId)
+                const isIsolatedActor = isolatedActorId === item.actorId
+                const isToggledActor =
+                  hasHiddenActors && isVisible && !isIsolatedActor
+                const legendState = !isVisible
+                  ? 'hidden'
+                  : isIsolatedActor
+                    ? 'isolated'
+                    : isToggledActor
+                      ? 'toggled'
+                      : 'default'
                 const isTank =
                   item.actorType === 'Player' && item.actorRole === 'Tank'
                 const isPinnable = item.actorType === 'Player'
@@ -117,8 +131,17 @@ export const ThreatChartLegend: FC<ThreatChartLegendProps> = ({
                         aria-label={`Toggle ${label}`}
                         aria-pressed={isVisible}
                         className={`h-auto min-w-0 flex-1 cursor-pointer justify-start gap-2 py-1 text-left text-xs ${
-                          isVisible ? 'text-foreground' : 'text-muted'
+                          legendState === 'hidden'
+                            ? 'text-muted'
+                            : 'text-foreground'
+                        } ${
+                          legendState === 'isolated'
+                            ? 'bg-amber-500/20 ring-1 ring-amber-500/70 shadow-[inset_3px_0_0_0_rgba(251,146,60,1)]'
+                            : legendState === 'toggled'
+                              ? 'bg-amber-500/10 ring-1 ring-amber-500/45 shadow-[inset_2px_0_0_0_rgba(251,146,60,0.88)]'
+                              : ''
                         }`}
+                        data-legend-state={legendState}
                         title="Click to toggle visibility. Double-click to isolate."
                         type="button"
                         variant="ghost"
