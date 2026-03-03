@@ -47,7 +47,7 @@
 | WEB-018 | `@wow-threat/web`    | DISCOVERY   | P2       | M    | Fuzzy fight selector                                      |
 | WEB-019 | `@wow-threat/web`    | DISCOVERY   | P0       | M    | Fight event pagination currently blocks the UI thread     |
 | WEB-021 | `@wow-threat/web`    | READY       | P2       | S    | Keyboard shortcut for filter to tanks only                |
-| WEB-024 | `@wow-threat/web`    | READY       | P3       | XS   | Fixate band styling + legend explanation                  |
+| WEB-024 | `@wow-threat/web`    | IN_PROGRESS | P3       | XS   | Fixate band styling + legend explanation                  |
 | WEB-027 | `@wow-threat/web`    | READY       | P3       | XS   | Make toggled players in legend more prominent             |
 | WEB-028 | `@wow-threat/web`    | IN_PROGRESS | P3       | XS   | Add symbol/icon for healers                               |
 | WEB-032 | `@wow-threat/web`    | DISCOVERY   | P0       | L    | Batch + stream events to worker/IndexedDB to prevent jank |
@@ -400,7 +400,7 @@ commit_sha: null
 id: WEB-024
 title: Fixate band should have orange left border and legend explanation
 package: @wow-threat/web
-status: READY
+status: IN_PROGRESS
 priority: P3
 size: XS
 depends_on: []
