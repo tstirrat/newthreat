@@ -21,18 +21,21 @@ const reportActors: ReportActorSummary[] = [
   {
     id: 1,
     name: 'Aegistank',
+    role: 'Tank',
     type: 'Player',
     subType: 'Warrior',
   },
   {
     id: 2,
     name: 'Bladefury',
+    role: 'DPS',
     type: 'Player',
     subType: 'Rogue',
   },
   {
     id: 3,
     name: 'Arrowyn',
+    role: 'Healer',
     type: 'Player',
     subType: 'Hunter',
   },

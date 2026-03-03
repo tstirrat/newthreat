@@ -513,4 +513,41 @@ describe('threat-chart-tooltip', () => {
     expect(tooltip).toContain('>Heal</span><span>1.50</span>')
     expect(tooltip).not.toContain('>Flash Heal</span><span>1.50</span>')
   })
+
+  it('renders healer role icon next to actor name when role is healer', () => {
+    const formatter = createThreatChartTooltipFormatter({
+      series: [
+        {
+          ...baseSeries,
+          actorRole: 'Healer',
+        },
+      ],
+      themeColors: {
+        border: '#d1d5db',
+        foreground: '#0f172a',
+        muted: '#64748b',
+        panel: '#ffffff',
+      },
+    })
+
+    const tooltip = formatter({
+      seriesName: 'Healer',
+      data: {
+        actorId: 1,
+        actorColor: '#22c55e',
+        abilityName: 'Lesser Heal',
+        amount: 200,
+        baseThreat: 100,
+        eventType: 'heal',
+        modifiedThreat: 100,
+        spellSchool: 'Holy',
+        modifiers: [],
+        threatDelta: 100,
+        timeMs: 1000,
+        totalThreat: 100,
+      },
+    })
+
+    expect(tooltip).toContain('aria-label="Healer role"')
+  })
 })

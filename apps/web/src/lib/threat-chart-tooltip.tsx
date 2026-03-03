@@ -185,6 +185,7 @@ export function createThreatChartTooltipFormatter({
       typeof payload.spellId === 'number' && payload.spellId > 0
         ? payload.spellId
         : null
+    const actorRole = sourceSeries?.actorRole ?? null
 
     const tooltipData: ThreatChartTooltipContentData = {
       abilityEventSuffix: isDeathMarker ? '' : abilityEventSuffix,
@@ -216,6 +217,7 @@ export function createThreatChartTooltipFormatter({
       ...(note ? { note } : {}),
       mutedColor: themeColors.muted,
       spellId,
+      actorRole,
     }
 
     const html = renderToString(
