@@ -172,7 +172,7 @@ If changes are visually verifiable (UI/layout/styling/interaction):
 PLAYWRIGHT_SCREENSHOT=1 pnpm --filter @wow-threat/web exec playwright test src/pages/landing-page.spec.ts
 ```
 
-5. Upload each generated `<repoRoot>/output/<page>.png` via the image uploader tool and capture the returned GitHub attachment URL:
+5. Upload only the relevant `<repoRoot>/output/<page>.png` file(s) for the UI changes in this PR via the image uploader tool and capture each returned GitHub attachment URL:
    - The uploader runs headless by default and only switches to headed mode when GitHub login is required.
 
 ```bash
@@ -202,4 +202,4 @@ After running this skill, leave the repository in this state:
 4. Branch is pushed to origin.
 5. PR exists and points to the current branch state.
 6. PR title/body are up to date with branch intent.
-7. Visual proof is attached in PR description when applicable, sourced from `<repoRoot>/output/<page>.png` screenshots without committing image files.
+7. Visual proof is attached in PR description when applicable, sourced from relevant `<repoRoot>/output/<page>.png` screenshots without committing image files.
