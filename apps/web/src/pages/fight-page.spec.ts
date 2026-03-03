@@ -53,6 +53,9 @@ test.describe('fight page', () => {
     await expect(fightPage.chart.legendToggle('Aegistank')).toBeVisible()
     await expect(fightPage.chart.legendToggle('Bladefury')).toBeVisible()
     await expect(fightPage.chart.legendToggle('Arrowyn')).toBeVisible()
+    await expect(
+      fightPage.chart.legendRoleIndicator('Arrowyn', 'Healer'),
+    ).toBeVisible()
     await expect(fightPage.chart.legendFocus('Aegistank')).toBeVisible()
     await expect(fightPage.chart.legendToggle('Wolfie')).toHaveCount(0)
 

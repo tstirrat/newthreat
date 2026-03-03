@@ -91,6 +91,10 @@ export class ThreatChartObject {
     return this.legendToggle(name).locator('xpath=ancestor::li[1]')
   }
 
+  legendRoleIndicator(name: string, role: 'Healer' | 'Tank'): Locator {
+    return this.legendToggle(name).getByLabel(`${role} role`)
+  }
+
   clearIsolateButton(): Locator {
     return this.legendRoot().getByRole('button', { name: 'Clear selections' })
   }

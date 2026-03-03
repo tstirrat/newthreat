@@ -1,6 +1,7 @@
 /**
  * Render-only tooltip content component for threat chart point details.
  */
+import { HeartPulse } from 'lucide-react'
 import type { FC } from 'react'
 
 import { formatTimelineTime } from '../lib/format'
@@ -11,6 +12,7 @@ import {
   tranquilAirTotemMarkerColor,
 } from '../lib/threat-chart-tooltip-colors'
 import type { TooltipPointPayload } from '../lib/threat-chart-types'
+import type { ReportActorRole } from '../types/api'
 
 export interface ThreatChartTooltipContentData {
   abilityEventSuffix: string
@@ -38,6 +40,7 @@ export interface ThreatChartTooltipContentData {
   note?: string
   mutedColor: string
   spellId: number | null
+  actorRole: ReportActorRole | null
 }
 
 export type ThreatChartTooltipContentProps = {
@@ -102,6 +105,7 @@ export const ThreatChartTooltipContent: FC<ThreatChartTooltipContentProps> = ({
     gap: 10,
     lineHeight: 1.2,
   } as const
+  const isHealer = data.actorRole === 'Healer'
 
   return (
     <div
@@ -132,7 +136,21 @@ export const ThreatChartTooltipContent: FC<ThreatChartTooltipContentProps> = ({
               {data.hitTypeLabel ? ` [${data.hitTypeLabel}]` : ''}
               {data.abilityEventSuffix}
             </strong>
-            <strong style={{ color: data.actorColor }}>{data.actorName}</strong>
+            <strong style={{ color: data.actorColor }}>
+              {data.actorName}
+              {isHealer ? (
+                <span
+                  aria-label="Healer role"
+                  style={{ marginLeft: 4, display: 'inline-flex' }}
+                >
+                  <HeartPulse
+                    aria-hidden="true"
+                    size={12}
+                    style={{ color: '#10b981' }}
+                  />
+                </span>
+              ) : null}
+            </strong>
           </>
         )}
       </div>
