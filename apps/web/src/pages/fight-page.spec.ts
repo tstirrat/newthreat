@@ -1,7 +1,8 @@
 /**
  * Playwright coverage for fight page chart and interaction flows.
  */
-import { expect, test } from '@playwright/test'
+import { type Page, expect, test } from '@playwright/test'
+import path from 'node:path'
 
 import {
   e2eReportId,
@@ -10,6 +11,25 @@ import {
 import { FightPageObject } from '../test/page-objects/fight-page'
 
 const svgFightUrl = `/report/${e2eReportId}/fight/26?renderer=svg`
+
+async function maybeCaptureFightScreenshot({
+  page,
+  screenshotName,
+}: {
+  page: Page
+  screenshotName: string
+}): Promise<void> {
+  const screenshotDir = process.env.PLAYWRIGHT_SCREENSHOT_DIR
+  if (!screenshotDir) {
+    return
+  }
+
+  const screenshotPath = path.join(screenshotDir, `${screenshotName}.png`)
+  await page.screenshot({
+    path: screenshotPath,
+    fullPage: true,
+  })
+}
 
 test.describe('fight page', () => {
   test.beforeEach(async ({ page }) => {
@@ -61,6 +81,10 @@ test.describe('fight page', () => {
       page.getByText('Fixate bands mark forced-target windows.'),
     ).toBeVisible()
     await expect(fightPage.chart.legendToggle('Wolfie')).toHaveCount(0)
+    await maybeCaptureFightScreenshot({
+      page,
+      screenshotName: 'fight-page-fixate-bands',
+    })
 
     await expect(fightPage.chart.showEnergizeEventsCheckbox()).not.toBeChecked()
     await expect(fightPage.chart.showFixateBandsCheckbox()).toBeChecked()
