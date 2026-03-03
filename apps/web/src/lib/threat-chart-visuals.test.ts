@@ -79,8 +79,8 @@ describe('threat-chart-visuals', () => {
           y2: 0,
           colorStops: [
             { offset: 0, color: 'rgba(249, 115, 22, 0.78)' },
-            { offset: 0.035, color: 'rgba(249, 115, 22, 0.78)' },
-            { offset: 0.035, color: 'rgba(255, 212, 173, 0.42)' },
+            { offset: 0.004, color: 'rgba(249, 115, 22, 0.78)' },
+            { offset: 0.004, color: 'rgba(255, 212, 173, 0.42)' },
             { offset: 1, color: 'rgba(255, 212, 173, 0.42)' },
           ],
           global: false,
