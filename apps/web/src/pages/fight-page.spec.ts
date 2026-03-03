@@ -77,9 +77,7 @@ test.describe('fight page', () => {
       fightPage.chart.legendRoleIndicator('Arrowyn', 'Healer'),
     ).toBeVisible()
     await expect(fightPage.chart.legendFocus('Aegistank')).toBeVisible()
-    await expect(
-      page.getByText('Fixate bands mark forced-target windows.'),
-    ).toBeVisible()
+    await expect(page.getByText('Fixate/Taunt')).toBeVisible()
     await expect(fightPage.chart.legendToggle('Wolfie')).toHaveCount(0)
     await maybeCaptureFightScreenshot({
       page,

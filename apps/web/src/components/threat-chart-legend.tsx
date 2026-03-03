@@ -227,7 +227,7 @@ export const ThreatChartLegend: FC<ThreatChartLegendProps> = ({
                   'linear-gradient(90deg, rgba(249, 115, 22, 0.9) 0%, rgba(249, 115, 22, 0.9) 12%, rgba(251, 146, 60, 0.22) 12%, rgba(251, 146, 60, 0.22) 100%)',
               }}
             />
-            <span>Fixate bands mark forced-target windows.</span>
+            <span>Fixate/Taunt</span>
           </span>
         </div>
       </CardContent>
