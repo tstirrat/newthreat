@@ -76,6 +76,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   onRegisterResetZoom,
 }) => {
   const chartRef = useRef<ReactEChartsCore>(null)
+  const focusedActorIdRef = useRef<number | null>(focusedActorId)
   const [isChartReady, setIsChartReady] = useState(false)
   const themeColors = useThreatChartThemeColors()
   const {
@@ -116,6 +117,10 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     onVisiblePlayerIdsChange,
     series,
   })
+  const resolveFocusedActorId = useCallback(
+    (): number | null => focusedActorIdRef.current,
+    [],
+  )
   const {
     filteredPlayerSearchOptions,
     handlePlayerSearchInputKeyDown,
@@ -131,6 +136,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   } = useThreatChartPlayerSearch({
     clearIsolate,
     focusedActorId,
+    resolveFocusedActorId,
     onFocusAndAddPlayer,
     onFocusAndIsolatePlayer,
     series,
@@ -145,6 +151,18 @@ export const ThreatChart: FC<ThreatChartProps> = ({
 
     onVisiblePlayerIdsChange?.(allPlayerIds)
   }, [allPlayerIds, clearIsolate, onClearSelections, onVisiblePlayerIdsChange])
+
+  useEffect(() => {
+    focusedActorIdRef.current = focusedActorId
+  }, [focusedActorId])
+
+  const handleActorFocus = useCallback(
+    (actorId: number): void => {
+      focusedActorIdRef.current = actorId
+      onSeriesClick(actorId)
+    },
+    [onSeriesClick],
+  )
 
   useEffect(() => {
     onChartReadyChange?.(isChartReady)
@@ -244,7 +262,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   const handleSeriesChartClick = useThreatChartSeriesClickHandler({
     actorIdByLabel,
     consumeSuppressedSeriesClick,
-    onSeriesClick,
+    onSeriesClick: handleActorFocus,
   })
 
   const tooltipFormatter = createThreatChartTooltipFormatter({
@@ -421,7 +439,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
           series={series}
           isActorVisible={isActorVisible}
           onActorClick={handleLegendItemClick}
-          onActorFocus={onSeriesClick}
+          onActorFocus={handleActorFocus}
           pinnedPlayerIds={pinnedPlayerIds}
           onTogglePinnedPlayer={onTogglePinnedPlayer}
           showClearSelections={canClearIsolate}

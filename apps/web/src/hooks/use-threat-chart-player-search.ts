@@ -64,12 +64,14 @@ export interface UseThreatChartPlayerSearchResult {
 export function useThreatChartPlayerSearch({
   series,
   focusedActorId,
+  resolveFocusedActorId,
   onFocusAndAddPlayer,
   onFocusAndIsolatePlayer,
   clearIsolate,
 }: {
   series: ThreatSeries[]
   focusedActorId: number | null
+  resolveFocusedActorId?: () => number | null
   onFocusAndAddPlayer: (playerId: number) => void
   onFocusAndIsolatePlayer: (playerId: number) => void
   clearIsolate: () => void
@@ -79,14 +81,9 @@ export function useThreatChartPlayerSearch({
   const [highlightedPlayerId, setHighlightedPlayerId] = useState<number | null>(
     null,
   )
-
-  const focusedPlayerId = useMemo(
-    () =>
-      resolveFocusedPlayerId({
-        focusedActorId,
-        series,
-      }),
-    [focusedActorId, series],
+  const resolveCurrentFocusedActorId = useCallback(
+    (): number | null => resolveFocusedActorId?.() ?? focusedActorId,
+    [focusedActorId, resolveFocusedActorId],
   )
 
   const playerSearchOptions = useMemo(
@@ -210,6 +207,10 @@ export function useThreatChartPlayerSearch({
   )
 
   const isolateFocusedPlayer = useCallback((): void => {
+    const focusedPlayerId = resolveFocusedPlayerId({
+      focusedActorId: resolveCurrentFocusedActorId(),
+      series,
+    })
     if (focusedPlayerId === null) {
       return
     }
@@ -218,7 +219,7 @@ export function useThreatChartPlayerSearch({
       playerId: focusedPlayerId,
       shouldAddToFilter: false,
     })
-  }, [focusedPlayerId, selectPlayer])
+  }, [resolveCurrentFocusedActorId, selectPlayer, series])
 
   return {
     isPlayerSearchOpen,
