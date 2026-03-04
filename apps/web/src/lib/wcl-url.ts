@@ -81,14 +81,22 @@ export function buildFightRankingsUrl(
   return url.toString()
 }
 
-/** Build a WCL fight summary URL deep-linked to a focused source actor. */
-export function buildFocusedPlayerUrl(
+/** Build a WCL character profile URL from host + character identity. */
+export function buildCharacterUrl(
   host: WarcraftLogsHost,
-  reportId: string,
-  fightId: number,
-  sourceId: number,
+  {
+    characterName,
+    region,
+    serverSlug,
+  }: {
+    characterName: string
+    region: string
+    serverSlug: string
+  },
 ): string {
-  const url = new URL(buildFightRankingsUrl(host, reportId, fightId))
-  url.searchParams.set('source', String(sourceId))
-  return url.toString()
+  const normalizedRegion = region.trim().toLowerCase()
+  const normalizedServerSlug = serverSlug.trim().toLowerCase()
+  const normalizedCharacterName = characterName.trim().toLowerCase()
+
+  return `https://${host}/character/${encodeURIComponent(normalizedRegion)}/${encodeURIComponent(normalizedServerSlug)}/${encodeURIComponent(normalizedCharacterName)}`
 }

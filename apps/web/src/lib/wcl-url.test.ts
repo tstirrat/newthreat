@@ -4,8 +4,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildCharacterUrl,
   buildFightRankingsUrl,
-  buildFocusedPlayerUrl,
   parseReportInput,
   parseWarcraftLogsReportUrl,
 } from './wcl-url'
@@ -51,11 +51,15 @@ describe('wcl-url', () => {
     expect(url).toContain('type=summary')
   })
 
-  it('builds focused player URL', () => {
-    const url = buildFocusedPlayerUrl('sod.warcraftlogs.com', 'CODE123', 42, 17)
+  it('builds character URL', () => {
+    const url = buildCharacterUrl('sod.warcraftlogs.com', {
+      characterName: 'Grehy',
+      region: 'US',
+      serverSlug: 'Wild-Growth',
+    })
 
     expect(url).toBe(
-      'https://sod.warcraftlogs.com/reports/CODE123?fight=42&type=summary&source=17',
+      'https://sod.warcraftlogs.com/character/us/wild-growth/grehy',
     )
   })
 })

@@ -406,7 +406,7 @@ test.describe('fight page', () => {
     await expect(focusedPlayerWclLink).toBeVisible()
     await expect(focusedPlayerWclLink).toHaveAttribute(
       'href',
-      `https://fresh.warcraftlogs.com/reports/${e2eReportId}?fight=26&type=summary&source=1`,
+      'https://fresh.warcraftlogs.com/character/us/benediction/aegistank',
     )
     await expect(focusedPlayerWclLink).toHaveAttribute('target', '_blank')
     await expect(focusedPlayerWclLink).toHaveAttribute(
