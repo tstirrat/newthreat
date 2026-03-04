@@ -177,6 +177,8 @@ Playwright e2e stability findings:
 - Avoid `page.evaluate`-based URL polling (`window.location.search`) for assertion waits; it is more prone to timing races with router updates.
 - When a keyboard shortcut depends on recently updated React state, wait for deterministic UI state before sending the next keypress (for example: wait for focused-player summary text before pressing isolate hotkeys).
 - Do not add unrelated/no-op interactions (for example random clicks) as timing guards unless no deterministic app-state wait exists.
+- When adding or modifying a specific e2e test, run a deflake pass by isolating that test and repeating it with `--repeat-each` greater than `20` (for example `--repeat-each=25`) before finalizing:
+  - `pnpm --filter @wow-threat/web exec playwright test <spec> -g "<test name>" --repeat-each=25`
 
 Critical e2e flows:
 
