@@ -112,8 +112,8 @@ validation:
 branch_name: codex/api-005-anonymous-account-cleanup
 worktree_path: ../wow-threat-api-005
 publish: auto_push_pr
-pr_url: null
-commit_sha: null
+pr_url: "https://github.com/tstirrat/wow-threat/pull/49"
+commit_sha: "10041befdc77634141628723c4cf255ae8be76cb"
 ```
 
 ### ENG-004 - Apply Earth Shield threat to tank, not caster
