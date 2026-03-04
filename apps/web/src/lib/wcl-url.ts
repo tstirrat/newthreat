@@ -80,3 +80,15 @@ export function buildFightRankingsUrl(
   url.searchParams.set('type', 'summary')
   return url.toString()
 }
+
+/** Build a WCL fight summary URL deep-linked to a focused source actor. */
+export function buildFocusedPlayerUrl(
+  host: WarcraftLogsHost,
+  reportId: string,
+  fightId: number,
+  sourceId: number,
+): string {
+  const url = new URL(buildFightRankingsUrl(host, reportId, fightId))
+  url.searchParams.set('source', String(sourceId))
+  return url.toString()
+}

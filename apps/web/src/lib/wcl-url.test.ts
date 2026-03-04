@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildFightRankingsUrl,
+  buildFocusedPlayerUrl,
   parseReportInput,
   parseWarcraftLogsReportUrl,
 } from './wcl-url'
@@ -48,5 +49,13 @@ describe('wcl-url', () => {
 
     expect(url).toContain('fight=42')
     expect(url).toContain('type=summary')
+  })
+
+  it('builds focused player URL', () => {
+    const url = buildFocusedPlayerUrl('sod.warcraftlogs.com', 'CODE123', 42, 17)
+
+    expect(url).toBe(
+      'https://sod.warcraftlogs.com/reports/CODE123?fight=42&type=summary&source=17',
+    )
   })
 })

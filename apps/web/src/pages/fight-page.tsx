@@ -18,7 +18,7 @@ import { useFightEvents } from '../hooks/use-fight-events'
 import { useUserSettings } from '../hooks/use-user-settings'
 import { formatClockDuration } from '../lib/format'
 import { resolveCurrentThreatConfig } from '../lib/threat-config'
-import { buildFightRankingsUrl } from '../lib/wcl-url'
+import { buildFightRankingsUrl, buildFocusedPlayerUrl } from '../lib/wcl-url'
 import { useReportRouteContext } from '../routes/report-layout-context'
 import type { BossDamageMode } from '../types/app'
 import { useFightPageDerivedState } from './hooks/use-fight-page-derived-state'
@@ -338,6 +338,14 @@ export const FightPage: FC = () => {
       </a>
     </div>
   )
+  const focusedPlayerWclUrl = focusedPlayerSummary
+    ? buildFocusedPlayerUrl(
+        reportHost,
+        reportId,
+        fightId,
+        focusedPlayerSummary.actorId,
+      )
+    : null
 
   return (
     <div className="space-y-5">
@@ -402,6 +410,21 @@ export const FightPage: FC = () => {
         <SectionCard
           title="Focused player summary"
           subtitle="Totals and ability TPS are calculated from the currently visible chart window."
+          headerRight={
+            focusedPlayerSummary && focusedPlayerWclUrl ? (
+              <a
+                aria-label={`Open ${focusedPlayerSummary.label} on Warcraft Logs`}
+                className="inline-flex items-center gap-1 text-xs font-medium leading-none hover:opacity-80"
+                href={focusedPlayerWclUrl}
+                rel="noopener noreferrer"
+                target="_blank"
+                title={`Open ${focusedPlayerSummary.label} on Warcraft Logs`}
+              >
+                <span>WCL</span>
+                <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+              </a>
+            ) : null
+          }
         >
           <PlayerSummaryTable
             summary={focusedPlayerSummary}
