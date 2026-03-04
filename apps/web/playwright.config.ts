@@ -7,10 +7,7 @@ export default defineConfig({
   testDir: './src/pages',
   testMatch: '**/*.spec.ts',
   outputDir: 'test-results',
-  reporter: [
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
-    ['@estruyf/github-actions-reporter'],
-  ],
+  reporter: [['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:9090',
     trace: 'on-first-retry',
