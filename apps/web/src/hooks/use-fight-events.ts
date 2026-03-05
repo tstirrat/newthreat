@@ -46,14 +46,6 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   }
 }
 
-function throwIfRequestNotCurrent(
-  isRequestCurrent: (() => boolean) | undefined,
-): void {
-  if (isRequestCurrent && !isRequestCurrent()) {
-    throw createAbortError()
-  }
-}
-
 async function fetchFightEvents(params: {
   reportId: string
   fightId: number
@@ -61,7 +53,6 @@ async function fetchFightEvents(params: {
   forceFresh: boolean
   queryClient: QueryClient
   signal?: AbortSignal
-  isRequestCurrent?: () => boolean
   onProgressMessage?: (message: string) => void
 }): Promise<AugmentedEventsResponse> {
   const {
@@ -71,11 +62,9 @@ async function fetchFightEvents(params: {
     forceFresh,
     queryClient,
     signal,
-    isRequestCurrent,
     onProgressMessage,
   } = params
   throwIfAborted(signal)
-  throwIfRequestNotCurrent(isRequestCurrent)
 
   if (!forceFresh) {
     const cached = await loadFightEventsResultCache({
@@ -88,7 +77,6 @@ async function fetchFightEvents(params: {
       onProgressMessage?.(
         `Loaded cached events (${cached.events.length} events)`,
       )
-      throwIfRequestNotCurrent(isRequestCurrent)
       return cached
     }
   }
@@ -104,13 +92,11 @@ async function fetchFightEvents(params: {
     }),
   ])
   throwIfAborted(signal)
-  throwIfRequestNotCurrent(isRequestCurrent)
   const rawEventsData = forceFresh
     ? await getFightRawEventsClientSide({
         reportId,
         fightId,
         signal,
-        isRequestCurrent,
         onProgress: (progress) => {
           onProgressMessage?.(progress.message)
         },
@@ -122,14 +108,12 @@ async function fetchFightEvents(params: {
             reportId,
             fightId,
             signal: rawEventsSignal,
-            isRequestCurrent,
             onProgress: (progress) => {
               onProgressMessage?.(progress.message)
             },
           }),
       })
   throwIfAborted(signal)
-  throwIfRequestNotCurrent(isRequestCurrent)
 
   const response = await getFightEventsClientSide({
     reportId,
@@ -143,7 +127,6 @@ async function fetchFightEvents(params: {
       onProgressMessage?.(progress.message)
     },
   })
-  throwIfRequestNotCurrent(isRequestCurrent)
 
   if (!forceFresh) {
     await saveFightEventsResultCache({
@@ -156,7 +139,6 @@ async function fetchFightEvents(params: {
       response,
     })
   }
-  throwIfRequestNotCurrent(isRequestCurrent)
 
   return response
 }
@@ -206,8 +188,6 @@ export function useFightEvents(
       const requestId = activeRequestIdRef.current + 1
       activeRequestIdRef.current = requestId
       setLoadingMessage(defaultFightEventsLoadingMessage)
-      const isRequestCurrent = (): boolean =>
-        activeRequestIdRef.current === requestId
 
       return fetchFightEvents({
         reportId,
@@ -216,9 +196,8 @@ export function useFightEvents(
         forceFresh,
         queryClient,
         signal,
-        isRequestCurrent,
         onProgressMessage: (message) => {
-          if (!isRequestCurrent()) {
+          if (activeRequestIdRef.current !== requestId) {
             return
           }
 
