@@ -34,6 +34,7 @@ export type ThreatChartProps = {
   selectedPlayerIds?: number[]
   pinnedPlayerIds?: number[]
   focusedActorId?: number | null
+  zoomToggleContextKey?: string
   renderer?: 'canvas' | 'svg'
   windowStartMs: number | null
   windowEndMs: number | null
@@ -59,6 +60,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   selectedPlayerIds = [],
   pinnedPlayerIds = [],
   focusedActorId = null,
+  zoomToggleContextKey,
   renderer = 'canvas',
   windowStartMs,
   windowEndMs,
@@ -96,6 +98,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     windowEndMs,
   })
   const previousZoomWindowRef = useRef<ThreatChartSelectedWindow | null>(null)
+  const previousZoomContextKeyRef = useRef<string | null>(null)
   const { consumeSuppressedSeriesClick, resetZoom, yAxisWindow } =
     useThreatChartZoom({
       bounds,
@@ -173,6 +176,16 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   const isFullFightWindow =
     selectedWindow === null ||
     (selectedWindow.start <= bounds.min && selectedWindow.end >= bounds.max)
+
+  useEffect(() => {
+    const currentContextKey = zoomToggleContextKey ?? null
+    if (previousZoomContextKeyRef.current === currentContextKey) {
+      return
+    }
+
+    previousZoomContextKeyRef.current = currentContextKey
+    previousZoomWindowRef.current = null
+  }, [zoomToggleContextKey])
 
   useEffect(() => {
     if (!selectedWindow || isFullFightWindow) {

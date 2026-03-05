@@ -443,6 +443,24 @@ test.describe('fight page', () => {
     await expect(totalThreatCell).toHaveText(zoomedWindowTotalThreat ?? '')
   })
 
+  test('does not restore prior fight zoom window when current fight has no zoom history', async ({
+    page,
+  }) => {
+    const fightPage = new FightPageObject(page)
+
+    await fightPage.goto(`${svgFightUrl}&focusId=1&startMs=1000&endMs=2000`)
+    await expectSearchParam(page, 'startMs', '1000')
+    await expectSearchParam(page, 'endMs', '2000')
+
+    await fightPage.quickSwitch.clickFight('Grobbulus')
+    await expectPathname(page, `/report/${e2eReportId}/fight/30`)
+    await expectSearchString(page, '')
+
+    await page.keyboard.press('z')
+    await expectSearchParam(page, 'startMs', null)
+    await expectSearchParam(page, 'endMs', null)
+  })
+
   test('focusing a player shows total threat values', async ({ page }) => {
     const fightPage = new FightPageObject(page)
 
