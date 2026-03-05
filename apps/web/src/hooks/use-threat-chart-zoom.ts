@@ -43,6 +43,7 @@ export function useThreatChartZoom({
 }): {
   consumeSuppressedSeriesClick: () => boolean
   resetZoom: () => void
+  setYAxisWindow: (window: ThreatChartYAxisWindow | null) => void
   yAxisWindow: ThreatChartYAxisWindow | null
 } {
   const suppressNextSeriesClickRef = useRef(false)
@@ -63,6 +64,13 @@ export function useThreatChartZoom({
     suppressNextSeriesClickRef.current = false
     return true
   }, [])
+
+  const updateYAxisWindow = useCallback(
+    (window: ThreatChartYAxisWindow | null): void => {
+      setYAxisWindow(window)
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!isChartReady) {
@@ -297,6 +305,7 @@ export function useThreatChartZoom({
   return {
     consumeSuppressedSeriesClick,
     resetZoom,
+    setYAxisWindow: updateYAxisWindow,
     yAxisWindow,
   }
 }
