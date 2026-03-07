@@ -97,27 +97,22 @@ export function useFightPageInteractions({
       const normalizedPlayers = normalizeIdList(
         queryState.state.players.filter((id) => validPlayerIds.has(id)),
       )
-      const isRestoringPreviousSelection =
-        normalizedPlayers.length === 1 &&
-        normalizedPlayers[0] === playerId &&
-        isolatedPlayerIdRef.current === playerId &&
-        previousPlayerSelectionRef.current !== null
+      const isFocusedPlayerIsolated =
+        normalizedPlayers.length === 1 && normalizedPlayers[0] === playerId
 
-      if (isRestoringPreviousSelection) {
-        const previousPlayerSelection = previousPlayerSelectionRef.current
+      if (isFocusedPlayerIsolated) {
+        const previousPlayerSelection =
+          isolatedPlayerIdRef.current === playerId &&
+          previousPlayerSelectionRef.current !== null
+            ? previousPlayerSelectionRef.current
+            : []
         clearIsolateToggleState()
         queryState.setFocusAndPlayers(playerId, previousPlayerSelection)
         return
       }
 
-      const shouldRememberCurrentSelection = normalizedPlayers.length > 1
-      if (shouldRememberCurrentSelection) {
-        previousPlayerSelectionRef.current = normalizedPlayers
-        isolatedPlayerIdRef.current = playerId
-      } else {
-        clearIsolateToggleState()
-      }
-
+      previousPlayerSelectionRef.current = normalizedPlayers
+      isolatedPlayerIdRef.current = playerId
       queryState.setFocusAndPlayers(playerId, [playerId])
     },
     [clearIsolateToggleState, queryState, validPlayerIds],
