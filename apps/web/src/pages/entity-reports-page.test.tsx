@@ -96,11 +96,32 @@ describe('EntityReportsPage', () => {
     const warcraftLogsLink = screen.getByRole('link', {
       name: 'View on Warcraft Logs',
     })
+    expect(screen.getByRole('button', { name: 'Star guild Threat Guild' }))
+      .toBeVisible()
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeVisible()
     expect(warcraftLogsLink).toHaveTextContent('WCL')
     expect(warcraftLogsLink).toHaveAttribute(
       'href',
       'https://sod.warcraftlogs.com/guild/id/777',
     )
+  })
+
+  it('applies faction color styling to the guild name in the header title', () => {
+    render(
+      <MemoryRouter
+        future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
+        initialEntries={['/reports/guild/777']}
+      >
+        <Routes>
+          <Route
+            path="/reports/:entityType/:entityId"
+            element={<EntityReportsPage />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('<Threat Guild>')).toHaveClass('text-sky-600')
   })
 
   it('builds guild WCL link from lookup identity when route id is non-numeric', () => {

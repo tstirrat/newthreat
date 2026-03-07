@@ -24,6 +24,35 @@ interface GuildReportsPageProps {
   entityId: string
 }
 
+type GuildFaction = 'alliance' | 'horde' | null
+
+function normalizeGuildFaction(value: string | null | undefined): GuildFaction {
+  if (!value) {
+    return null
+  }
+
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'alliance') {
+    return 'alliance'
+  }
+  if (normalized === 'horde') {
+    return 'horde'
+  }
+
+  return null
+}
+
+function resolveGuildTextClass(faction: GuildFaction): string {
+  if (faction === 'alliance') {
+    return 'text-sky-600 dark:text-sky-400'
+  }
+  if (faction === 'horde') {
+    return 'text-red-600 dark:text-red-400'
+  }
+
+  return 'text-foreground'
+}
+
 function GuildReportsPage({ entityId }: GuildReportsPageProps): JSX.Element {
   const [searchParams] = useSearchParams()
   const location = useLocation()
@@ -103,6 +132,9 @@ function GuildReportsPage({ entityId }: GuildReportsPageProps): JSX.Element {
     }),
   )
   const isGuildStarred = isEntityStarred('guild', String(response.entity.id))
+  const guildTextClass = resolveGuildTextClass(
+    normalizeGuildFaction(response.entity.faction),
+  )
   const serverLabel =
     response.entity.serverRegion && response.entity.serverSlug
       ? `${response.entity.serverRegion}-${response.entity.serverSlug}`
@@ -112,10 +144,9 @@ function GuildReportsPage({ entityId }: GuildReportsPageProps): JSX.Element {
     <>
       <title>{`<${response.entity.name}> Reports | WOW Threat`}</title>
       <SectionCard
-        title={`<${response.entity.name}>`}
-        subtitle={`Realm: ${serverLabel}`}
-        headerRight={
-          <div className="flex items-center gap-2">
+        title={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={guildTextClass}>{`<${response.entity.name}>`}</span>
             {guildWclUrl ? (
               <a
                 aria-label="View on Warcraft Logs"
@@ -129,17 +160,6 @@ function GuildReportsPage({ entityId }: GuildReportsPageProps): JSX.Element {
                 <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
               </a>
             ) : null}
-            <Button
-              disabled={isRefreshingEntityReports}
-              size="sm"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                void refresh()
-              }}
-            >
-              {isRefreshingEntityReports ? 'Refreshing...' : 'Refresh'}
-            </Button>
             <ReportStarButton
               ariaLabel={`${isGuildStarred ? 'Unstar' : 'Star'} guild ${response.entity.name}`}
               isDisabled={isLoading || isSaving}
@@ -156,6 +176,22 @@ function GuildReportsPage({ entityId }: GuildReportsPageProps): JSX.Element {
                 })
               }}
             />
+          </div>
+        }
+        subtitle={`Realm: ${serverLabel}`}
+        headerRight={
+          <div className="flex items-center gap-2">
+            <Button
+              disabled={isRefreshingEntityReports}
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void refresh()
+              }}
+            >
+              {isRefreshingEntityReports ? 'Refreshing...' : 'Refresh'}
+            </Button>
           </div>
         }
       >
