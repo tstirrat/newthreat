@@ -380,7 +380,7 @@ test.describe('fight page', () => {
       fightPage.shortcuts.shortcutListItem('Clear isolate'),
     ).toBeVisible()
     await expect(
-      fightPage.shortcuts.shortcutListItem('Toggle zoom window'),
+      fightPage.shortcuts.shortcutListItem('Toggle last zoom'),
     ).toBeVisible()
     await expect(
       fightPage.shortcuts.shortcutListItem('Isolate focused player'),
@@ -401,7 +401,7 @@ test.describe('fight page', () => {
       fightPage.shortcuts.shortcutKey('Clear isolate', 'C'),
     ).toBeVisible()
     await expect(
-      fightPage.shortcuts.shortcutKey('Toggle zoom window', 'Z'),
+      fightPage.shortcuts.shortcutKey('Toggle last zoom', 'Z'),
     ).toBeVisible()
     await expect(
       fightPage.shortcuts.shortcutKey('Isolate focused player', 'I'),

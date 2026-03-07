@@ -292,7 +292,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       handleToggleZoomWindow()
     },
     {
-      description: 'Toggle zoom window',
+      description: 'Toggle last zoom',
       metadata: {
         order: 45,
         showInFightOverlay: true,
