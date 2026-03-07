@@ -35,16 +35,15 @@
 
 ## Task Index (Open)
 
-| ID      | Package              | Status      | Priority | Size | Title                                                     |
-| ------- | -------------------- | ----------- | -------- | ---- | --------------------------------------------------------- |
-| WEB-012 | `@wow-threat/web`    | READY       | P2       | M    | Add Starred, Guild lists at top                           |
-| WEB-016 | `@wow-threat/web`    | READY       | P2       | S    | Zoom key toggles between no zoom and previous zoom        |
-| WEB-017 | `@wow-threat/web`    | READY       | P2       | M    | Fuzzy target selector                                     |
-| WEB-018 | `@wow-threat/web`    | READY       | P2       | M    | Fuzzy fight selector                                      |
-| WEB-019 | `@wow-threat/web`    | READY       | P0       | M    | Fight event pagination currently blocks the UI thread     |
-| WEB-021 | `@wow-threat/web`    | READY       | P2       | S    | Keyboard shortcut for filter to tanks only                |
-| WEB-027 | `@wow-threat/web`    | READY       | P3       | XS   | Make toggled players in legend more prominent             |
-| WEB-032 | `@wow-threat/web`    | READY       | P0       | L    | Batch + stream events to worker/IndexedDB to prevent jank |
+| ID      | Package           | Status | Priority | Size | Title                                                     |
+| ------- | ----------------- | ------ | -------- | ---- | --------------------------------------------------------- |
+| WEB-012 | `@wow-threat/web` | READY  | P2       | M    | Add Starred, Guild lists at top                           |
+| WEB-017 | `@wow-threat/web` | READY  | P2       | M    | Fuzzy target selector                                     |
+| WEB-018 | `@wow-threat/web` | READY  | P2       | M    | Fuzzy fight selector                                      |
+| WEB-021 | `@wow-threat/web` | READY  | P2       | S    | Keyboard shortcut for filter to tanks only                |
+| WEB-027 | `@wow-threat/web` | READY  | P3       | XS   | Make toggled players in legend more prominent             |
+| WEB-032 | `@wow-threat/web` | READY  | P0       | L    | Batch + stream events to worker/IndexedDB to prevent jank |
+| WEB-033 | `@wow-threat/web` | READY  | P2       | XS   | Add WCL guild link to entity reports header               |
 
 ## Historical Completed IDs
 
@@ -80,6 +79,8 @@
 - API-005
 - WEB-014
 - ENG-004
+- WEB-016
+- WEB-019
 - WEB-015
 
 ## Task Cards (Open)
@@ -113,37 +114,6 @@ validation:
   - pnpm --filter @wow-threat/web test
 branch_name: codex/web-012-starred-guild-lists
 worktree_path: ../wow-threat-web-012
-publish: auto_push_pr
-pr_url: null
-commit_sha: null
-```
-
-### WEB-016 - Zoom key toggles previous zoom window
-
-```yaml
-id: WEB-016
-title: Zoom key toggles between no zoom and previous zoom
-package: @wow-threat/web
-status: READY
-priority: P2
-size: S
-depends_on: []
-files_hint:
-  - apps/web/src/components/threat-chart.tsx
-  - apps/web/src/hooks/use-threat-chart-zoom.ts
-  - apps/web/src/pages/fight-page.spec.ts
-acceptance_criteria:
-  - Pressing z toggles between full-fight range and the previous user-selected zoom range.
-  - If no previous zoom range exists, z leaves chart on full-fight range.
-  - Toggling keeps focus-player table window aligned to chart window.
-  - Add or update tests for keyboard zoom toggle behavior.
-validation:
-  - pnpm --filter @wow-threat/web lint
-  - pnpm --filter @wow-threat/web typecheck
-  - pnpm --filter @wow-threat/web test
-  - pnpm --filter @wow-threat/web exec playwright test src/pages/fight-page.spec.ts
-branch_name: codex/web-016-zoom-key-toggle
-worktree_path: ../wow-threat-web-016
 publish: auto_push_pr
 pr_url: null
 commit_sha: null
@@ -209,38 +179,6 @@ validation:
   - pnpm --filter @wow-threat/web test
 branch_name: codex/web-018-fuzzy-fight-selector
 worktree_path: ../wow-threat-web-018
-publish: auto_push_pr
-pr_url: null
-commit_sha: null
-```
-
-### WEB-019 - Fix fight event pagination blocking UI thread
-
-```yaml
-id: WEB-019
-title: Fight event pagination retrieves all pages while blocking UI thread
-package: @wow-threat/web
-status: READY
-priority: P0
-size: M
-depends_on: []
-files_hint:
-  - apps/web/src/hooks/use-fight-events.ts
-  - apps/web/src/workers/threat-engine.worker.ts
-  - apps/web/src/lib/client-threat-engine.ts
-  - apps/web/src/pages/fight-page.spec.ts
-acceptance_criteria:
-  - Keep fight-event pagination sequential and cursor-driven (no parallel page fetching).
-  - Yield to the event loop after every page fetch iteration (for example setTimeout(0) or equivalent) so UI rendering/input is not starved.
-  - On context change/newer request, stop fetching subsequent pages and discard stale partial results.
-  - If a page fetch fails, fail fast with existing error handling and no automatic retries.
-  - Preserve page ordering and ensure successful loads still render fight page/chart end-to-end.
-validation:
-  - pnpm --filter @wow-threat/web lint
-  - pnpm --filter @wow-threat/web typecheck
-  - pnpm --filter @wow-threat/web test
-branch_name: codex/web-019-pagination-ui-thread
-worktree_path: ../wow-threat-web-019
 publish: auto_push_pr
 pr_url: null
 commit_sha: null
@@ -337,6 +275,37 @@ validation:
   - pnpm --filter @wow-threat/web test
 branch_name: codex/web-032-stream-worker-indexeddb
 worktree_path: ../wow-threat-web-032
+publish: auto_push_pr
+pr_url: null
+commit_sha: null
+```
+
+### WEB-033 - Add Warcraft Logs guild link to entity reports header
+
+```yaml
+id: WEB-033
+title: Add Warcraft Logs guild link to entity reports header
+package: @wow-threat/web
+status: READY
+priority: P2
+size: XS
+depends_on: []
+files_hint:
+  - apps/web/src/pages/entity-reports-page.tsx
+  - apps/web/src/components/section-card.tsx
+  - apps/web/src/lib/wcl-url.ts
+acceptance_criteria:
+  - Add a guild-only external link near the top of the entity reports page header with visible text "WCL" and the external-link icon.
+  - Link accessibility label is "View on Warcraft Logs".
+  - Link target uses the active Warcraft Logs host and guild identity from the current guild search context.
+  - Link is shown only for guild entity searches and does not affect other page types.
+  - Add or update tests that validate link visibility and URL generation.
+validation:
+  - pnpm --filter @wow-threat/web lint
+  - pnpm --filter @wow-threat/web typecheck
+  - pnpm --filter @wow-threat/web test
+branch_name: codex/web-033-guild-wcl-link
+worktree_path: ../wow-threat-web-033
 publish: auto_push_pr
 pr_url: null
 commit_sha: null

@@ -163,9 +163,13 @@ function createMockChart(bounds: { max: number; min: number }): {
 function renderZoomHook({
   bounds = { min: 0, max: 1000 },
   isChartReady = true,
+  selectedWindow = null,
+  zoomToggleContextKey,
 }: {
   bounds?: { max: number; min: number }
   isChartReady?: boolean
+  selectedWindow?: { end: number; start: number } | null
+  zoomToggleContextKey?: string
 } = {}) {
   const { chart, setOption, zr } = createMockChart(bounds)
   const onWindowChange = vi.fn()
@@ -175,15 +179,27 @@ function renderZoomHook({
     } as unknown as ReactEChartsCore,
   }
 
-  const hook = renderHook(() =>
-    useThreatChartZoom({
-      bounds,
-      borderColor: '#94a3b8',
-      chartRef,
-      isChartReady,
-      onWindowChange,
-      renderer: 'canvas',
-    }),
+  const hook = renderHook(
+    ({
+      selectedWindow: selectedWindowProp,
+      zoomToggleContextKey: zoomToggleContextKeyProp,
+    }) =>
+      useThreatChartZoom({
+        bounds,
+        borderColor: '#94a3b8',
+        chartRef,
+        isChartReady,
+        onWindowChange,
+        renderer: 'canvas',
+        selectedWindow: selectedWindowProp,
+        zoomToggleContextKey: zoomToggleContextKeyProp,
+      }),
+    {
+      initialProps: {
+        selectedWindow,
+        zoomToggleContextKey,
+      },
+    },
   )
 
   return {
@@ -280,5 +296,75 @@ describe('use-threat-chart-zoom', () => {
     expect(result.current.yAxisWindow).toBeNull()
     expect(result.current.consumeSuppressedSeriesClick()).toBe(true)
     expect(result.current.consumeSuppressedSeriesClick()).toBe(false)
+  })
+
+  it('restores the most recent custom zoom window when toggling from full view', () => {
+    const { onWindowChange, result, rerender } = renderZoomHook({
+      selectedWindow: {
+        start: 120,
+        end: 360,
+      },
+    })
+
+    act(() => {
+      result.current.setYAxisWindow({
+        min: 222,
+        max: 777,
+      })
+    })
+    expect(result.current.yAxisWindow).toEqual({
+      min: 222,
+      max: 777,
+    })
+
+    act(() => {
+      result.current.toggleLastZoom()
+    })
+
+    expect(onWindowChange).toHaveBeenCalledWith(null, null)
+    expect(result.current.yAxisWindow).toBeNull()
+
+    rerender({
+      selectedWindow: null,
+      zoomToggleContextKey: undefined,
+    })
+
+    act(() => {
+      result.current.toggleLastZoom()
+    })
+
+    expect(onWindowChange).toHaveBeenCalledWith(120, 360)
+    expect(result.current.yAxisWindow).toEqual({
+      min: 222,
+      max: 777,
+    })
+  })
+
+  it('does not restore zoom when the context key changes', () => {
+    const { onWindowChange, result, rerender } = renderZoomHook({
+      selectedWindow: {
+        start: 120,
+        end: 360,
+      },
+      zoomToggleContextKey: 'fight-26-target-100',
+    })
+
+    act(() => {
+      result.current.toggleLastZoom()
+    })
+
+    expect(onWindowChange).toHaveBeenCalledWith(null, null)
+
+    rerender({
+      selectedWindow: null,
+      zoomToggleContextKey: 'fight-30-target-200',
+    })
+
+    act(() => {
+      result.current.toggleLastZoom()
+    })
+
+    expect(onWindowChange).toHaveBeenCalledTimes(1)
+    expect(result.current.yAxisWindow).toBeNull()
   })
 })

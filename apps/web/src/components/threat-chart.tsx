@@ -31,6 +31,7 @@ export type ThreatChartProps = {
   selectedPlayerIds?: number[]
   pinnedPlayerIds?: number[]
   focusedActorId?: number | null
+  zoomToggleContextKey?: string
   renderer?: 'canvas' | 'svg'
   windowStartMs: number | null
   windowEndMs: number | null
@@ -57,6 +58,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   selectedPlayerIds = [],
   pinnedPlayerIds = [],
   focusedActorId = null,
+  zoomToggleContextKey,
   renderer = 'canvas',
   windowStartMs,
   windowEndMs,
@@ -94,15 +96,21 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     windowStartMs,
     windowEndMs,
   })
-  const { consumeSuppressedSeriesClick, resetZoom, yAxisWindow } =
-    useThreatChartZoom({
-      bounds,
-      borderColor: themeColors.border,
-      chartRef,
-      isChartReady,
-      onWindowChange,
-      renderer,
-    })
+  const {
+    consumeSuppressedSeriesClick,
+    resetZoom,
+    toggleLastZoom,
+    yAxisWindow,
+  } = useThreatChartZoom({
+    bounds,
+    borderColor: themeColors.border,
+    chartRef,
+    isChartReady,
+    onWindowChange,
+    renderer,
+    selectedWindow,
+    zoomToggleContextKey,
+  })
 
   const { actorIdByLabel, chartSeries, threatStateVisualMaps } =
     useThreatChartSeriesData({
@@ -212,6 +220,23 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       scopes: ['fight-page'],
     },
     [canClearIsolate, handleClearSelections],
+  )
+
+  useHotkeys(
+    'z',
+    (event) => {
+      event.preventDefault()
+      toggleLastZoom()
+    },
+    {
+      description: 'Toggle last zoom',
+      metadata: {
+        order: 45,
+        showInFightOverlay: true,
+      },
+      scopes: ['fight-page'],
+    },
+    [toggleLastZoom],
   )
 
   useHotkeys(

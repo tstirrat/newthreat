@@ -296,6 +296,7 @@ export const FightPage: FC = () => {
   const chartProps: ThreatChartProps = {
     renderer: chartRenderer,
     series: visibleSeries,
+    zoomToggleContextKey: `${reportId}:${fightId}:${selectedTarget?.id ?? 'none'}:${selectedTarget?.instance ?? 'none'}`,
     focusedActorId: queryState.state.focusId,
     selectedPlayerIds: queryState.state.players,
     pinnedPlayerIds: queryState.state.pinnedPlayers,
