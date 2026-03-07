@@ -62,7 +62,7 @@ jobs:
           retention-days: 7
 
   deploy_preview:
-    needs: build_and_test
+    needs: detect_changes
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     env:
