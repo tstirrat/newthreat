@@ -13,6 +13,7 @@ export type FightQuickSwitcherProps = {
   fights: ReportFightSummary[]
   selectedFightId: number | null
   pinnedPlayerIds?: number[]
+  forceFresh?: boolean
 }
 
 /** Render boss-kill quick links in report order. */
@@ -22,6 +23,7 @@ export const FightQuickSwitcher: FC<FightQuickSwitcherProps> = ({
   fights,
   selectedFightId,
   pinnedPlayerIds = [],
+  forceFresh = false,
 }) => {
   const bossKillFights = buildBossKillNavigationFights(fights)
   const pinnedPlayers = [...new Set(pinnedPlayerIds)].sort(
@@ -35,6 +37,9 @@ export const FightQuickSwitcher: FC<FightQuickSwitcherProps> = ({
           {bossKillFights.map((fight) => {
             const isCurrentFight = fight.id === selectedFightId
             const searchParams = new URLSearchParams()
+            if (forceFresh) {
+              searchParams.set('fresh', '1')
+            }
             if (pinnedPlayers.length > 0) {
               const pinnedPlayerParam = pinnedPlayers.join(',')
               searchParams.set('pinnedPlayers', pinnedPlayerParam)
