@@ -35,15 +35,16 @@
 
 ## Task Index (Open)
 
-| ID      | Package              | Status      | Priority | Size | Title                                                     |
-| ------- | -------------------- | ----------- | -------- | ---- | --------------------------------------------------------- |
-| WEB-012 | `@wow-threat/web`    | READY       | P2       | M    | Add Starred, Guild lists at top                           |
-| WEB-015 | `@wow-threat/web`    | READY       | P2       | S    | Isolate key toggles between isolated and previous players |
-| WEB-017 | `@wow-threat/web`    | READY       | P2       | M    | Fuzzy target selector                                     |
-| WEB-018 | `@wow-threat/web`    | READY       | P2       | M    | Fuzzy fight selector                                      |
-| WEB-021 | `@wow-threat/web`    | READY       | P2       | S    | Keyboard shortcut for filter to tanks only                |
-| WEB-027 | `@wow-threat/web`    | READY       | P3       | XS   | Make toggled players in legend more prominent             |
-| WEB-032 | `@wow-threat/web`    | READY       | P0       | L    | Batch + stream events to worker/IndexedDB to prevent jank |
+| ID      | Package           | Status | Priority | Size | Title                                                     |
+| ------- | ----------------- | ------ | -------- | ---- | --------------------------------------------------------- |
+| WEB-012 | `@wow-threat/web` | READY  | P2       | M    | Add Starred, Guild lists at top                           |
+| WEB-015 | `@wow-threat/web` | READY  | P2       | S    | Isolate key toggles between isolated and previous players |
+| WEB-017 | `@wow-threat/web` | READY  | P2       | M    | Fuzzy target selector                                     |
+| WEB-018 | `@wow-threat/web` | READY  | P2       | M    | Fuzzy fight selector                                      |
+| WEB-021 | `@wow-threat/web` | READY  | P2       | S    | Keyboard shortcut for filter to tanks only                |
+| WEB-027 | `@wow-threat/web` | READY  | P3       | XS   | Make toggled players in legend more prominent             |
+| WEB-032 | `@wow-threat/web` | READY  | P0       | L    | Batch + stream events to worker/IndexedDB to prevent jank |
+| WEB-033 | `@wow-threat/web` | READY  | P2       | XS   | Add WCL guild link to entity reports header               |
 
 ## Historical Completed IDs
 
@@ -306,6 +307,37 @@ validation:
   - pnpm --filter @wow-threat/web test
 branch_name: codex/web-032-stream-worker-indexeddb
 worktree_path: ../wow-threat-web-032
+publish: auto_push_pr
+pr_url: null
+commit_sha: null
+```
+
+### WEB-033 - Add Warcraft Logs guild link to entity reports header
+
+```yaml
+id: WEB-033
+title: Add Warcraft Logs guild link to entity reports header
+package: @wow-threat/web
+status: READY
+priority: P2
+size: XS
+depends_on: []
+files_hint:
+  - apps/web/src/pages/entity-reports-page.tsx
+  - apps/web/src/components/section-card.tsx
+  - apps/web/src/lib/wcl-url.ts
+acceptance_criteria:
+  - Add a guild-only external link near the top of the entity reports page header with visible text "WCL" and the external-link icon.
+  - Link accessibility label is "View on Warcraft Logs".
+  - Link target uses the active Warcraft Logs host and guild identity from the current guild search context.
+  - Link is shown only for guild entity searches and does not affect other page types.
+  - Add or update tests that validate link visibility and URL generation.
+validation:
+  - pnpm --filter @wow-threat/web lint
+  - pnpm --filter @wow-threat/web typecheck
+  - pnpm --filter @wow-threat/web test
+branch_name: codex/web-033-guild-wcl-link
+worktree_path: ../wow-threat-web-033
 publish: auto_push_pr
 pr_url: null
 commit_sha: null
