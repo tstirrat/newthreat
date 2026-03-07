@@ -64,34 +64,16 @@ jobs:
           retention-days: 7
       - name: Deploy BE Preview
         id: deploy_backend_preview
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          NO_COLOR: 1
-        run: |
-          set -euo pipefail
-
-          command_output="$(
-            pnpm --filter @wow-threat/api exec wrangler versions upload \
-              --preview-alias "$PREVIEW_CHANNEL_ID" \
-              --var "ALLOWED_ORIGINS:$PREVIEW_ALLOWED_ORIGINS"
-          )"
-
-          printf '%s\n' "$command_output"
-
-          backend_preview_url="$(
-            printf '%s\n' "$command_output" \
-              | sed -E 's/\x1b\[[0-9;]*m//g' \
-              | grep -Eo "https://${PREVIEW_CHANNEL_ID}-[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev" \
-              | head -n 1 || true
-          )"
-
-          if [ -z "$backend_preview_url" ]; then
-            echo 'Failed to extract a backend preview URL from wrangler output.' >&2
-            exit 1
-          fi
-
-          echo "url=$backend_preview_url" >> "$GITHUB_OUTPUT"
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: apps/api
+          packageManager: pnpm
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            versions upload
+            --preview-alias ${{ env.PREVIEW_CHANNEL_ID }}
+            --var ALLOWED_ORIGINS:${{ env.PREVIEW_ALLOWED_ORIGINS }}
       - name: Build FE
         run: |
           test -n "$VITE_API_BASE_URL"
@@ -101,7 +83,7 @@ jobs:
           test -n "$VITE_FIREBASE_APP_ID"
           pnpm --filter @wow-threat/web build
         env:
-          VITE_API_BASE_URL: ${{ steps.deploy_backend_preview.outputs.url }}
+          VITE_API_BASE_URL: ${{ steps.deploy_backend_preview.outputs.deployment-url }}
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -142,11 +124,11 @@ jobs:
           echo "### Preview Environments" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- Frontend: ${{ steps.resolve_frontend_preview.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Backend: ${{ steps.deploy_backend_preview.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Backend: ${{ steps.deploy_backend_preview.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
       - name: Comment preview URLs on PR
         uses: actions/github-script@v7
         env:
-          BACKEND_PREVIEW_URL: ${{ steps.deploy_backend_preview.outputs.url }}
+          BACKEND_PREVIEW_URL: ${{ steps.deploy_backend_preview.outputs.deployment-url }}
           FRONTEND_PREVIEW_URL: ${{ steps.resolve_frontend_preview.outputs.url }}
         with:
           script: |
