@@ -59,6 +59,7 @@ export function useThreatChartZoom({
   yAxisWindow: ThreatChartYAxisWindow | null
 } {
   const suppressNextSeriesClickRef = useRef(false)
+  const skipNextSnapshotRef = useRef(false)
   const previousZoomContextKeyRef = useRef<string | null>(null)
   const previousZoomWindowRef = useRef<ThreatChartZoomWindow | null>(null)
   const [yAxisWindow, setYAxisWindow] = useState<ThreatChartYAxisWindow | null>(
@@ -110,6 +111,11 @@ export function useThreatChartZoom({
   }, [zoomToggleContextKey])
 
   useEffect(() => {
+    if (skipNextSnapshotRef.current) {
+      skipNextSnapshotRef.current = false
+      return
+    }
+
     if (isFullChartZoom) {
       return
     }
@@ -136,6 +142,7 @@ export function useThreatChartZoom({
       x: activeXAxisWindow,
       y: yAxisWindow,
     }
+    skipNextSnapshotRef.current = true
     setYAxisWindow(null)
     onWindowChange(null, null)
   }, [activeXAxisWindow, isFullChartZoom, onWindowChange, yAxisWindow])
