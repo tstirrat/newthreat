@@ -389,7 +389,7 @@ test.describe('fight page', () => {
       fightPage.shortcuts.shortcutListItem('Clear isolate'),
     ).toBeVisible()
     await expect(
-      fightPage.shortcuts.shortcutListItem('Isolate focused player'),
+      fightPage.shortcuts.shortcutListItem('Toggle isolate on focus'),
     ).toBeVisible()
     await expect(
       fightPage.shortcuts.shortcutListItem('Open player search'),
@@ -407,7 +407,7 @@ test.describe('fight page', () => {
       fightPage.shortcuts.shortcutKey('Clear isolate', 'C'),
     ).toBeVisible()
     await expect(
-      fightPage.shortcuts.shortcutKey('Isolate focused player', 'I'),
+      fightPage.shortcuts.shortcutKey('Toggle isolate on focus', 'I'),
     ).toBeVisible()
     await expect(
       fightPage.shortcuts.shortcutKey('Open player search', '/'),

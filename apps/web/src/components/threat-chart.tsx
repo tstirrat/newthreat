@@ -221,7 +221,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       isolateFocusedPlayer()
     },
     {
-      description: 'Isolate focused player',
+      description: 'Toggle isolate on focus',
       metadata: {
         order: 50,
         showInFightOverlay: true,
