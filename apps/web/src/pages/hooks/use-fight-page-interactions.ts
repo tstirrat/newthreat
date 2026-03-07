@@ -110,8 +110,14 @@ export function useFightPageInteractions({
         return
       }
 
-      previousPlayerSelectionRef.current = normalizedPlayers
-      isolatedPlayerIdRef.current = playerId
+      const shouldRememberCurrentSelection = normalizedPlayers.length > 1
+      if (shouldRememberCurrentSelection) {
+        previousPlayerSelectionRef.current = normalizedPlayers
+        isolatedPlayerIdRef.current = playerId
+      } else {
+        clearIsolateToggleState()
+      }
+
       queryState.setFocusAndPlayers(playerId, [playerId])
     },
     [clearIsolateToggleState, queryState, validPlayerIds],

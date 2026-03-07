@@ -183,7 +183,7 @@ describe('useFightPageInteractions', () => {
     expect(queryState.setFocusAndPlayers).toHaveBeenLastCalledWith(2, [1, 2])
   })
 
-  it('restores unfiltered state when toggling focused-player isolation from all players', () => {
+  it('keeps solo focused-player isolation when no previous multi-player filter exists', () => {
     const queryState = createQueryState({
       state: createQueryStateState({
         players: [],
@@ -210,7 +210,7 @@ describe('useFightPageInteractions', () => {
     act(() => {
       result.current.handleToggleFocusedPlayerIsolation(2)
     })
-    expect(queryState.setFocusAndPlayers).toHaveBeenLastCalledWith(2, [])
+    expect(queryState.setFocusAndPlayers).toHaveBeenLastCalledWith(2, [2])
   })
 
   it('forwards chart and settings interactions to query state and settings updates', () => {
