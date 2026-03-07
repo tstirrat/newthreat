@@ -2,6 +2,7 @@ name: ci-pull-request
 on: pull_request
 
 permissions:
+  checks: write
   contents: read
   issues: write
   pull-requests: write
