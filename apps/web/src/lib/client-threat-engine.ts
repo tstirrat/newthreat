@@ -539,6 +539,7 @@ export async function getFightEventsClientSide(params: {
     onProgress,
   } = params
   throwIfAborted(signal)
+  const totalStartedAt = performance.now()
 
   const reportFights = reportData.fights.map(toReportFight)
   const reportActors = toReportActors(reportData.actors)
@@ -575,16 +576,34 @@ export async function getFightEventsClientSide(params: {
     : await fetchAllRawEvents(reportId, fightId, signal, onProgress)
   throwIfAborted(signal)
   const tankActorIds = extractTankActorIds(fightData)
+  const rawChunkBuildStartedAt = performance.now()
   const rawEventChunks = chunkThreatWorkerEvents(
     rawEvents,
     resolveRawEventChunkSize(rawEventChunkSize),
   )
+  const rawChunkBuildMs = Math.round(performance.now() - rawChunkBuildStartedAt)
   const workerPayloadBase = {
     fightId,
     inferThreatReduction,
     initialAurasByActor: metadata.initialAurasByActor,
     report: reportForEngine,
     tankActorIds,
+  }
+  const workerAttemptStats: Array<{
+    inputMode: ThreatEngineWorkerPayload['inputMode']
+    roundTripMs: number
+    status: ThreatEngineWorkerResponse['status']
+  }> = []
+  const pipelineTimings: {
+    cleanupMs: number | null
+    fallbackMainThreadProcessMs: number | null
+    indexedDbProcessedResultLoadMs: number | null
+    indexedDbRawChunkPersistMs: number | null
+  } = {
+    cleanupMs: null,
+    fallbackMainThreadProcessMs: null,
+    indexedDbProcessedResultLoadMs: null,
+    indexedDbRawChunkPersistMs: null,
   }
   let mode: 'worker' | 'main-thread' = 'main-thread'
   let processed: ThreatEngineWorkerProcessedPayload
@@ -607,12 +626,18 @@ export async function getFightEventsClientSide(params: {
       fightId,
       requestId: workerRequestId,
     })
+    const indexedDbRawChunkPersistStartedAt = performance.now()
     const persistedRawChunks = forceLegacyWorkerMode
       ? null
       : await saveThreatWorkerRawEventChunks({
           jobKey: indexedDbJobKey,
           rawEventChunks: rawEventChunks.map((chunk) => [...chunk]),
         })
+    if (!forceLegacyWorkerMode) {
+      pipelineTimings.indexedDbRawChunkPersistMs = Math.round(
+        performance.now() - indexedDbRawChunkPersistStartedAt,
+      )
+    }
     throwIfAborted(signal)
 
     if (persistedRawChunks) {
@@ -662,7 +687,13 @@ export async function getFightEventsClientSide(params: {
     const runWorkerAndThrowOnError = async (
       payload: ThreatEngineWorkerPayload,
     ): Promise<ThreatEngineWorkerSuccessResponse> => {
+      const workerRequestStartedAt = performance.now()
       const response = await runThreatEngineWorker(payload, signal)
+      workerAttemptStats.push({
+        inputMode: payload.inputMode,
+        roundTripMs: Math.round(performance.now() - workerRequestStartedAt),
+        status: response.status,
+      })
       if (response.status === 'error') {
         console.warn('[Events] Threat worker returned error response', {
           debug: response.debug,
@@ -710,16 +741,35 @@ export async function getFightEventsClientSide(params: {
     if (workerResponse.outputMode === 'inline') {
       processed = workerResponse.payload
     } else {
+      const indexedDbProcessedResultLoadStartedAt = performance.now()
       const persistedProcessedResult = await loadThreatWorkerProcessedResult(
         workerResponse.jobKey,
       )
+      pipelineTimings.indexedDbProcessedResultLoadMs = Math.round(
+        performance.now() - indexedDbProcessedResultLoadStartedAt,
+      )
       if (!persistedProcessedResult) {
-        throw new Error(
-          `indexeddb worker output missing for job ${workerResponse.jobKey}`,
+        console.warn(
+          '[Events] IndexedDB worker output missing, retrying with direct worker transfer',
+          {
+            fightId,
+            jobKey: workerResponse.jobKey,
+            reportId,
+          },
         )
-      }
+        const directWorkerResponse = await runWorkerAndThrowOnError({
+          ...workerPayloadBase,
+          inputMode: 'direct',
+          rawEvents,
+        })
+        if (directWorkerResponse.outputMode !== 'inline') {
+          throw new Error('direct worker mode returned non-inline output payload')
+        }
 
-      processed = persistedProcessedResult
+        processed = directWorkerResponse.payload
+      } else {
+        processed = persistedProcessedResult
+      }
     }
   } catch (error) {
     throwIfAborted(signal)
@@ -736,16 +786,22 @@ export async function getFightEventsClientSide(params: {
         ),
       },
     )
+    const fallbackMainThreadStartedAt = performance.now()
     processed = processThreatEventsOnMainThread({
       ...workerPayloadBase,
       rawEvents,
     })
+    pipelineTimings.fallbackMainThreadProcessMs = Math.round(
+      performance.now() - fallbackMainThreadStartedAt,
+    )
   } finally {
     if (indexedDbJobContext) {
+      const cleanupStartedAt = performance.now()
       await clearThreatWorkerJobRecords({
         jobKey: indexedDbJobContext.jobKey,
         rawEventChunkCount: indexedDbJobContext.rawEventChunkCount,
       })
+      pipelineTimings.cleanupMs = Math.round(performance.now() - cleanupStartedAt)
     }
   }
 
@@ -754,6 +810,25 @@ export async function getFightEventsClientSide(params: {
     mode,
     processDurationMs: processed.processDurationMs,
     reportId,
+  })
+  console.info('[Events][Perf] Threat processing pipeline timings', {
+    cleanupMs: pipelineTimings.cleanupMs,
+    fallbackMainThreadProcessMs: pipelineTimings.fallbackMainThreadProcessMs,
+    fightId,
+    forceLegacyWorkerMode,
+    indexedDbProcessedResultLoadMs:
+      pipelineTimings.indexedDbProcessedResultLoadMs,
+    indexedDbRawChunkPersistMs: pipelineTimings.indexedDbRawChunkPersistMs,
+    mode,
+    pageCount,
+    processDurationMs: processed.processDurationMs,
+    rawChunkBuildMs,
+    rawEventChunkCount: rawEventChunks.length,
+    rawEventCount: rawEvents.length,
+    reportId,
+    totalElapsedMs: Math.round(performance.now() - totalStartedAt),
+    workerAttemptElapsedMs: Math.round(performance.now() - workerAttemptStartedAt),
+    workerAttemptStats,
   })
   onProgress?.({
     phase: 'complete',

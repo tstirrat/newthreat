@@ -367,6 +367,70 @@ describe('client-threat-engine worker retries', () => {
     )
   })
 
+  it('retries with direct mode when indexeddb worker output cannot be loaded', async () => {
+    mockFns.loadThreatWorkerProcessedResult.mockResolvedValueOnce(null)
+    mockFns.runWorkerRequest
+      .mockImplementationOnce(async (request) => {
+        if (request.payload.inputMode !== 'indexeddb') {
+          throw new Error('expected indexeddb payload for first worker request')
+        }
+
+        return {
+          type: 'message',
+          response: {
+            jobKey: request.payload.jobKey,
+            outputMode: 'indexeddb',
+            rawEventChunkCount: request.payload.rawEventChunkCount,
+            rawEventCount: request.payload.rawEventCount,
+            requestId: request.requestId,
+            status: 'success',
+          },
+        }
+      })
+      .mockImplementationOnce(async (request) => {
+        if (request.payload.inputMode !== 'direct') {
+          throw new Error('expected direct payload for second worker request')
+        }
+
+        return {
+          type: 'message',
+          response: {
+            requestId: request.requestId,
+            status: 'success',
+            outputMode: 'inline',
+            payload: {
+              augmentedEvents: [],
+              initialAurasByActor: {},
+              processDurationMs: 3,
+            },
+          },
+        }
+      })
+
+    const rawEventsData = createRawEventsData()
+    const result = await getFightEventsClientSide({
+      reportId: 'ABC123xyz',
+      fightId: 26,
+      reportData: createReportData(),
+      fightData: createFightData(),
+      inferThreatReduction: false,
+      rawEventsData,
+    })
+
+    expect(mockFns.loadThreatWorkerProcessedResult).toHaveBeenCalledTimes(1)
+    expect(mockFns.runWorkerRequest).toHaveBeenCalledTimes(2)
+    const firstRequest = mockFns.runWorkerRequest.mock.calls[0]?.[0]
+    const secondRequest = mockFns.runWorkerRequest.mock.calls[1]?.[0]
+    expect(firstRequest?.payload.inputMode).toBe('indexeddb')
+    expect(secondRequest?.payload.inputMode).toBe('direct')
+
+    if (secondRequest?.payload.inputMode === 'direct') {
+      expect(secondRequest.payload.rawEvents).toEqual(rawEventsData.events)
+    }
+
+    expect(result.events).toEqual([])
+  })
+
   it('does not retry direct mode when legacy worker mode is forced', async () => {
     mockFns.runWorkerRequest.mockImplementationOnce(async (request) => {
       if (request.payload.inputMode !== 'direct') {
