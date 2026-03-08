@@ -35,6 +35,7 @@ export const ReportLayout: FC = () => {
   const queryParams = new URLSearchParams(location.search)
   const pinnedPlayerIds = parsePlayersParam(queryParams.get('pinnedPlayers'))
   const forceFresh = parseBooleanQueryParam(queryParams.get('fresh')) ?? false
+  const eventsMode = queryParams.get('eventsMode')
 
   const { addRecentReport, resolveReportHost } = useReportIndex()
   const {
@@ -139,6 +140,7 @@ export const ReportLayout: FC = () => {
           threatConfigLabel={threatConfigLabel}
         />
         <FightQuickSwitcher
+          eventsMode={eventsMode}
           fights={data.fights}
           forceFresh={forceFresh}
           pinnedPlayerIds={pinnedPlayerIds}

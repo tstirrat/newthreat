@@ -11,6 +11,13 @@ import type {
 } from '@wow-threat/wcl-types'
 
 import { getFightEventsPage } from '../api/reports'
+import {
+  buildThreatWorkerJobKey,
+  chunkThreatWorkerEvents,
+  clearThreatWorkerJobRecords,
+  loadThreatWorkerProcessedResult,
+  saveThreatWorkerRawEventChunks,
+} from '../lib/threat-engine-worker-cache'
 import type {
   AugmentedEventsResponse,
   FightEventsResponse,
@@ -23,12 +30,14 @@ import type {
 } from '../types/api'
 import type {
   ThreatEngineWorkerPayload,
+  ThreatEngineWorkerProcessedPayload,
   ThreatEngineWorkerRequest,
   ThreatEngineWorkerResponse,
   ThreatEngineWorkerSuccessResponse,
 } from '../workers/threat-engine-worker-types'
 
 const fallbackThreatEngine = new ThreatEngine()
+const defaultRawEventChunkSize = 10_000
 
 export type ThreatEngineProcessMode = 'worker' | 'main-thread'
 
@@ -76,6 +85,14 @@ function toErrorDetails(error: unknown): {
   return {
     message: String(error),
   }
+}
+
+function isIndexedDbWorkerError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return error.message.toLowerCase().includes('indexeddb')
 }
 
 function toReportFightParticipant(
@@ -184,6 +201,14 @@ function createWorkerRequestId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function resolveRawEventChunkSize(chunkSize: number | undefined): number {
+  if (!Number.isFinite(chunkSize) || !chunkSize || chunkSize <= 0) {
+    return defaultRawEventChunkSize
+  }
+
+  return Math.max(1, Math.trunc(chunkSize))
+}
+
 function createThreatEngineWorker(): Worker {
   return new Worker(
     new URL('../workers/threat-engine.worker.ts', import.meta.url),
@@ -213,7 +238,11 @@ async function runThreatEngineWorker(
   console.info('[Events] Starting threat worker request', {
     fightId: payload.fightId,
     inferThreatReduction: payload.inferThreatReduction,
-    rawEventCount: payload.rawEvents.length,
+    inputMode: payload.inputMode,
+    rawEventCount:
+      payload.inputMode === 'direct'
+        ? payload.rawEvents.length
+        : payload.rawEventCount,
     reportAbilityCount: payload.report.masterData.abilities.length,
     reportCode: payload.report.code,
     reportFightCount: payload.report.fights.length,
@@ -337,48 +366,61 @@ function serializeInitialAurasByActor(
   )
 }
 
-function processThreatEventsOnMainThread(
-  payload: ThreatEngineWorkerPayload,
-): ThreatEngineWorkerSuccessResponse['payload'] {
+function processThreatEventsOnMainThread(params: {
+  fightId: number
+  inferThreatReduction: boolean
+  initialAurasByActor?: Record<string, number[]>
+  rawEvents: WCLEvent[]
+  report: Report
+  tankActorIds: number[]
+}): ThreatEngineWorkerProcessedPayload {
+  const {
+    fightId,
+    inferThreatReduction,
+    initialAurasByActor: serializedInitialAurasByActor,
+    rawEvents,
+    report,
+    tankActorIds,
+  } = params
   const startedAt = performance.now()
-  const fight = payload.report.fights.find(
-    (candidateFight) => candidateFight.id === payload.fightId,
+  const fight = report.fights.find(
+    (candidateFight) => candidateFight.id === fightId,
   )
   if (!fight) {
-    throw new Error(`fight ${payload.fightId} not found in report payload`)
+    throw new Error(`fight ${fightId} not found in report payload`)
   }
 
   const config = resolveConfigOrNull({
-    report: payload.report,
+    report,
   })
   if (!config) {
     throw new Error(
-      `no threat config for gameVersion ${payload.report.masterData.gameVersion}`,
+      `no threat config for gameVersion ${report.masterData.gameVersion}`,
     )
   }
 
   const initialAurasByActor = deserializeInitialAurasByActor(
-    payload.initialAurasByActor,
+    serializedInitialAurasByActor,
   )
   const { actorMap, friendlyActorIds, enemies, abilitySchoolMap } =
     buildThreatEngineInput({
       fight,
-      actors: payload.report.masterData.actors,
-      abilities: payload.report.masterData.abilities,
+      actors: report.masterData.actors,
+      abilities: report.masterData.abilities,
     })
   const { augmentedEvents, initialAurasByActor: effectiveInitialAurasByActor } =
     fallbackThreatEngine.processEvents({
-      rawEvents: payload.rawEvents,
+      rawEvents,
       initialAurasByActor,
       actorMap,
       friendlyActorIds,
       abilitySchoolMap,
       enemies,
       encounterId: fight.encounterID ?? null,
-      report: payload.report,
+      report,
       fight,
-      inferThreatReduction: payload.inferThreatReduction,
-      tankActorIds: new Set(payload.tankActorIds),
+      inferThreatReduction,
+      tankActorIds: new Set(tankActorIds),
       config,
     })
 
@@ -478,6 +520,8 @@ export async function getFightEventsClientSide(params: {
   reportData: ReportResponse
   fightData: FightsResponse
   inferThreatReduction: boolean
+  forceLegacyWorkerMode?: boolean
+  rawEventChunkSize?: number
   rawEventsData?: RawFightEventsData
   signal?: AbortSignal
   onProgress?: (progress: ClientThreatEngineProgressUpdate) => void
@@ -488,11 +532,14 @@ export async function getFightEventsClientSide(params: {
     reportData,
     fightData,
     inferThreatReduction,
+    forceLegacyWorkerMode = false,
+    rawEventChunkSize,
     rawEventsData,
     signal,
     onProgress,
   } = params
   throwIfAborted(signal)
+  const totalStartedAt = performance.now()
 
   const reportFights = reportData.fights.map(toReportFight)
   const reportActors = toReportActors(reportData.actors)
@@ -529,16 +576,41 @@ export async function getFightEventsClientSide(params: {
     : await fetchAllRawEvents(reportId, fightId, signal, onProgress)
   throwIfAborted(signal)
   const tankActorIds = extractTankActorIds(fightData)
-  const workerPayload: ThreatEngineWorkerPayload = {
+  const rawChunkBuildStartedAt = performance.now()
+  const rawEventChunks = chunkThreatWorkerEvents(
+    rawEvents,
+    resolveRawEventChunkSize(rawEventChunkSize),
+  )
+  const rawChunkBuildMs = Math.round(performance.now() - rawChunkBuildStartedAt)
+  const workerPayloadBase = {
     fightId,
     inferThreatReduction,
     initialAurasByActor: metadata.initialAurasByActor,
-    rawEvents,
     report: reportForEngine,
     tankActorIds,
   }
+  const workerAttemptStats: Array<{
+    inputMode: ThreatEngineWorkerPayload['inputMode']
+    roundTripMs: number
+    status: ThreatEngineWorkerResponse['status']
+  }> = []
+  const pipelineTimings: {
+    cleanupMs: number | null
+    fallbackMainThreadProcessMs: number | null
+    indexedDbProcessedResultLoadMs: number | null
+    indexedDbRawChunkPersistMs: number | null
+  } = {
+    cleanupMs: null,
+    fallbackMainThreadProcessMs: null,
+    indexedDbProcessedResultLoadMs: null,
+    indexedDbRawChunkPersistMs: null,
+  }
   let mode: 'worker' | 'main-thread' = 'main-thread'
-  let processed: ThreatEngineWorkerSuccessResponse['payload']
+  let processed: ThreatEngineWorkerProcessedPayload
+  let indexedDbJobContext: {
+    jobKey: string
+    rawEventChunkCount: number
+  } | null = null
   onProgress?.({
     phase: 'processing',
     pagesLoaded: pageCount,
@@ -548,24 +620,157 @@ export async function getFightEventsClientSide(params: {
   })
   const workerAttemptStartedAt = performance.now()
   try {
-    const workerResponse = await runThreatEngineWorker(workerPayload, signal)
-    if (workerResponse.status === 'error') {
-      console.warn('[Events] Threat worker returned error response', {
-        debug: workerResponse.debug,
-        error: workerResponse.error,
-        errorName: workerResponse.errorName,
-        errorStack: workerResponse.errorStack,
-        fightId,
-        reportId,
-      })
+    const workerRequestId = createWorkerRequestId()
+    const indexedDbJobKey = buildThreatWorkerJobKey({
+      reportId,
+      fightId,
+      requestId: workerRequestId,
+    })
+    const indexedDbRawChunkPersistStartedAt = performance.now()
+    const persistedRawChunks = forceLegacyWorkerMode
+      ? null
+      : await saveThreatWorkerRawEventChunks({
+          jobKey: indexedDbJobKey,
+          rawEventChunks: rawEventChunks.map((chunk) => [...chunk]),
+        })
+    if (!forceLegacyWorkerMode) {
+      pipelineTimings.indexedDbRawChunkPersistMs = Math.round(
+        performance.now() - indexedDbRawChunkPersistStartedAt,
+      )
+    }
+    throwIfAborted(signal)
 
-      throw new Error(
-        `Threat worker returned status=error: ${workerResponse.errorName ?? 'Error'}: ${workerResponse.error}`,
+    if (persistedRawChunks) {
+      indexedDbJobContext = {
+        jobKey: indexedDbJobKey,
+        rawEventChunkCount: persistedRawChunks.rawEventChunkCount,
+      }
+      if (persistedRawChunks.rawEventCount !== rawEvents.length) {
+        console.warn(
+          '[Events] IndexedDB raw chunk persistence count mismatch',
+          {
+            fightId,
+            persistedRawEventCount: persistedRawChunks.rawEventCount,
+            rawEventCount: rawEvents.length,
+            reportId,
+          },
+        )
+      }
+    } else {
+      console.info(
+        forceLegacyWorkerMode
+          ? '[Events] Legacy worker mode forced, skipping IndexedDB worker path'
+          : '[Events] IndexedDB worker path unavailable, using direct worker transfer',
+        {
+          fightId,
+          forceLegacyWorkerMode,
+          rawEventChunkCount: rawEventChunks.length,
+          reportId,
+        },
       )
     }
 
+    const workerPayload: ThreatEngineWorkerPayload = indexedDbJobContext
+      ? {
+          ...workerPayloadBase,
+          inputMode: 'indexeddb',
+          jobKey: indexedDbJobContext.jobKey,
+          rawEventChunkCount: indexedDbJobContext.rawEventChunkCount,
+          rawEventCount: rawEvents.length,
+        }
+      : {
+          ...workerPayloadBase,
+          inputMode: 'direct',
+          rawEvents,
+        }
+
+    const runWorkerAndThrowOnError = async (
+      payload: ThreatEngineWorkerPayload,
+    ): Promise<ThreatEngineWorkerSuccessResponse> => {
+      const workerRequestStartedAt = performance.now()
+      const response = await runThreatEngineWorker(payload, signal)
+      workerAttemptStats.push({
+        inputMode: payload.inputMode,
+        roundTripMs: Math.round(performance.now() - workerRequestStartedAt),
+        status: response.status,
+      })
+      if (response.status === 'error') {
+        console.warn('[Events] Threat worker returned error response', {
+          debug: response.debug,
+          error: response.error,
+          errorName: response.errorName,
+          errorStack: response.errorStack,
+          fightId,
+          reportId,
+        })
+
+        throw new Error(
+          `Threat worker returned status=error: ${response.errorName ?? 'Error'}: ${response.error}`,
+        )
+      }
+
+      return response
+    }
+
+    let workerResponse: ThreatEngineWorkerSuccessResponse
+    try {
+      workerResponse = await runWorkerAndThrowOnError(workerPayload)
+    } catch (error) {
+      const shouldRetryWithDirectMode =
+        workerPayload.inputMode === 'indexeddb' && isIndexedDbWorkerError(error)
+      if (!shouldRetryWithDirectMode) {
+        throw error
+      }
+
+      console.info(
+        '[Events] IndexedDB worker request failed, retrying with direct worker transfer',
+        {
+          error: toErrorDetails(error),
+          fightId,
+          reportId,
+        },
+      )
+      workerResponse = await runWorkerAndThrowOnError({
+        ...workerPayloadBase,
+        inputMode: 'direct',
+        rawEvents,
+      })
+    }
+
     mode = 'worker'
-    processed = workerResponse.payload
+    if (workerResponse.outputMode === 'inline') {
+      processed = workerResponse.payload
+    } else {
+      const indexedDbProcessedResultLoadStartedAt = performance.now()
+      const persistedProcessedResult = await loadThreatWorkerProcessedResult(
+        workerResponse.jobKey,
+      )
+      pipelineTimings.indexedDbProcessedResultLoadMs = Math.round(
+        performance.now() - indexedDbProcessedResultLoadStartedAt,
+      )
+      if (!persistedProcessedResult) {
+        console.warn(
+          '[Events] IndexedDB worker output missing, retrying with direct worker transfer',
+          {
+            fightId,
+            jobKey: workerResponse.jobKey,
+            reportId,
+          },
+        )
+        const directWorkerResponse = await runWorkerAndThrowOnError({
+          ...workerPayloadBase,
+          inputMode: 'direct',
+          rawEvents,
+        })
+        if (directWorkerResponse.outputMode !== 'inline') {
+          throw new Error('direct worker mode returned non-inline output payload')
+        }
+
+        processed = directWorkerResponse.payload
+      } else {
+        processed = persistedProcessedResult
+      }
+    }
   } catch (error) {
     throwIfAborted(signal)
     console.warn(
@@ -581,7 +786,23 @@ export async function getFightEventsClientSide(params: {
         ),
       },
     )
-    processed = processThreatEventsOnMainThread(workerPayload)
+    const fallbackMainThreadStartedAt = performance.now()
+    processed = processThreatEventsOnMainThread({
+      ...workerPayloadBase,
+      rawEvents,
+    })
+    pipelineTimings.fallbackMainThreadProcessMs = Math.round(
+      performance.now() - fallbackMainThreadStartedAt,
+    )
+  } finally {
+    if (indexedDbJobContext) {
+      const cleanupStartedAt = performance.now()
+      await clearThreatWorkerJobRecords({
+        jobKey: indexedDbJobContext.jobKey,
+        rawEventChunkCount: indexedDbJobContext.rawEventChunkCount,
+      })
+      pipelineTimings.cleanupMs = Math.round(performance.now() - cleanupStartedAt)
+    }
   }
 
   console.info('[Events] Threat processing completed', {
@@ -589,6 +810,25 @@ export async function getFightEventsClientSide(params: {
     mode,
     processDurationMs: processed.processDurationMs,
     reportId,
+  })
+  console.info('[Events][Perf] Threat processing pipeline timings', {
+    cleanupMs: pipelineTimings.cleanupMs,
+    fallbackMainThreadProcessMs: pipelineTimings.fallbackMainThreadProcessMs,
+    fightId,
+    forceLegacyWorkerMode,
+    indexedDbProcessedResultLoadMs:
+      pipelineTimings.indexedDbProcessedResultLoadMs,
+    indexedDbRawChunkPersistMs: pipelineTimings.indexedDbRawChunkPersistMs,
+    mode,
+    pageCount,
+    processDurationMs: processed.processDurationMs,
+    rawChunkBuildMs,
+    rawEventChunkCount: rawEventChunks.length,
+    rawEventCount: rawEvents.length,
+    reportId,
+    totalElapsedMs: Math.round(performance.now() - totalStartedAt),
+    workerAttemptElapsedMs: Math.round(performance.now() - workerAttemptStartedAt),
+    workerAttemptStats,
   })
   onProgress?.({
     phase: 'complete',

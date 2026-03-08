@@ -43,18 +43,33 @@ const fights: ReportFightSummary[] = [
   },
 ]
 
+function renderFightQuickSwitcher(options?: {
+  eventsMode?: string | null
+  forceFresh?: boolean
+  pinnedPlayerIds?: number[]
+}): void {
+  const { eventsMode = null, forceFresh = false, pinnedPlayerIds = [] } =
+    options ?? {}
+
+  render(
+    <MemoryRouter>
+      <FightQuickSwitcher
+        eventsMode={eventsMode}
+        fights={fights}
+        forceFresh={forceFresh}
+        pinnedPlayerIds={pinnedPlayerIds}
+        reportId="ABC123"
+        selectedFightId={26}
+      />
+    </MemoryRouter>,
+  )
+}
+
 describe('FightQuickSwitcher', () => {
   it('keeps fresh query param when forceFresh is enabled', () => {
-    render(
-      <MemoryRouter>
-        <FightQuickSwitcher
-          fights={fights}
-          forceFresh
-          reportId="ABC123"
-          selectedFightId={26}
-        />
-      </MemoryRouter>,
-    )
+    renderFightQuickSwitcher({
+      forceFresh: true,
+    })
 
     expect(screen.getByRole('link', { name: 'Grobbulus' })).toHaveAttribute(
       'href',
@@ -62,22 +77,51 @@ describe('FightQuickSwitcher', () => {
     )
   })
 
-  it('keeps fresh alongside pinned player params', () => {
-    render(
-      <MemoryRouter>
-        <FightQuickSwitcher
-          fights={fights}
-          forceFresh
-          pinnedPlayerIds={[2, 1, 2]}
-          reportId="ABC123"
-          selectedFightId={26}
-        />
-      </MemoryRouter>,
+  it('preserves eventsMode on fight quick-switch links', () => {
+    renderFightQuickSwitcher({
+      eventsMode: 'legacy',
+    })
+
+    expect(screen.getByRole('link', { name: 'Grobbulus' })).toHaveAttribute(
+      'href',
+      '/report/ABC123/fight/30?eventsMode=legacy',
     )
+  })
+
+  it('keeps fresh alongside pinned player params', () => {
+    renderFightQuickSwitcher({
+      forceFresh: true,
+      pinnedPlayerIds: [2, 1, 2],
+    })
 
     expect(screen.getByRole('link', { name: 'Grobbulus' })).toHaveAttribute(
       'href',
       '/report/ABC123/fight/30?fresh=1&pinnedPlayers=1%2C2&players=1%2C2',
+    )
+  })
+
+  it('keeps eventsMode while preserving pinned players on quick-switch links', () => {
+    renderFightQuickSwitcher({
+      eventsMode: 'legacy',
+      pinnedPlayerIds: [2, 1, 2],
+    })
+
+    expect(screen.getByRole('link', { name: 'Grobbulus' })).toHaveAttribute(
+      'href',
+      '/report/ABC123/fight/30?pinnedPlayers=1%2C2&players=1%2C2&eventsMode=legacy',
+    )
+  })
+
+  it('keeps fresh and eventsMode while preserving pinned players', () => {
+    renderFightQuickSwitcher({
+      eventsMode: 'legacy',
+      forceFresh: true,
+      pinnedPlayerIds: [2, 1, 2],
+    })
+
+    expect(screen.getByRole('link', { name: 'Grobbulus' })).toHaveAttribute(
+      'href',
+      '/report/ABC123/fight/30?fresh=1&pinnedPlayers=1%2C2&players=1%2C2&eventsMode=legacy',
     )
   })
 })

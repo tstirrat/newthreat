@@ -211,23 +211,25 @@ test.describe('fight page', () => {
     await expectSearchString(page, '')
   })
 
-  test('quick switch links keep fresh query param when enabled', async ({
+  test('quick switch links keep fresh and eventsMode query params when enabled', async ({
     page,
   }) => {
     const fightPage = new FightPageObject(page)
 
     await fightPage.goto(
-      `${svgFightUrl}&fresh=true&players=1&focusId=1&targetId=102&startMs=1000&endMs=2000`,
+      `${svgFightUrl}&fresh=true&eventsMode=legacy&players=1&focusId=1&targetId=102&startMs=1000&endMs=2000`,
     )
+    await expectSearchParam(page, 'eventsMode', 'legacy')
 
     await expect(fightPage.quickSwitch.fightLink('Grobbulus')).toHaveAttribute(
       'href',
-      `/report/${e2eReportId}/fight/30?fresh=1`,
+      `/report/${e2eReportId}/fight/30?fresh=1&eventsMode=legacy`,
     )
     await fightPage.quickSwitch.clickFight('Grobbulus')
 
     await expectPathname(page, `/report/${e2eReportId}/fight/30`)
     await expectSearchParam(page, 'fresh', '1')
+    await expectSearchParam(page, 'eventsMode', 'legacy')
     await expectSearchParam(page, 'players', null)
     await expectSearchParam(page, 'focusId', null)
     await expectSearchParam(page, 'targetId', null)

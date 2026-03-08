@@ -41,8 +41,8 @@
 | WEB-017 | `@wow-threat/web` | READY  | P2       | M    | Fuzzy target selector                                     |
 | WEB-018 | `@wow-threat/web` | READY  | P2       | M    | Fuzzy fight selector                                      |
 | WEB-021 | `@wow-threat/web` | READY  | P2       | S    | Keyboard shortcut for filter to tanks only                |
+| WEB-034 | `@wow-threat/web` | READY  | P1       | L    | Reduce post-load main-thread frame stalls on fight page   |
 | WEB-027 | `@wow-threat/web` | READY  | P3       | XS   | Make toggled players in legend more prominent             |
-| WEB-032 | `@wow-threat/web` | READY  | P0       | L    | Batch + stream events to worker/IndexedDB to prevent jank |
 
 ## Historical Completed IDs
 
@@ -82,6 +82,7 @@
 - WEB-019
 - WEB-015
 - WEB-033
+- WEB-032
 
 ## Task Cards (Open)
 
@@ -215,6 +216,42 @@ pr_url: null
 commit_sha: null
 ```
 
+### WEB-034 - Reduce post-load main-thread frame stalls on fight page
+
+```yaml
+id: WEB-034
+title: Reduce post-load main-thread frame stalls on fight page
+package: @wow-threat/web
+status: READY
+priority: P1
+size: L
+depends_on: []
+files_hint:
+  - apps/web/src/pages/hooks/use-fight-page-derived-state.ts
+  - apps/web/src/hooks/use-threat-chart-series-data.ts
+  - apps/web/src/components/threat-chart.tsx
+  - apps/web/src/lib/threat-aggregation.ts
+  - apps/web/src/lib/fight-page-series.ts
+  - apps/web/src/pages/fight-page.spec.ts
+acceptance_criteria:
+  - Use trace-driven optimization targets based on local captures (`legacy-soli.json` and `db-soli.json`) that show the worst stalls are still post-load main-thread work (`react-dom_client.js` `performWorkUntilDeadline`), not worker thread execution.
+  - Reduce full recomputation churn in fight-page derived state, especially around `buildThreatSeriesWithTargetDeathTime` and `buildFocusedPlayerAggregation`, so URL/window/focus changes do not repeatedly force full-event scans.
+  - Reduce chart series/object churn in `use-threat-chart-series-data` and `threat-chart` option construction so large fights avoid rebuilding heavyweight per-point/per-series objects on each render.
+  - Keep current behavior and output parity for target selection, focused-player summary, legend filtering/isolation/pinning, and query-param synchronization.
+  - Add focused tests for memoization/derived-state stability (or deterministic perf-safe behavior) in touched hooks/libs, plus keep fight-page e2e coverage passing.
+  - Re-capture before/after local trace for the same fight flow and show that main-thread long-task pressure improves (for example lower total blocking time over 50ms and/or fewer >=100ms tasks).
+validation:
+  - pnpm --filter @wow-threat/web lint
+  - pnpm --filter @wow-threat/web typecheck
+  - pnpm --filter @wow-threat/web test
+  - pnpm --filter @wow-threat/web exec playwright test src/pages/fight-page.spec.ts
+branch_name: codex/web-034-reduce-fight-main-thread-stalls
+worktree_path: ../wow-threat-web-034
+publish: auto_push_pr
+pr_url: null
+commit_sha: null
+```
+
 ### WEB-027 - Make toggled players in legend more prominent
 
 ```yaml
@@ -244,39 +281,3 @@ publish: auto_push_pr
 pr_url: null
 commit_sha: null
 ```
-
-### WEB-032 - Batch and stream events to worker and IndexedDB
-
-```yaml
-id: WEB-032
-title: Batch and stream events to or from web worker and IndexedDB to prevent long frames
-package: @wow-threat/web
-status: READY
-priority: P0
-size: L
-depends_on:
-  - WEB-019
-files_hint:
-  - apps/web/src/hooks/use-fight-events.ts
-  - apps/web/src/workers/threat-engine.worker.ts
-  - apps/web/src/workers/threat-engine-worker-types.ts
-  - apps/web/src/lib/client-threat-engine.ts
-acceptance_criteria:
-  - Keep page fetches sequential, then chunk raw events into configurable chunk size (default 10000) before persistence/transfer.
-  - Persist raw chunks in IndexedDB under a per-request job key (reportId/fightId/requestId) and start worker processing only after all chunks are written.
-  - Worker reads raw chunks from IndexedDB, processes events, writes augmented cache output, and returns completion status to main thread.
-  - Raw chunk records are cleaned up after processing on both success and failure paths.
-  - Cancellation/stale-context behavior matches WEB-019: discard stale partials/results and stop additional work.
-  - If IndexedDB is unavailable or errors, fallback to current in-memory worker payload flow.
-  - Performance target is no obvious long-frame stalls (about 300ms) on large fights (around 40k-60k events), with acceptable tradeoff that small fights stay fast and large-fight load time does not regress dramatically.
-validation:
-  - pnpm --filter @wow-threat/web lint
-  - pnpm --filter @wow-threat/web typecheck
-  - pnpm --filter @wow-threat/web test
-branch_name: codex/web-032-stream-worker-indexeddb
-worktree_path: ../wow-threat-web-032
-publish: auto_push_pr
-pr_url: null
-commit_sha: null
-```
-

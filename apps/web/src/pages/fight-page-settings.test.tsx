@@ -127,6 +127,7 @@ describe('FightPage inferThreatReduction startup behavior', () => {
       true,
       false,
       false,
+      false,
     )
     expect(
       useFightEventsMock.mock.calls.some((call) => call[2] === false),
@@ -164,6 +165,7 @@ describe('FightPage inferThreatReduction startup behavior', () => {
       true,
       true,
       false,
+      false,
     )
     expect(
       useFightEventsMock.mock.calls.some((call) => call[2] === false),
@@ -194,7 +196,9 @@ describe('FightPage inferThreatReduction startup behavior', () => {
     render(
       <MemoryRouter
         future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
-        initialEntries={['/report/WaxMPvZrAHT9gJhc/fight/9?fresh=1']}
+        initialEntries={[
+          '/report/WaxMPvZrAHT9gJhc/fight/9?fresh=1&eventsMode=legacy',
+        ]}
       >
         <Routes>
           <Route
@@ -210,6 +214,52 @@ describe('FightPage inferThreatReduction startup behavior', () => {
       9,
       true,
       true,
+      true,
+      true,
+    )
+  })
+
+  it('passes forceLegacyWorkerMode when eventsMode=legacy is present in fight URL query params', () => {
+    useFightDataMock.mockReturnValue({
+      data: null,
+      error: null,
+      isLoading: true,
+    })
+    useUserSettingsMock.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isSaving: false,
+      settings: {
+        inferThreatReduction: true,
+        showBossMelee: true,
+        showAllBossDamageEvents: false,
+        showFixateBands: true,
+        showEnergizeEvents: false,
+        showPets: false,
+      },
+      updateSettings: vi.fn(),
+    })
+
+    render(
+      <MemoryRouter
+        future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
+        initialEntries={['/report/WaxMPvZrAHT9gJhc/fight/9?eventsMode=legacy']}
+      >
+        <Routes>
+          <Route
+            path="/report/:reportId/fight/:fightId"
+            element={<FightPage />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(useFightEventsMock).toHaveBeenCalledWith(
+      'WaxMPvZrAHT9gJhc',
+      9,
+      true,
+      true,
+      false,
       true,
     )
   })
@@ -238,7 +288,9 @@ describe('FightPage inferThreatReduction startup behavior', () => {
     render(
       <MemoryRouter
         future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
-        initialEntries={['/report/WaxMPvZrAHT9gJhc/fight/9?fresh=true']}
+        initialEntries={[
+          '/report/WaxMPvZrAHT9gJhc/fight/9?fresh=true&eventsMode=legacy',
+        ]}
       >
         <Routes>
           <Route
@@ -252,6 +304,7 @@ describe('FightPage inferThreatReduction startup behavior', () => {
     expect(useFightEventsMock).toHaveBeenCalledWith(
       'WaxMPvZrAHT9gJhc',
       9,
+      true,
       true,
       true,
       true,
@@ -282,7 +335,9 @@ describe('FightPage inferThreatReduction startup behavior', () => {
     render(
       <MemoryRouter
         future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
-        initialEntries={['/report/WaxMPvZrAHT9gJhc/fight/9?fresh=false']}
+        initialEntries={[
+          '/report/WaxMPvZrAHT9gJhc/fight/9?fresh=false&eventsMode=legacy',
+        ]}
       >
         <Routes>
           <Route
@@ -299,6 +354,7 @@ describe('FightPage inferThreatReduction startup behavior', () => {
       true,
       true,
       false,
+      true,
     )
   })
 })
