@@ -20,8 +20,6 @@ Prepare local changes, keep branch hygiene, and ensure the linked GitHub PR refl
 
 ## 1) Verify Context
 
-Run:
-
 ```bash
 git rev-parse --show-toplevel
 git branch --show-current
@@ -30,11 +28,9 @@ git worktree list
 
 Treat any branch other than `main` as a feature branch.
 If on `main`, detached `HEAD`, or an unnamed branch, fetch `origin/main` and create a feature branch from that ref without checking out local `main`.
-If in a worktree, still use the current worktree branch from `git branch --show-current` as the source of truth.
+If in a worktree, use the current worktree branch from `git branch --show-current` as the source of truth.
 
 ## 2) Fetch Latest Main and Ensure Feature Branch
-
-Always fetch before continuing:
 
 ```bash
 git fetch origin --prune
@@ -42,7 +38,7 @@ git fetch origin --prune
 
 If already on a feature branch, keep it.
 
-If on `main`, detached `HEAD`, or an unnamed branch, create a new feature branch from the latest `origin/main` (worktree-safe):
+If on `main`, detached `HEAD`, or an unnamed branch, create a new feature branch from the latest `origin/main`:
 
 ```bash
 git checkout -b claude/<short-task-slug> origin/main
@@ -50,152 +46,88 @@ git checkout -b claude/<short-task-slug> origin/main
 
 ## 3) Check Mainline Divergence and Back-Merge
 
-Measure how far the branch has drifted from latest `origin/main`:
+Run the bundled divergence check script to measure drift and back-merge when needed:
 
 ```bash
-divergence="$(git rev-list --left-right --count origin/main...HEAD)"
-behind="${divergence%% *}"
-ahead="${divergence##* }"
-echo "behind=$behind ahead=$ahead"
+bash .claude/skills/push-pr/scripts/check-divergence.sh
 ```
 
-Treat divergence as significant when `behind` is greater than or equal to `1` commit by default. You can override this threshold with `PUSH_PR_DIVERGENCE_THRESHOLD`.
-
-```bash
-threshold="${PUSH_PR_DIVERGENCE_THRESHOLD:-1}"
-if [ "$behind" -ge "$threshold" ]; then
-  git merge --no-edit origin/main
-fi
-```
-
-If conflicts occur, resolve them before proceeding. The goal is to keep the PR branch reasonably current with `origin/main` when drift is high.
+The script exits non-zero on merge conflict — resolve conflicts before continuing.
+Override the threshold with `PUSH_PR_DIVERGENCE_THRESHOLD` (default: `1` commit).
 
 ## 4) Commit Local Changes
 
 1. Inspect pending changes: `git status --short`.
-2. If there are changes, stage them: `git add -A`.
-3. Create a Conventional Commit message, for example:
+2. Stage: `git add -A`.
+3. Write a Conventional Commit message, e.g.:
    - `feat(web): add tank filter to threat chart`
    - `fix(api): handle missing fight actors`
    - `chore(config): align spell metadata`
 
 ### First Commit Rule
 
-If this is the first commit on the branch, include a descriptive body that explains what changed and why.
-Detect first-commit state with:
+Detect whether this is the first commit on the branch:
 
 ```bash
 git rev-list --count origin/main..HEAD
 ```
 
-If the count is `0`, the next commit is the first branch commit and must include a detailed body.
-
-Use:
+If the count is `0`, include a detailed body explaining what changed and why:
 
 ```bash
 git commit -m "<type>(<scope>): <summary>" -m "<details and rationale>"
 ```
 
-For later commits, keep the message concise unless extra context is needed.
+For subsequent commits, keep the message concise unless extra context helps reviewers.
 
 ## 5) Push and Create/Update PR
 
-1. Ensure `gh` auth works: `gh auth status`.
-2. Push with upstream tracking when needed:
+1. Verify auth: `gh auth status`.
+2. Push with upstream tracking:
 
 ```bash
 git push -u origin <branch>
 ```
 
-3. Check for an existing PR for the branch:
+3. Check for an existing PR:
 
 ```bash
 gh pr view --json number,title,body,url,headRefName,baseRefName
 ```
 
-4. If no PR exists, create one with:
-   - Title in Conventional Commit format (`<type>(<scope>): <summary>`).
-   - Body using this concise template:
-
-```markdown
-## Description
-
-<what changed>
-
-## Validation
-
-- <test or check>
-
-## Risks
-
-- <known risk or `None`>
-
-## Visuals
-
-- <GitHub attachment URL or `N/A`>
-```
-
-Example:
+4. **No PR exists** — create one:
+   - Title in Conventional Commit format: `<type>(<scope>): <summary>`
+   - Body based on `assets/pr-body-template.md`
 
 ```bash
-gh pr create --title "feat(web): add tank filter to threat chart" --body-file <temp-body-file>
+gh pr create --title "<title>" --body-file <temp-body-file>
 ```
 
-If a PR exists, push new commits and continue to drift checks.
+5. **PR exists** — push new commits and continue to drift check (step 6).
 
 ## 6) Handle Branch Drift
 
-When branch intent changes (for example a `fix` branch becomes a `feat`, scope changes, or implementation focus shifts):
+When branch intent changes (scope shifts, `fix` becomes `feat`, focus changes):
 
-1. Recompute the best Conventional Commit style PR title from the current diff.
-2. Update PR title when it no longer matches.
-3. Update PR description when it no longer reflects the current diff.
-4. Keep PR description aligned to the concise template (`Description`, `Validation`, `Risks`, `Visuals`).
-
-Use:
+1. Recompute the best Conventional Commit title from the current diff.
+2. Update title and description when they no longer match.
 
 ```bash
 gh pr edit <number> --title "<new-title>" --body-file <temp-body-file>
 ```
 
+Keep the body aligned to the template in `assets/pr-body-template.md`.
+
 ## 7) Add Visual Evidence for UI Changes
 
-If changes are visually verifiable (UI/layout/styling/interaction):
-
-1. Use the page specs in `apps/web/src/pages/*.spec.ts` for screenshots.
-2. Each page spec should include `maybeCaptureScreenshot(page)` that:
-   - Returns immediately unless `process.env.PLAYWRIGHT_SCREENSHOT` is set.
-   - Writes to `<repoRoot>/output/<page>.png` (`landing-page.png`, `report-page.png`, `fight-page.png`).
-3. Ensure each page spec uses appropriate mocks so the captured page is a valid state for PR context.
-4. Run the specific page spec with screenshots enabled, for example:
-
-```bash
-PLAYWRIGHT_SCREENSHOT=1 pnpm --filter @wow-threat/web exec playwright test src/pages/landing-page.spec.ts
-```
-
-5. Upload only the relevant `<repoRoot>/output/<page>.png` file(s) for the UI changes in this PR via the image uploader tool and capture each returned GitHub attachment URL:
-   - The uploader runs headless by default and only switches to headed mode when GitHub login is required.
-
-```bash
-image_path="<repoRoot>/output/landing-page.png"
-image_url="$(pnpm --filter @wow-threat/web upload:github-image -- "$image_path" | tail -n 1)"
-echo "$image_url"
-```
-
-6. Insert the returned `https://github.com/user-attachments/assets/...` URL into PR `## Visuals` markdown.
-7. Leave screenshot files in `output/`; this path is gitignored and images are expected to be overwritten on future runs.
-
-Preferred markdown format:
-
-```markdown
-## Visuals
-
-![Updated threat chart](https://github.com/user-attachments/assets/<asset-id>)
-```
+If changes are visually verifiable (UI/layout/styling/interaction), read
+`references/visual-evidence.md` for the full screenshot-capture and upload
+workflow, then insert the returned GitHub attachment URL into the PR `## Visuals`
+section.
 
 ## Output Expectations
 
-After running this skill, leave the repository in this state:
+After running this skill the repository should be in this state:
 
 1. Current branch is a non-`main` feature branch.
 2. Branch is back-merged from `origin/main` when significant divergence is detected.
