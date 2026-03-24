@@ -13,6 +13,7 @@ import {
   publishWclAuthPopupResult,
 } from '../auth/wcl-popup-bridge'
 import { Alert, AlertDescription } from '../components/ui/alert'
+import { useAnalytics } from '../lib/analytics'
 
 const popupCloseDelayMs = 500
 
@@ -44,12 +45,19 @@ function createPopupResult(
 export const AuthCompletePage: FC = () => {
   const location = useLocation()
   const { authEnabled } = useAuth()
+  const analytics = useAnalytics()
   const hasPublished = useRef(false)
   const bridgeCode = readBridgeCode(location.hash)
   const result = useMemo(
     () => createPopupResult(authEnabled, bridgeCode),
     [authEnabled, bridgeCode],
   )
+
+  useEffect(() => {
+    if (result.status === 'success') {
+      analytics.capture('wcl_auth_completed')
+    }
+  }, [analytics, result.status])
 
   useEffect(() => {
     let hasBridgeDelivery = hasPublished.current

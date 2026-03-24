@@ -13,6 +13,7 @@ import {
 import { useReportData } from '../hooks/use-report-data'
 import { useReportIndex } from '../hooks/use-report-index'
 import { useUserSettings } from '../hooks/use-user-settings'
+import { useAnalytics } from '../lib/analytics'
 import { buildBossKillNavigationFights } from '../lib/fight-navigation'
 import { parseBooleanQueryParam } from '../lib/query-params'
 import { parsePlayersParam } from '../lib/search-params'
@@ -47,6 +48,7 @@ export const ReportLayout: FC = () => {
   const fallbackHost = resolveReportHost(reportId)
   const reportHost = locationState?.host ?? fallbackHost
   const { data, isLoading, error } = useReportData(reportId)
+  const analytics = useAnalytics()
 
   useEffect(() => {
     if (!data) {
@@ -67,7 +69,9 @@ export const ReportLayout: FC = () => {
       isAccessible: data.archiveStatus?.isAccessible ?? true,
       archiveDate: data.archiveStatus?.archiveDate ?? null,
     })
-  }, [addRecentReport, data, reportHost, reportId])
+
+    analytics.capture('report_viewed', { reportId })
+  }, [addRecentReport, analytics, data, reportHost, reportId])
 
   if (!reportId) {
     return (

@@ -2,6 +2,7 @@
  * Entity report listing page (guild implementation with generic route shape).
  */
 import { ExternalLink } from 'lucide-react'
+import { useEffect } from 'react'
 import { useLocation, useParams, useSearchParams } from 'react-router-dom'
 
 import { ErrorState } from '../components/error-state'
@@ -12,6 +13,7 @@ import { StarredGuildReportsList } from '../components/starred-guild-reports-lis
 import { Button } from '../components/ui/button'
 import { useEntityReports } from '../hooks/use-entity-reports'
 import { useUserSettings } from '../hooks/use-user-settings'
+import { useAnalytics } from '../lib/analytics'
 import { defaultHost } from '../lib/constants'
 import { buildGuildUrl } from '../lib/wcl-url'
 import type { StarredGuildReportEntry, WarcraftLogsHost } from '../types/app'
@@ -69,6 +71,7 @@ function GuildReportsPage({ entityId }: GuildReportsPageProps): JSX.Element {
   const guildName = searchParams.get('name')?.trim() || undefined
   const serverSlug = searchParams.get('serverSlug')?.trim() || undefined
   const serverRegion = searchParams.get('serverRegion')?.trim() || undefined
+  const analytics = useAnalytics()
   const {
     response,
     isLoading: isLoadingEntityReports,
@@ -83,6 +86,14 @@ function GuildReportsPage({ entityId }: GuildReportsPageProps): JSX.Element {
     serverRegion,
     limit: 20,
   })
+
+  useEffect(() => {
+    if (!response) return
+    analytics.capture('entity_reports_viewed', {
+      entityType: 'guild',
+      entityId,
+    })
+  }, [analytics, entityId, response])
 
   if (isLoadingEntityReports) {
     return (

@@ -31,6 +31,7 @@ import { defaultHost } from '@/lib/constants'
 import { buildBossKillNavigationFights } from '@/lib/fight-navigation'
 import { superKey } from '@/lib/keyboard-shortcut'
 import { parseReportInput } from '@/lib/wcl-url'
+import { useAnalytics } from '@/lib/analytics'
 import { ChevronDown, Home, RefreshCw, Search, Star } from 'lucide-react'
 import { type FC, useEffect, useMemo, useRef, useState } from 'react'
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook'
@@ -93,6 +94,21 @@ export const RootLayout: FC = () => {
     error: rateLimitError,
     refresh: refreshRateLimit,
   } = useWclRateLimit()
+  const analytics = useAnalytics()
+
+  // Track page views on every navigation.
+  useEffect(() => {
+    analytics.pageview(location.pathname)
+  }, [analytics, location.pathname])
+
+  // Identify the authenticated user in analytics/monitoring.
+  useEffect(() => {
+    if (wclUserId) {
+      analytics.identify(wclUserId)
+    } else {
+      analytics.reset()
+    }
+  }, [analytics, wclUserId])
 
   useEffect(() => {
     if (isLandingPage) {
@@ -504,7 +520,10 @@ export const RootLayout: FC = () => {
                 size="sm"
                 type="button"
                 variant="outline"
-                onClick={startWclLogin}
+                onClick={() => {
+                  analytics.capture('wcl_auth_initiated')
+                  startWclLogin()
+                }}
               >
                 Sign in with WCL
               </Button>

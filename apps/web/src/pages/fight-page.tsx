@@ -16,6 +16,7 @@ import { Skeleton } from '../components/ui/skeleton'
 import { useFightData } from '../hooks/use-fight-data'
 import { useFightEvents } from '../hooks/use-fight-events'
 import { useUserSettings } from '../hooks/use-user-settings'
+import { useAnalytics } from '../lib/analytics'
 import { formatClockDuration } from '../lib/format'
 import { parseBooleanQueryParam } from '../lib/query-params'
 import { resolveCurrentThreatConfig } from '../lib/threat-config'
@@ -97,6 +98,7 @@ export const FightPage: FC = () => {
   const location = useLocation()
   const { reportData, reportHost, reportId } = useReportRouteContext()
   const fightId = Number.parseInt(params.fightId ?? '', 10)
+  const analytics = useAnalytics()
   const searchParams = new URLSearchParams(location.search)
   const chartRenderer =
     searchParams.get('renderer') === 'svg' ? 'svg' : 'canvas'
@@ -192,6 +194,27 @@ export const FightPage: FC = () => {
       disableScope('fight-page')
     }
   }, [disableScope, enableScope])
+
+  // Track fight view once fight data has loaded.
+  useEffect(() => {
+    if (!fightData || !reportId) return
+    analytics.capture('fight_viewed', {
+      reportId,
+      fightId: String(fightId),
+    })
+  }, [analytics, fightData, fightId, reportId])
+
+  // Track target filter changes.
+  useEffect(() => {
+    const targetOption = selectedTarget
+      ? targetOptions.find(
+          (opt) => opt.id === selectedTarget.id && opt.instance === selectedTarget.instance,
+        )
+      : null
+    analytics.capture('fight_target_filter_changed', {
+      targetName: targetOption?.name ?? null,
+    })
+  }, [analytics, selectedTarget, targetOptions])
 
   useHotkeys(
     'b',
