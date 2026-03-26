@@ -834,6 +834,33 @@ describe('Reports API', () => {
 })
 
 describe('Health endpoint', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url.includes('firestore.googleapis.com')) {
+          return new Response(null, { status: 404 })
+        }
+        if (url.includes('warcraftlogs.com/oauth/token')) {
+          return new Response(
+            JSON.stringify({
+              access_token: 'tok',
+              token_type: 'Bearer',
+              expires_in: 3600,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+        throw new Error(`Unexpected fetch: ${url}`)
+      }),
+    )
+  })
+
+  afterEach(() => {
+    restoreFetch()
+  })
+
   it('returns ok status', async () => {
     const res = await app.request(
       'http://localhost/health',
