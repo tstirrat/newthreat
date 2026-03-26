@@ -30,7 +30,7 @@ const getVendorChunkName = (id: string): string | undefined => {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react({
       babel: {
@@ -44,6 +44,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  esbuild:
+    mode === 'production'
+      ? {
+          pure: [
+            'console.log',
+            'console.info',
+            'console.warn',
+            'console.debug',
+          ],
+        }
+      : undefined,
   build: {
     rollupOptions: {
       output: {
@@ -51,4 +62,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))
