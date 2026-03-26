@@ -7,6 +7,10 @@ and this project adheres to [Conventional Commits](https://www.conventionalcommi
 
 ## [Unreleased]
 
+### Added
+
+- **web**: Add explicit `Cache-Control` headers in `firebase.json` for Firebase Hosting. All SPA routes get `no-cache` via a `**` catch-all so browsers always revalidate after a deploy. Vite-hashed assets under `/assets/**` and font files get `public, max-age=31536000, immutable` for aggressive long-lived caching. Image files get `public, max-age=86400` (1 day). Firebase's last-match-wins semantics ensure the specific immutable rules override the catch-all for asset paths.
+
 ### Changed
 
 - **web**: Strip `console.log`, `console.info`, and `console.debug` calls from production builds via `esbuild.pure` in `vite.config.ts`. Operational warning signals (`console.warn`) and critical error logging (`console.error`) are intentionally preserved so IndexedDB failures, worker fallbacks, and other production error paths remain observable.
