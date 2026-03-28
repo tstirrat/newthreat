@@ -19,3 +19,7 @@ and this project adheres to [Conventional Commits](https://www.conventionalcommi
 ### Changed
 
 - **web**: Strip `console.log`, `console.info`, and `console.debug` calls from production builds via `esbuild.pure` in `vite.config.ts`. Operational warning signals (`console.warn`) and critical error logging (`console.error`) are intentionally preserved so IndexedDB failures, worker fallbacks, and other production error paths remain observable.
+
+### Fixed
+
+- **web**: Reset `databasePromise` singleton in the `onerror` handler of `openThreatWorkerCacheDatabase` so failed IndexedDB connection attempts do not permanently disable the cache for the session ([AGE-11]). Previously, a connection failure cached a settled null-promise, causing all subsequent calls to bypass the open attempt entirely with no retry opportunity.
