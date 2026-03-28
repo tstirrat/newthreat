@@ -3,6 +3,7 @@
  *
  * Entry point for the Cloudflare Workers application.
  */
+import { withSentry } from '@sentry/cloudflare'
 import { generateRequestId } from '@wow-threat/shared'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -14,6 +15,7 @@ import { timing } from 'hono/timing'
 import { authMiddleware } from './middleware/auth'
 import { errorHandler } from './middleware/error'
 import { authRoutes } from './routes/auth'
+import { healthRoutes } from './routes/health'
 import { reportRoutes } from './routes/reports'
 import { isOriginAllowed, parseAllowedOrigins } from './services/origins'
 import { validateRuntimeConfig } from './services/runtime-config'
@@ -76,13 +78,7 @@ app.use('*', logger())
 app.onError(errorHandler)
 
 // Health check (no auth)
-app.get('/health', (c) =>
-  c.json({
-    status: 'ok',
-    environment: c.env.ENVIRONMENT,
-    requestId: c.get('requestId'),
-  }),
-)
+app.route('/health', healthRoutes)
 
 // Authentication routes (no /v1 auth middleware)
 app.route('/auth', authRoutes)
@@ -108,4 +104,13 @@ app.notFound((c) =>
   ),
 )
 
-export default app
+export { app }
+
+export default withSentry<Bindings>(
+  (env) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.1 : 1.0,
+    environment: env.ENVIRONMENT,
+  }),
+  app,
+)
