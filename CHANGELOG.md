@@ -1,0 +1,23 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
+
+## [Unreleased]
+
+### Added
+
+- **web**: Add root-level `ErrorBoundary` component wrapping `<RouterProvider>` in `app.tsx`. Catches unhandled React render errors and displays a user-friendly fallback with "Something went wrong", a "Try again" reset button, and a "Reload page" button. Supports a custom `fallback` render prop for scoped use. Includes a `componentDidCatch` hook point for future Sentry integration ([AGE-3]).
+- **api**: `GET /health` now runs parallel dependency probes (KV, Firestore, WCL) with per-check timeouts (2 s / 3 s / 3 s). Returns structured `HealthCheckResult` with per-dependency `status`, `latencyMs`, and optional `message`. Aggregate status: `ok` (all up), `degraded` (some up), `error` (all down). HTTP 200 for ok/degraded; 503 only when all dependencies fail.
+- **web**: Add explicit `Cache-Control` headers in `firebase.json` for Firebase Hosting. All SPA routes get `no-cache` via a `**` catch-all so browsers always revalidate after a deploy. Vite-hashed assets under `/assets/**` and font files get `public, max-age=31536000, immutable` for aggressive long-lived caching. Image files get `public, max-age=86400` (1 day). Firebase's last-match-wins semantics ensure the specific immutable rules override the catch-all for asset paths.
+- **web**: Add `Content-Security-Policy-Report-Only` and security headers to Firebase Hosting config. CSP uses deny-by-default with allowlisted origins: `self`, `https://wow.zamimg.com` (Wowhead tooltips), WCL API, and required Firebase/Google endpoints (`securetoken.googleapis.com`, `identitytoolkit.googleapis.com`, `firestore.googleapis.com`, `firebaseinstallations.googleapis.com`). `style-src` includes `unsafe-inline` for Wowhead tooltip inline styles. Additional headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` disabling camera/mic/geolocation.
+
+### Changed
+
+- **web**: Strip `console.log`, `console.info`, and `console.debug` calls from production builds via `esbuild.pure` in `vite.config.ts`. Operational warning signals (`console.warn`) and critical error logging (`console.error`) are intentionally preserved so IndexedDB failures, worker fallbacks, and other production error paths remain observable.
+
+### Fixed
+
+- **web**: Reset `databasePromise` singleton in the `onerror` handler of `openThreatWorkerCacheDatabase` so failed IndexedDB connection attempts do not permanently disable the cache for the session ([AGE-11]). Previously, a connection failure cached a settled null-promise, causing all subsequent calls to bypass the open attempt entirely with no retry opportunity.
