@@ -25,3 +25,8 @@ and this project adheres to [Conventional Commits](https://www.conventionalcommi
 ### Fixed
 
 - **web**: Reset `databasePromise` singleton in the `onerror` handler of `openThreatWorkerCacheDatabase` so failed IndexedDB connection attempts do not permanently disable the cache for the session ([AGE-11]). Previously, a connection failure cached a settled null-promise, causing all subsequent calls to bypass the open attempt entirely with no retry opportunity.
+
+### Security
+
+- **deps**: Resolve 7 transitive devDependency vulnerabilities (5 high, 2 moderate) via `pnpm.overrides` in root `package.json`. Patched ranges: `minimatch@>=9.0.0 <9.0.7`, `flatted@<3.4.2`, `brace-expansion@>=2.0.0 <2.0.3`, `brace-expansion@>=4.0.0 <5.0.5`. `pnpm audit` now reports 0 known vulnerabilities.
+- **web**: Move `shadcn` from `dependencies` to `devDependencies` in `apps/web/package.json`. It is a CLI code-generation tool with no runtime presence and was incorrectly classified as a production dependency.
