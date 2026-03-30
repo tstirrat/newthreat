@@ -1,6 +1,7 @@
 /**
  * React Router configuration with nested routes.
  */
+/* eslint-disable react-refresh/only-export-components -- router files legitimately mix lazy components with non-component exports */
 import { type ReactElement, Suspense, lazy } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 
