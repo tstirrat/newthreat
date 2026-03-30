@@ -3,6 +3,7 @@
  */
 import { getReport } from '@/api/reports'
 import { useAuth } from '@/auth/auth-provider'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { FightPageKeyboardShortcutsOverlay } from '@/components/fight-page-keyboard-shortcuts-overlay'
 import { ModeToggle } from '@/components/mode-toggle'
 import { ReportUrlForm } from '@/components/report-url-form'
@@ -528,7 +529,9 @@ export const RootLayout: FC = () => {
             <AlertDescription>{authError}</AlertDescription>
           </Alert>
         ) : null}
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   )
