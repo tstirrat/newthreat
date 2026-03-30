@@ -3,7 +3,14 @@
  */
 import { ExternalLink } from 'lucide-react'
 import { usePostHog } from 'posthog-js/react'
-import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook'
 import { useLocation, useParams } from 'react-router-dom'
 
