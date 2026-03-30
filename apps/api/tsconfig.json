@@ -5,7 +5,8 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["@cloudflare/workers-types", "node"]
   },
   "include": ["src/**/*", "*.config.ts"]
   // don't exclude tests please. here and in other packages

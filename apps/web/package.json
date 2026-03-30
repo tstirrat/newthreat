@@ -54,7 +54,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.4",
+    "@vitejs/plugin-react": "^6.0.1",
     "@wow-threat/typescript-config": "workspace:*",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^10.1.0",
@@ -62,11 +62,11 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "jiti": "^2.6.1",
-    "jsdom": "^28.1.0",
+    "jsdom": "^29.0.1",
     "postcss": "^8.5.8",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.57.2",
-    "vite": "^7.3.1",
-    "vitest": "^3.2.4"
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2"
   }
 }
