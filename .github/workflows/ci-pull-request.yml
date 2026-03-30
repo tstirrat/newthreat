@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PREVIEW_CHANNEL_ID: pr-${{ github.event.pull_request.number }}
-      PREVIEW_ALLOWED_ORIGINS: 'https://wow-threat.web.app,https://wow-threat.firebaseapp.com,https://wow-threat--*.web.app,https://wow-threat--*.firebaseapp.com,http://localhost:5173,http://localhost:5174'
+      PREVIEW_ALLOWED_ORIGINS: 'https://wow-threat-staging.web.app,https://wow-threat-staging.firebaseapp.com,https://wow-threat-staging--*.web.app,https://wow-threat-staging--*.firebaseapp.com,http://localhost:5173,http://localhost:5174'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -90,6 +90,26 @@ jobs:
             versions upload
             --preview-alias ${{ env.PREVIEW_CHANNEL_ID }}
             --var ALLOWED_ORIGINS:${{ env.PREVIEW_ALLOWED_ORIGINS }}
+      - name: Smoke test BE preview
+        run: |
+          PREVIEW_URL="${{ steps.deploy_backend_preview.outputs.deployment-url }}"
+          for i in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' "${PREVIEW_URL}/health")
+            if [ "$STATUS" = "200" ]; then
+              BODY=$(curl -sf "${PREVIEW_URL}/health")
+              HEALTH_STATUS=$(echo "$BODY" | jq -r '.status')
+              if [ "$HEALTH_STATUS" = "ok" ] || [ "$HEALTH_STATUS" = "degraded" ]; then
+                echo "BE preview healthy at ${PREVIEW_URL} (status=$HEALTH_STATUS)"
+                exit 0
+              fi
+              echo "Attempt $i: status=$HEALTH_STATUS (expected ok or degraded)"
+            else
+              echo "Attempt $i: HTTP $STATUS (expected 200)"
+            fi
+            sleep $((i * 2))
+          done
+          echo "BE preview smoke test failed"
+          exit 1
       - name: Build FE
         run: |
           test -n "$VITE_API_BASE_URL"
@@ -100,25 +120,40 @@ jobs:
           pnpm --filter @wow-threat/web build
         env:
           VITE_API_BASE_URL: ${{ steps.deploy_backend_preview.outputs.deployment-url }}
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.STAGING_FIREBASE_API_KEY }}
+          VITE_FIREBASE_PROJECT_ID: wow-threat-staging
+          VITE_FIREBASE_AUTH_DOMAIN: wow-threat-staging.firebaseapp.com
+          VITE_FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         id: deploy_frontend_preview
         name: Deploy FE Preview
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WOW_THREAT }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WOW_THREAT_STAGING }}
           channelId: ${{ env.PREVIEW_CHANNEL_ID }}
           disableComment: true
           entryPoint: apps/web
-          projectId: wow-threat
+          projectId: wow-threat-staging
       - name: Validate FE Preview output
         env:
           FRONTEND_DETAILS_URL: ${{ steps.deploy_frontend_preview.outputs.details_url }}
         run: |
           test -n "$FRONTEND_DETAILS_URL"
+      - name: Smoke test FE preview
+        run: |
+          PREVIEW_URL="${{ steps.deploy_frontend_preview.outputs.details_url }}"
+          for i in 1 2 3 4 5; do
+            RESPONSE=$(curl -sf "$PREVIEW_URL" || true)
+            if echo "$RESPONSE" | grep -q '<div id="root">' && \
+               echo "$RESPONSE" | grep -q '</html>'; then
+              echo "FE preview responding at ${PREVIEW_URL}"
+              exit 0
+            fi
+            echo "Attempt $i: HTML markers not found, retrying..."
+            sleep $((i * 3))
+          done
+          echo "FE preview smoke test failed"
+          exit 1
       - name: Add preview URLs to workflow summary
         run: |
           echo "### Preview Environments" >> "$GITHUB_STEP_SUMMARY"
