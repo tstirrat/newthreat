@@ -53,6 +53,10 @@ export async function validateRuntimeConfig(env: Bindings): Promise<void> {
 
   if (!runtimeValidationPromise) {
     runtimeValidationPromise = runRuntimeValidation(env)
+    // Attach a noop rejection handler to the cached promise so the Workers
+    // runtime does not flag it as unhandled. Callers receive the same promise
+    // and handle the rejection themselves.
+    runtimeValidationPromise.catch(() => {})
   }
 
   return runtimeValidationPromise

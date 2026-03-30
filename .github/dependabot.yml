@@ -1,41 +1,16 @@
 version: 2
 updates:
+  # Single root entry for the pnpm workspace monorepo. Dependabot reads
+  # pnpm-workspace.yaml from here and updates all workspace package.json
+  # files together with the root pnpm-lock.yaml in the same PR.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
-
-  - package-ecosystem: npm
-    directory: /apps/api
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: npm
-    directory: /apps/web
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: npm
-    directory: /packages/config
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: npm
-    directory: /packages/engine
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: npm
-    directory: /packages/shared
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: npm
-    directory: /packages/wcl-types
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: npm
-    directory: /tooling/typescript-config
-    schedule:
-      interval: weekly
+    ignore:
+      # react-router-dom v7 causes a "Maximum update depth exceeded" infinite
+      # render loop handled by React Router's ErrorBoundary. Root cause is
+      # likely a Radix UI / shadcn component calling setState inside a ref
+      # callback on every render, which v7's changed rendering cycle exposes.
+      - dependency-name: react-router-dom
+        update-types: ["version-update:semver-major"]

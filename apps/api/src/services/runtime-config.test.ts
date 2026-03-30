@@ -1,7 +1,7 @@
 /**
  * Tests for runtime configuration validation.
  */
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { createMockBindings } from '../../test/setup'
 import { type AppError, ErrorCodes } from '../middleware/error'
@@ -48,6 +48,10 @@ function createDevelopmentBindings(): Bindings {
 }
 
 describe('validateRuntimeConfig', () => {
+  afterEach(() => {
+    resetRuntimeConfigValidation()
+  })
+
   it('skips validation for test environment', async () => {
     resetRuntimeConfigValidation()
     const env = createMockBindings()

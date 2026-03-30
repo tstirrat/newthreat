@@ -20,10 +20,10 @@
     "@eslint/js": "^10.0.1",
     "@wow-threat/shared": "workspace:*",
     "@wow-threat/typescript-config": "workspace:*",
-    "eslint": "^10.0.2",
+    "eslint": "^10.1.0",
     "globals": "^17.4.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "vitest": "^3.2.4"
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.57.2",
+    "vitest": "^4.1.2"
   }
 }
