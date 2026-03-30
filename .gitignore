@@ -48,3 +48,4 @@ coverage/
 packages/threat-config/src/test/fixtures/**/*.txt
 output/
 .claude/settings.local.json
+.playwright-cli/

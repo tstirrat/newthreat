@@ -14,6 +14,7 @@ import {
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook'
 import { useLocation, useParams } from 'react-router-dom'
 
+import { ErrorBoundary } from '../components/error-boundary'
 import { ErrorState } from '../components/error-state'
 import { PlayerSummaryTable } from '../components/player-summary-table'
 import { SectionCard } from '../components/section-card'
@@ -471,7 +472,9 @@ export const FightPage: FC = () => {
               No threat points are available for this target.
             </p>
           ) : (
-            <ThreatChart {...chartProps} />
+            <ErrorBoundary>
+              <ThreatChart {...chartProps} />
+            </ErrorBoundary>
           )}
         </SectionCard>
 
