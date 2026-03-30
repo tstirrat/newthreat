@@ -102,8 +102,10 @@ jobs:
                 echo "BE preview healthy at ${PREVIEW_URL} (status=$HEALTH_STATUS)"
                 exit 0
               fi
+              echo "Attempt $i: status=$HEALTH_STATUS (expected ok or degraded)"
+            else
+              echo "Attempt $i: HTTP $STATUS (expected 200)"
             fi
-            echo "Attempt $i: retrying..."
             sleep $((i * 2))
           done
           echo "BE preview smoke test failed"
@@ -147,7 +149,7 @@ jobs:
               echo "FE preview responding at ${PREVIEW_URL}"
               exit 0
             fi
-            echo "Attempt $i: retrying..."
+            echo "Attempt $i: HTML markers not found, retrying..."
             sleep $((i * 3))
           done
           echo "FE preview smoke test failed"
