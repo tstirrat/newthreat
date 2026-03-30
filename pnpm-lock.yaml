@@ -261,7 +261,7 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0
       '@types/node':
-        specifier: ^25.3.3
+        specifier: ^25.5.0
         version: 25.5.0
       '@wow-threat/engine':
         specifier: workspace:*
