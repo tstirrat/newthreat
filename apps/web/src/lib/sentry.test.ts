@@ -22,7 +22,10 @@ describe('initSentry', () => {
 
   it('sets environment to staging for PR preview channels', () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://public@o0.ingest.sentry.io/0')
-    vi.stubGlobal('location', { hostname: 'pr-123--wow-threat.web.app', origin: window.location.origin })
+    vi.stubGlobal('location', {
+      hostname: 'pr-123--wow-threat.web.app',
+      origin: window.location.origin,
+    })
 
     initSentry()
 
@@ -35,7 +38,10 @@ describe('initSentry', () => {
 
   it('sets environment to production for non-PR hostnames', () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://public@o0.ingest.sentry.io/0')
-    vi.stubGlobal('location', { hostname: 'wow-threat.web.app', origin: window.location.origin })
+    vi.stubGlobal('location', {
+      hostname: 'wow-threat.web.app',
+      origin: window.location.origin,
+    })
 
     initSentry()
 

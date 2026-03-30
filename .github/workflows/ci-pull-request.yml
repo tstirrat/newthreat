@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PREVIEW_CHANNEL_ID: pr-${{ github.event.pull_request.number }}
-      PREVIEW_ALLOWED_ORIGINS: 'https://wow-threat.web.app,https://wow-threat.firebaseapp.com,https://wow-threat--*.web.app,https://wow-threat--*.firebaseapp.com,http://localhost:5173,http://localhost:5174'
+      PREVIEW_ALLOWED_ORIGINS: 'https://wow-threat-staging.web.app,https://wow-threat-staging.firebaseapp.com,https://wow-threat-staging--*.web.app,https://wow-threat-staging--*.firebaseapp.com,http://localhost:5173,http://localhost:5174'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -100,20 +100,20 @@ jobs:
           pnpm --filter @wow-threat/web build
         env:
           VITE_API_BASE_URL: ${{ steps.deploy_backend_preview.outputs.deployment-url }}
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.STAGING_FIREBASE_API_KEY }}
+          VITE_FIREBASE_PROJECT_ID: wow-threat-staging
+          VITE_FIREBASE_AUTH_DOMAIN: wow-threat-staging.firebaseapp.com
+          VITE_FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         id: deploy_frontend_preview
         name: Deploy FE Preview
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WOW_THREAT }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WOW_THREAT_STAGING }}
           channelId: ${{ env.PREVIEW_CHANNEL_ID }}
           disableComment: true
           entryPoint: apps/web
-          projectId: wow-threat
+          projectId: wow-threat-staging
       - name: Validate FE Preview output
         env:
           FRONTEND_DETAILS_URL: ${{ steps.deploy_frontend_preview.outputs.details_url }}
