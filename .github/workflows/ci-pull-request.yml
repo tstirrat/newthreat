@@ -90,6 +90,26 @@ jobs:
             versions upload
             --preview-alias ${{ env.PREVIEW_CHANNEL_ID }}
             --var ALLOWED_ORIGINS:${{ env.PREVIEW_ALLOWED_ORIGINS }}
+      - name: Smoke test BE preview
+        run: |
+          PREVIEW_URL="${{ steps.deploy_backend_preview.outputs.deployment-url }}"
+          for i in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' "${PREVIEW_URL}/health")
+            if [ "$STATUS" = "200" ]; then
+              BODY=$(curl -sf "${PREVIEW_URL}/health")
+              HEALTH_STATUS=$(echo "$BODY" | jq -r '.status')
+              if [ "$HEALTH_STATUS" = "ok" ] || [ "$HEALTH_STATUS" = "degraded" ]; then
+                echo "BE preview healthy at ${PREVIEW_URL} (status=$HEALTH_STATUS)"
+                exit 0
+              fi
+              echo "Attempt $i: status=$HEALTH_STATUS (expected ok or degraded)"
+            else
+              echo "Attempt $i: HTTP $STATUS (expected 200)"
+            fi
+            sleep $((i * 2))
+          done
+          echo "BE preview smoke test failed"
+          exit 1
       - name: Build FE
         run: |
           test -n "$VITE_API_BASE_URL"
@@ -119,6 +139,21 @@ jobs:
           FRONTEND_DETAILS_URL: ${{ steps.deploy_frontend_preview.outputs.details_url }}
         run: |
           test -n "$FRONTEND_DETAILS_URL"
+      - name: Smoke test FE preview
+        run: |
+          PREVIEW_URL="${{ steps.deploy_frontend_preview.outputs.details_url }}"
+          for i in 1 2 3 4 5; do
+            RESPONSE=$(curl -sf "$PREVIEW_URL" || true)
+            if echo "$RESPONSE" | grep -q '<div id="root">' && \
+               echo "$RESPONSE" | grep -q '</html>'; then
+              echo "FE preview responding at ${PREVIEW_URL}"
+              exit 0
+            fi
+            echo "Attempt $i: HTML markers not found, retrying..."
+            sleep $((i * 3))
+          done
+          echo "FE preview smoke test failed"
+          exit 1
       - name: Add preview URLs to workflow summary
         run: |
           echo "### Preview Environments" >> "$GITHUB_STEP_SUMMARY"
