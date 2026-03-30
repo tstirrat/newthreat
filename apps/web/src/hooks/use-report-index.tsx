@@ -7,6 +7,7 @@ import { type FC, type PropsWithChildren } from 'react'
 import {
   createContext,
   createElement,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -211,24 +212,8 @@ export const ReportIndexProvider: FC<PropsWithChildren> = ({ children }) => {
     uid,
   ])
 
-  const value: UseReportIndexResult = {
-    documents,
-    recentReports,
-    personalReports,
-    guildReports,
-    lastRefreshAtMs,
-    isLoadingPersonalReports: personalReportsQuery.isLoading,
-    isRefreshingPersonalReports: personalReportsQuery.isRefreshing,
-    personalReportsError: personalReportsQuery.error,
-    isLoadingGuildReports: guildReportsQuery.isLoading,
-    isRefreshingGuildReports: guildReportsQuery.isRefreshing,
-    guildReportsError: guildReportsQuery.error,
-    searchReports: (query: string, limit = 20) =>
-      searchReportDocuments(searchIndex, documents, query, limit),
-    resolveReportHost: (reportId: string) =>
-      documents.find((entry) => entry.reportId === reportId)?.sourceHost ??
-      defaultHost,
-    addRecentReport: (entry: RecentReportEntry) => {
+  const addRecentReport = useCallback(
+    (entry: RecentReportEntry) => {
       setRecentReportsState((current) => ({
         uid,
         reports: upsertLocalRecentReport(
@@ -239,7 +224,11 @@ export const ReportIndexProvider: FC<PropsWithChildren> = ({ children }) => {
         ),
       }))
     },
-    removeRecentReport: (reportId: string) => {
+    [uid, persistedSnapshot?.recentReports],
+  )
+
+  const removeRecentReport = useCallback(
+    (reportId: string) => {
       setRecentReportsState((current) => ({
         uid,
         reports: removeLocalRecentReport(
@@ -250,13 +239,49 @@ export const ReportIndexProvider: FC<PropsWithChildren> = ({ children }) => {
         ),
       }))
     },
-    refreshPersonalReports: async () => {
-      await personalReportsQuery.refresh()
-    },
-    refreshGuildReports: async () => {
-      await guildReportsQuery.refresh()
-    },
-  }
+    [uid, persistedSnapshot?.recentReports],
+  )
+
+  const value = useMemo<UseReportIndexResult>(
+    (): UseReportIndexResult => ({
+      documents,
+      recentReports,
+      personalReports,
+      guildReports,
+      lastRefreshAtMs,
+      isLoadingPersonalReports: personalReportsQuery.isLoading,
+      isRefreshingPersonalReports: personalReportsQuery.isRefreshing,
+      personalReportsError: personalReportsQuery.error,
+      isLoadingGuildReports: guildReportsQuery.isLoading,
+      isRefreshingGuildReports: guildReportsQuery.isRefreshing,
+      guildReportsError: guildReportsQuery.error,
+      searchReports: (query: string, limit = 20) =>
+        searchReportDocuments(searchIndex, documents, query, limit),
+      resolveReportHost: (reportId: string) =>
+        documents.find((entry) => entry.reportId === reportId)?.sourceHost ??
+        defaultHost,
+      addRecentReport,
+      removeRecentReport,
+      refreshPersonalReports: async () => {
+        await personalReportsQuery.refresh()
+      },
+      refreshGuildReports: async () => {
+        await guildReportsQuery.refresh()
+      },
+    }),
+    [
+      addRecentReport,
+      documents,
+      guildReports,
+      guildReportsQuery,
+      lastRefreshAtMs,
+      personalReports,
+      personalReportsQuery,
+      recentReports,
+      removeRecentReport,
+      searchIndex,
+    ],
+  )
 
   return createElement(ReportIndexContext.Provider, { value }, children)
 }
