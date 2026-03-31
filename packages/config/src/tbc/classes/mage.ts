@@ -3,7 +3,7 @@
  *
  * Applies TBC talent coefficients and threat-drop behavior.
  */
-import type { ClassThreatConfig } from '@wow-threat/shared'
+import type { ClassThreatConfig, EventInterceptor } from '@wow-threat/shared'
 import { SpellSchool } from '@wow-threat/shared'
 
 import {
@@ -11,7 +11,6 @@ import {
   Spells as EraSpells,
   mageConfig as eraMageConfig,
 } from '../../era/classes/mage'
-import { modifyThreat } from '../../shared/formulas'
 
 export const Spells = {
   ...EraSpells,
@@ -21,6 +20,38 @@ export const Spells = {
 export const Mods = {
   ...EraMods,
 } as const
+
+/** Create an Invisibility interceptor that applies time-based threat reduction on removebuff. */
+export function createInvisibilityInterceptor(
+  sourceId: number,
+  spellId: number,
+): EventInterceptor {
+  return (event, ctx) => {
+    if (
+      event.type !== 'removebuff' ||
+      event.abilityGameID !== spellId ||
+      event.sourceID !== sourceId
+    ) {
+      return { action: 'passthrough' }
+    }
+
+    const nbSeconds = Math.floor((ctx.timestamp - ctx.installedAt) / 1000)
+    const targetMultiplier = Math.max(0, 1 - nbSeconds * 0.2)
+    const correctionMultiplier = targetMultiplier / 0.8
+    ctx.uninstall()
+
+    return {
+      action: 'augment',
+      effects: [
+        {
+          type: 'modifyThreat',
+          multiplier: correctionMultiplier,
+          target: 'all',
+        },
+      ],
+    }
+  }
+}
 
 export const mageConfig: ClassThreatConfig = {
   ...eraMageConfig,
@@ -63,10 +94,24 @@ export const mageConfig: ClassThreatConfig = {
 
   abilities: {
     ...eraMageConfig.abilities,
-    [Spells.Invisibility]: modifyThreat({
-      modifier: 0.8,
-      target: 'all',
-      eventTypes: ['applybuff'],
-    }),
+    [Spells.Invisibility]: (ctx) => {
+      if (ctx.event.type !== 'applybuff') return undefined
+
+      return {
+        value: 0,
+        splitAmongEnemies: false,
+        note: 'invisibility(applybuff)',
+        effects: [
+          { type: 'modifyThreat', multiplier: 0.8, target: 'all' },
+          {
+            type: 'installInterceptor',
+            interceptor: createInvisibilityInterceptor(
+              ctx.event.sourceID,
+              Spells.Invisibility,
+            ),
+          },
+        ],
+      }
+    },
   },
 }
