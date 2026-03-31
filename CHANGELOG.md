@@ -24,6 +24,7 @@ and this project adheres to [Conventional Commits](https://www.conventionalcommi
 
 ### Fixed
 
+- **engine**: Exclude insignificant enemies (Gothik non-character adds, Sapphiron Blizzard adds, Ossirian Wind Vortexes) from split-threat distribution. A new `InsignificantEnemyFilterProcessor` runs during the prepass phase and identifies enemies that never interact with players; split threat (heals, AoE) is then distributed only among significant enemies. Direct-target threat is unaffected. Fallback: if all enemies are insignificant, split uses the full alive enemy list ([AGE-34]).
 - **web**: Reset `databasePromise` singleton in the `onerror` handler of `openThreatWorkerCacheDatabase` so failed IndexedDB connection attempts do not permanently disable the cache for the session ([AGE-11]). Previously, a connection failure cached a settled null-promise, causing all subsequent calls to bypass the open attempt entirely with no retry opportunity.
 
 ### Security
