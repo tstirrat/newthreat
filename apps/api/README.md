@@ -53,9 +53,9 @@ Runs parallel probes against KV, Firestore, and WCL API with individual timeouts
 {
   "status": "ok",
   "dependencies": {
-    "kv":        { "status": "ok", "latencyMs": 12 },
+    "kv": { "status": "ok", "latencyMs": 12 },
     "firestore": { "status": "ok", "latencyMs": 45 },
-    "wcl":       { "status": "ok", "latencyMs": 210 }
+    "wcl": { "status": "ok", "latencyMs": 210 }
   },
   "environment": "development",
   "requestId": "req_..."
@@ -64,11 +64,11 @@ Runs parallel probes against KV, Firestore, and WCL API with individual timeouts
 
 **Aggregate `status` values:**
 
-| Value      | Meaning                             | HTTP |
-| ---------- | ----------------------------------- | ---- |
-| `ok`       | All dependencies healthy            | 200  |
-| `degraded` | One or more dependencies failing    | 200  |
-| `error`    | All dependencies failing            | 503  |
+| Value      | Meaning                          | HTTP |
+| ---------- | -------------------------------- | ---- |
+| `ok`       | All dependencies healthy         | 200  |
+| `degraded` | One or more dependencies failing | 200  |
+| `error`    | All dependencies failing         | 503  |
 
 Each `dependencies.*` entry carries `status` (`ok` or `error`), `latencyMs`, and an optional `message` on error.
 
