@@ -42,7 +42,7 @@ import type {
 } from './event-processors'
 import { FightState } from './fight-state'
 import { InterceptorTracker } from './interceptor-tracker'
-import { defaultFightProcessorFactories } from './processors'
+import { defaultFightProcessorFactories, significantEnemyIdsKey } from './processors'
 import { getActiveModifiers, getTotalMultiplier } from './utils'
 
 const ENVIRONMENT_TARGET_ID = -1
@@ -271,6 +271,14 @@ function processEventsWithProcessors(
   const validEnemies = enemies.filter(
     (enemy) => enemy.id !== ENVIRONMENT_TARGET_ID,
   )
+  const significantEnemyIds = processorNamespace.get(significantEnemyIdsKey)
+  const filteredSplitEnemies =
+    significantEnemyIds && significantEnemyIds.size > 0
+      ? validEnemies.filter((e) => significantEnemyIds.has(e.id))
+      : validEnemies
+  // Fallback: if the filter eliminates all enemies, use the full valid enemy list
+  const splitEligibleEnemies =
+    filteredSplitEnemies.length > 0 ? filteredSplitEnemies : validEnemies
   const encounterPreprocessor =
     encounterId !== null
       ? encounterConfig?.preprocessor?.({
@@ -475,6 +483,7 @@ function processEventsWithProcessors(
       calculation,
       event,
       validEnemies,
+      splitEligibleEnemies,
       threatRecipientOverride,
     )
 
@@ -591,6 +600,7 @@ function applyThreat(
   calculation: ThreatCalculation,
   event: FriendlyResolvedEvent,
   enemies: Enemy[],
+  splitEnemies: Enemy[],
   threatRecipientOverride?: number,
 ): ThreatChange[] {
   const changes: ThreatChange[] = []
@@ -633,14 +643,14 @@ function applyThreat(
     }
   }
 
-  // split threat among alive enemies only
+  // split threat among alive significant enemies only
   if (
     shouldApplyBaseThreat &&
     calculation.isSplit &&
     calculation.modifiedThreat !== 0
   ) {
-    // Filter to alive enemies only
-    const aliveEnemies = enemies.filter((e) =>
+    // Filter to alive significant enemies only
+    const aliveEnemies = splitEnemies.filter((e) =>
       fightState.isActorAlive({ id: e.id, instanceId: e.instance }),
     )
     if (aliveEnemies.length > 0) {
