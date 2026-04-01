@@ -47,11 +47,11 @@ vars = { ENVIRONMENT = "staging", WCL_OAUTH_REDIRECT_URI = "https://staging-wow-
 # Then replace the placeholder IDs below with the real ones.
 [[env.staging.kv_namespaces]]
 binding = "WCL_CACHE"
-id = "REPLACE_WITH_STAGING_WCL_CACHE_ID"
+id = "f50ad7fa5cec42c99009d2ba26c8d244"
 
 [[env.staging.kv_namespaces]]
 binding = "AUGMENTED_CACHE"
-id = "REPLACE_WITH_STAGING_AUGMENTED_CACHE_ID"
+id = "8b93bb26e54340a2b8650628b09c9e3e"
 
 # Secrets (set via `wrangler secret put --env staging`):
 # WCL_CLIENT_ID
