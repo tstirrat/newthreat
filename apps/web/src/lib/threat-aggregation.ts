@@ -993,7 +993,26 @@ export function buildFightTargetOptions({
       })
   })
 
-  const targets = [...targetMap.values()]
+  // Compute accumulated threat per target key; use Math.abs so threat reductions
+  // (negative amounts) don't cancel out genuine activity.
+  const threatByTarget = new Map<string, number>()
+
+  events.forEach((event) => {
+    ;(event.threat?.changes ?? []).forEach((change) => {
+      const key = buildTargetKey({
+        id: change.targetId,
+        instance: change.targetInstance ?? defaultTargetInstance,
+      })
+      threatByTarget.set(
+        key,
+        (threatByTarget.get(key) ?? 0) + Math.abs(change.amount),
+      )
+    })
+  })
+
+  const targets = [...targetMap.values()].filter(
+    (target) => (threatByTarget.get(target.key) ?? 0) > 0,
+  )
   const bossTargets = targets
     .filter((target) => target.isBoss)
     .sort(compareTargetsByName)

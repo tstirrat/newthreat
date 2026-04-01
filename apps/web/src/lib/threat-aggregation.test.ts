@@ -96,7 +96,16 @@ describe('threat-aggregation', () => {
           targetID: 1,
           targetInstance: 0,
           threat: {
-            changes: [],
+            changes: [
+              {
+                sourceId: 1,
+                targetId: 10,
+                targetInstance: 3,
+                operator: 'add',
+                amount: 100,
+                total: 100,
+              },
+            ],
           },
         },
         {
@@ -105,7 +114,16 @@ describe('threat-aggregation', () => {
           targetID: 1,
           targetInstance: 0,
           threat: {
-            changes: [],
+            changes: [
+              {
+                sourceId: 1,
+                targetId: 10,
+                targetInstance: 2,
+                operator: 'add',
+                amount: 100,
+                total: 100,
+              },
+            ],
           },
         },
         {
@@ -114,7 +132,16 @@ describe('threat-aggregation', () => {
           targetID: 1,
           targetInstance: 0,
           threat: {
-            changes: [],
+            changes: [
+              {
+                sourceId: 1,
+                targetId: 20,
+                targetInstance: 0,
+                operator: 'add',
+                amount: 100,
+                total: 100,
+              },
+            ],
           },
         },
       ] as never,
@@ -126,6 +153,58 @@ describe('threat-aggregation', () => {
       'Deathknight Understudy (10.3)',
     ])
     expect(options.map((option) => option.isBoss)).toEqual([true, false, false])
+  })
+
+  it('excludes enemies with zero accumulated threat from target options', () => {
+    const options = buildFightTargetOptions({
+      enemies: [
+        {
+          id: 10,
+          name: 'Sapphiron',
+          type: 'NPC',
+          subType: 'Boss',
+        },
+        {
+          id: 16474,
+          name: 'Blizzard',
+          type: 'NPC',
+          subType: 'NPC',
+        },
+      ],
+      events: [
+        {
+          sourceID: 10,
+          sourceInstance: 0,
+          targetID: 1,
+          targetInstance: 0,
+          threat: {
+            changes: [
+              {
+                sourceId: 1,
+                targetId: 10,
+                targetInstance: 0,
+                operator: 'add',
+                amount: 500,
+                total: 500,
+              },
+            ],
+          },
+        },
+        // Blizzard appears in events but generates no threat changes
+        {
+          sourceID: 16474,
+          sourceInstance: 0,
+          targetID: 1,
+          targetInstance: 0,
+          threat: {
+            changes: [],
+          },
+        },
+      ] as never,
+    })
+
+    // Blizzard has zero accumulated threat — must not appear in the selector
+    expect(options.map((option) => option.name)).toEqual(['Sapphiron'])
   })
 
   it('resolves selected target death time while building series', () => {

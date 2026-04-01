@@ -3,7 +3,7 @@
  *
  * Tests cover three fight types where insignificant enemies are present:
  * - Gothik the Harvester: non-character adds that don't interact with players
- * - Sapphiron: Blizzard add spawns that only self-cast
+ * - Sapphiron: Blizzard add spawns that deal AoE damage to players but are never targeted
  * - Ossirian the Unscarred: Wind Vortexes that never target players
  *
  * Each scenario verifies that split threat (heal/AoE) is distributed only
@@ -132,7 +132,7 @@ describe('Gothik the Harvester — non-character adds excluded from split threat
 
   it('splits heal threat only among Gothik when adds never interact with players', () => {
     const events = [
-      // Prepass: Gothik hits the tank (makes Gothik significant)
+      // Prepass: Gothik hits the tank
       makeDamageEvent(gothik.id, tank.id, 200, 100),
       // Prepass: adds only self-cast (insignificant)
       makeBuffEvent(dkUnderstudy1.id, dkUnderstudy1.id, 100),
@@ -152,8 +152,16 @@ describe('Gothik the Harvester — non-character adds excluded from split threat
     })
 
     const healerThreatOnGothik = getThreatForActor(result, healer.id, gothik.id)
-    const healerThreatOnAdd1 = getThreatForActor(result, healer.id, dkUnderstudy1.id)
-    const healerThreatOnAdd2 = getThreatForActor(result, healer.id, dkUnderstudy2.id)
+    const healerThreatOnAdd1 = getThreatForActor(
+      result,
+      healer.id,
+      dkUnderstudy1.id,
+    )
+    const healerThreatOnAdd2 = getThreatForActor(
+      result,
+      healer.id,
+      dkUnderstudy2.id,
+    )
 
     // Healer's 600 heal goes entirely to Gothik (not split 3 ways)
     expect(healerThreatOnGothik).toBe(600)
@@ -187,7 +195,7 @@ describe('Sapphiron — Blizzard add spawns excluded from split threat', () => {
   const tank = makeActor(1, 'Tank')
   const healer = makeActor(2, 'Healer')
   const sapphiron = makeEnemy(15989, 'Sapphiron')
-  // Blizzard adds spawned during the fight — they self-cast and never target players
+  // Blizzard adds spawned during the fight — they deal AoE damage to players but are never targeted
   const blizzardAdd1 = makeEnemy(16474, 'Blizzard 1')
   const blizzardAdd2 = makeEnemy(16474, 'Blizzard 2')
   Object.assign(blizzardAdd2, { instance: 1 })
@@ -199,14 +207,17 @@ describe('Sapphiron — Blizzard add spawns excluded from split threat', () => {
   ])
   const friendlyActorIds = new Set([tank.id, healer.id])
 
-  it('splits heal threat only among Sapphiron when Blizzard adds only self-cast', () => {
+  it('splits heal threat only among Sapphiron when Blizzard adds damage players but are never targeted', () => {
     const events = [
       // Prepass: Sapphiron attacks tank
       makeDamageEvent(sapphiron.id, tank.id, 500, 100),
-      // Prepass: Blizzard adds only self-buff
+      // Prepass: Blizzard adds deal AoE frost damage to players (real WCL data)
+      // but no player ever targets them — they remain insignificant
+      makeDamageEvent(blizzardAdd1.id, tank.id, 150, 150),
+      makeDamageEvent(blizzardAdd2.id, healer.id, 150, 150),
       makeBuffEvent(blizzardAdd1.id, blizzardAdd1.id, 100),
       makeBuffEvent(blizzardAdd2.id, blizzardAdd2.id, 100),
-      // Tank attacks Sapphiron
+      // Tank attacks Sapphiron only
       makeDamageEvent(tank.id, sapphiron.id, 200, 1000),
       // Healer heals — should split only to Sapphiron
       makeHealEvent(healer.id, tank.id, 900, 2000),
@@ -220,9 +231,21 @@ describe('Sapphiron — Blizzard add spawns excluded from split threat', () => {
       config: splitThreatConfig,
     })
 
-    const healerThreatOnSapphiron = getThreatForActor(result, healer.id, sapphiron.id)
-    const healerThreatOnBlizzard1 = getThreatForActor(result, healer.id, blizzardAdd1.id)
-    const healerThreatOnBlizzard2 = getThreatForActor(result, healer.id, blizzardAdd2.id)
+    const healerThreatOnSapphiron = getThreatForActor(
+      result,
+      healer.id,
+      sapphiron.id,
+    )
+    const healerThreatOnBlizzard1 = getThreatForActor(
+      result,
+      healer.id,
+      blizzardAdd1.id,
+    )
+    const healerThreatOnBlizzard2 = getThreatForActor(
+      result,
+      healer.id,
+      blizzardAdd2.id,
+    )
 
     // 900 heal → 900 threat to Sapphiron only (not split 3 ways = 300 each)
     expect(healerThreatOnSapphiron).toBe(900)
@@ -271,10 +294,26 @@ describe('Ossirian the Unscarred — Wind Vortexes excluded from split threat', 
       config: splitThreatConfig,
     })
 
-    const healerThreatOnOssirian = getThreatForActor(result, healer.id, ossirian.id)
-    const healerThreatOnVortex1 = getThreatForActor(result, healer.id, windVortex1.id)
-    const healerThreatOnVortex2 = getThreatForActor(result, healer.id, windVortex2.id)
-    const healerThreatOnVortex3 = getThreatForActor(result, healer.id, windVortex3.id)
+    const healerThreatOnOssirian = getThreatForActor(
+      result,
+      healer.id,
+      ossirian.id,
+    )
+    const healerThreatOnVortex1 = getThreatForActor(
+      result,
+      healer.id,
+      windVortex1.id,
+    )
+    const healerThreatOnVortex2 = getThreatForActor(
+      result,
+      healer.id,
+      windVortex2.id,
+    )
+    const healerThreatOnVortex3 = getThreatForActor(
+      result,
+      healer.id,
+      windVortex3.id,
+    )
 
     // 1200 heal → 1200 threat to Ossirian only (not split 4 ways = 300 each)
     expect(healerThreatOnOssirian).toBe(1200)
@@ -308,8 +347,16 @@ describe('Ossirian the Unscarred — Wind Vortexes excluded from split threat', 
 
     // With fallback, threat splits across all 3 alive enemies = 100 each
     const healerThreatOnBoss2 = getThreatForActor(result, healer.id, boss2.id)
-    const healerThreatOnVortexA = getThreatForActor(result, healer.id, vortexA.id)
-    const healerThreatOnVortexB = getThreatForActor(result, healer.id, vortexB.id)
+    const healerThreatOnVortexA = getThreatForActor(
+      result,
+      healer.id,
+      vortexA.id,
+    )
+    const healerThreatOnVortexB = getThreatForActor(
+      result,
+      healer.id,
+      vortexB.id,
+    )
 
     expect(healerThreatOnBoss2).toBe(100)
     expect(healerThreatOnVortexA).toBe(100)
