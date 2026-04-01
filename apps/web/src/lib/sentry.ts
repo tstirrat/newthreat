@@ -6,22 +6,15 @@
  */
 import { browserTracingIntegration, init } from '@sentry/react'
 
-/**
- * Determine runtime environment based on hostname.
- * PR preview channels are marked as 'staging', all others as 'production'.
- */
-function getEnvironment(): 'staging' | 'production' {
-  return window.location.hostname.includes('pr-') ? 'staging' : 'production'
-}
-
-/** Initialize Sentry if a DSN is configured. */
+/** Initialize Sentry if a DSN and explicit app environment are configured. */
 export function initSentry(): void {
   const dsn = import.meta.env.VITE_SENTRY_DSN
-  if (!dsn) return
+  const appEnv = import.meta.env.VITE_APP_ENV
+  if (!dsn || !appEnv) return
 
   init({
     dsn,
-    environment: getEnvironment(),
+    environment: appEnv,
     tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
     tracePropagationTargets: [window.location.origin],
     integrations: [browserTracingIntegration()],

@@ -88,6 +88,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >-
             versions upload
+            --env staging
             --preview-alias ${{ env.PREVIEW_CHANNEL_ID }}
             --var ALLOWED_ORIGINS:${{ env.PREVIEW_ALLOWED_ORIGINS }}
       - name: Smoke test BE preview
@@ -117,6 +118,7 @@ jobs:
           test -n "$VITE_FIREBASE_PROJECT_ID"
           test -n "$VITE_FIREBASE_AUTH_DOMAIN"
           test -n "$VITE_FIREBASE_APP_ID"
+          test -n "$VITE_SENTRY_DSN"
           pnpm --filter @wow-threat/web build
         env:
           VITE_API_BASE_URL: ${{ steps.deploy_backend_preview.outputs.deployment-url }}
@@ -124,12 +126,15 @@ jobs:
           VITE_FIREBASE_PROJECT_ID: wow-threat-staging
           VITE_FIREBASE_AUTH_DOMAIN: wow-threat-staging.firebaseapp.com
           VITE_FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_APP_ENV: staging
+          # VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }} # Enable only if we make a new project in PostHog
       - uses: FirebaseExtended/action-hosting-deploy@v0
         id: deploy_frontend_preview
         name: Deploy FE Preview
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WOW_THREAT_STAGING }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}
           channelId: ${{ env.PREVIEW_CHANNEL_ID }}
           disableComment: true
           entryPoint: apps/web
