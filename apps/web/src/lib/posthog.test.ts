@@ -27,8 +27,19 @@ describe('isPostHogEnabled', () => {
     expect(isPostHogEnabled()).toBe(false)
   })
 
-  it('returns true when VITE_POSTHOG_KEY is set to a non-empty value', async () => {
+  it('returns false when VITE_POSTHOG_KEY is set but MODE is not production', async () => {
     vi.stubEnv('VITE_POSTHOG_KEY', 'phc_test_key')
+    vi.stubEnv('MODE', 'development')
+    vi.resetModules()
+
+    const { isPostHogEnabled } = await import('./posthog')
+
+    expect(isPostHogEnabled()).toBe(false)
+  })
+
+  it('returns true when VITE_POSTHOG_KEY is set and MODE is production', async () => {
+    vi.stubEnv('VITE_POSTHOG_KEY', 'phc_test_key')
+    vi.stubEnv('MODE', 'production')
     vi.resetModules()
 
     const { isPostHogEnabled } = await import('./posthog')

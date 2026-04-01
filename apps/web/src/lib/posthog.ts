@@ -15,5 +15,5 @@ export const posthogOptions: Partial<PostHogConfig> = {
 }
 
 export function isPostHogEnabled(): boolean {
-  return posthogApiKey.length > 0
+  return import.meta.env.MODE === 'production' && posthogApiKey.length > 0
 }
