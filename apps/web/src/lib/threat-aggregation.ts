@@ -1010,9 +1010,14 @@ export function buildFightTargetOptions({
     })
   })
 
-  const targets = [...targetMap.values()].filter(
-    (target) => (threatByTarget.get(target.key) ?? 0) > 0,
-  )
+  // Only apply the zero-threat filter when events have been loaded. When the
+  // events array is empty (data not yet available), include all targets from
+  // fight metadata so the target selector renders immediately during loading.
+  const allTargets = [...targetMap.values()]
+  const targets =
+    events.length > 0
+      ? allTargets.filter((target) => (threatByTarget.get(target.key) ?? 0) > 0)
+      : allTargets
   const bossTargets = targets
     .filter((target) => target.isBoss)
     .sort(compareTargetsByName)
