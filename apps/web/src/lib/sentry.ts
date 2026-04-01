@@ -17,7 +17,7 @@ function getEnvironment(): 'staging' | 'production' {
 /** Initialize Sentry if a DSN is configured. */
 export function initSentry(): void {
   const dsn = import.meta.env.VITE_SENTRY_DSN
-  if (!dsn) return
+  if (!dsn || import.meta.env.DEV) return
 
   init({
     dsn,

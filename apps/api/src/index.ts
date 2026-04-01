@@ -108,7 +108,7 @@ export { app }
 
 export default withSentry<Bindings>(
   (env) => ({
-    dsn: env.SENTRY_DSN,
+    dsn: env.ENVIRONMENT === 'development' ? undefined : env.SENTRY_DSN,
     tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.1 : 1.0,
     environment: env.ENVIRONMENT,
   }),
