@@ -63,6 +63,8 @@ jobs:
           test -n "$VITE_FIREBASE_PROJECT_ID"
           test -n "$VITE_FIREBASE_AUTH_DOMAIN"
           test -n "$VITE_FIREBASE_APP_ID"
+          test -n "$VITE_POSTHOG_KEY"
+          test -n "$VITE_SENTRY_DSN"
           pnpm --filter @wow-threat/web build
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
@@ -71,6 +73,7 @@ jobs:
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
       - name: Upload Sentry source maps
         run: |
           npx @sentry/cli@latest sourcemaps upload \
@@ -89,7 +92,6 @@ jobs:
           entryPoint: apps/web
           projectId: wow-threat
       - name: Smoke test FE
-        if: ${{ needs.detect_changes.outputs.frontend == 'true' }}
         run: |
           for i in 1 2 3 4 5; do
             RESPONSE=$(curl -sf 'https://wow-threat.web.app' || true)
