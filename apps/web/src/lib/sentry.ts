@@ -10,7 +10,7 @@ import { browserTracingIntegration, init } from '@sentry/react'
 export function initSentry(): void {
   const dsn = import.meta.env.VITE_SENTRY_DSN
   const appEnv = import.meta.env.VITE_APP_ENV
-  if (!dsn || !appEnv || import.meta.env.DEV) return
+  if (!dsn || !appEnv) return
 
   init({
     dsn,

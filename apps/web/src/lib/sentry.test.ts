@@ -20,12 +20,9 @@ describe('initSentry', () => {
     vi.unstubAllEnvs()
   })
 
-  it('sets environment to staging for PR preview channels', () => {
+  it('sets environment from VITE_APP_ENV', () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://public@o0.ingest.sentry.io/0')
-    vi.stubGlobal('location', {
-      hostname: 'pr-123--wow-threat.web.app',
-      origin: window.location.origin,
-    })
+    vi.stubEnv('VITE_APP_ENV', 'staging')
 
     initSentry()
 
@@ -36,24 +33,9 @@ describe('initSentry', () => {
     )
   })
 
-  it('sets environment to production for non-PR hostnames', () => {
+  it('calls init when VITE_SENTRY_DSN and VITE_APP_ENV are set', () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://public@o0.ingest.sentry.io/0')
-    vi.stubGlobal('location', {
-      hostname: 'wow-threat.web.app',
-      origin: window.location.origin,
-    })
-
-    initSentry()
-
-    expect(init).toHaveBeenCalledWith(
-      expect.objectContaining({
-        environment: 'production',
-      }),
-    )
-  })
-
-  it('calls init when VITE_SENTRY_DSN is set', () => {
-    vi.stubEnv('VITE_SENTRY_DSN', 'https://public@o0.ingest.sentry.io/0')
+    vi.stubEnv('VITE_APP_ENV', 'production')
 
     initSentry()
 
@@ -67,8 +49,18 @@ describe('initSentry', () => {
     expect(browserTracingIntegration).toHaveBeenCalledOnce()
   })
 
+  it('does not call init when VITE_APP_ENV is not set', () => {
+    vi.stubEnv('VITE_SENTRY_DSN', 'https://public@o0.ingest.sentry.io/0')
+    vi.stubEnv('VITE_APP_ENV', undefined)
+
+    initSentry()
+
+    expect(init).not.toHaveBeenCalled()
+  })
+
   it('does not call init when VITE_SENTRY_DSN is empty', () => {
     vi.stubEnv('VITE_SENTRY_DSN', '')
+    vi.stubEnv('VITE_APP_ENV', 'production')
 
     initSentry()
 
@@ -77,6 +69,7 @@ describe('initSentry', () => {
 
   it('does not call init when VITE_SENTRY_DSN is undefined', () => {
     vi.stubEnv('VITE_SENTRY_DSN', undefined)
+    vi.stubEnv('VITE_APP_ENV', 'production')
 
     initSentry()
 
