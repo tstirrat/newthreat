@@ -43,11 +43,7 @@ function makeProcessor() {
   return factory({ report: null, fight: null, inferThreatReduction: false })!
 }
 
-function makeDamageEvent(
-  sourceID: number,
-  targetID: number,
-  timestamp = 1000,
-) {
+function makeDamageEvent(sourceID: number, targetID: number, timestamp = 1000) {
   return {
     type: 'damage' as const,
     timestamp,
@@ -76,7 +72,7 @@ function makeBuffEvent(sourceID: number, targetID: number, timestamp = 1000) {
 }
 
 describe('createInsignificantEnemyFilterProcessor', () => {
-  it('marks an enemy that damages a player as significant', () => {
+  it('does not mark an enemy as significant when it damages a player but no player targets it', () => {
     const boss = createEnemy(99, 'Boss')
     const player = 1
     const enemies = [boss]
@@ -84,6 +80,7 @@ describe('createInsignificantEnemyFilterProcessor', () => {
     const ctx = createBaseContext(enemies, friendlyActorIds)
     const processor = makeProcessor()
 
+    // Enemy damages player but player never retaliates — environmental NPC pattern
     runFightPrepass({
       rawEvents: [makeDamageEvent(boss.id, player)],
       processors: [processor],
@@ -91,7 +88,7 @@ describe('createInsignificantEnemyFilterProcessor', () => {
     })
 
     const result = ctx.namespace.get(significantEnemyIdsKey)
-    expect(result?.has(boss.id)).toBe(true)
+    expect(result?.has(boss.id)).toBe(false)
   })
 
   it('marks an enemy that only self-buffs as insignificant', () => {
@@ -121,10 +118,7 @@ describe('createInsignificantEnemyFilterProcessor', () => {
 
     // Players interact with each other, never with the add
     runFightPrepass({
-      rawEvents: [
-        makeDamageEvent(1, 2),
-        makeBuffEvent(2, 1),
-      ],
+      rawEvents: [makeDamageEvent(1, 2), makeBuffEvent(2, 1)],
       processors: [processor],
       baseContext: ctx,
     })
@@ -161,10 +155,10 @@ describe('createInsignificantEnemyFilterProcessor', () => {
     const ctx = createBaseContext(enemies, friendlyActorIds)
     const processor = makeProcessor()
 
-    // Boss interacts with player (significant), add only casts on boss
+    // Player attacks boss (significant), add only casts on boss (insignificant)
     runFightPrepass({
       rawEvents: [
-        makeDamageEvent(boss.id, player),
+        makeDamageEvent(player, boss.id),
         makeBuffEvent(add.id, boss.id),
       ],
       processors: [processor],
@@ -188,7 +182,7 @@ describe('createInsignificantEnemyFilterProcessor', () => {
 
     runFightPrepass({
       rawEvents: [
-        makeDamageEvent(boss.id, player),
+        makeDamageEvent(player, boss.id),
         makeDamageEvent(player, significantAdd.id),
         // insignificantAdd never interacts with players
         makeBuffEvent(insignificantAdd.id, insignificantAdd.id),

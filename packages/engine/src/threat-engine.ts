@@ -42,7 +42,10 @@ import type {
 } from './event-processors'
 import { FightState } from './fight-state'
 import { InterceptorTracker } from './interceptor-tracker'
-import { defaultFightProcessorFactories, significantEnemyIdsKey } from './processors'
+import {
+  defaultFightProcessorFactories,
+  significantEnemyIdsKey,
+} from './processors'
 import { getActiveModifiers, getTotalMultiplier } from './utils'
 
 const ENVIRONMENT_TARGET_ID = -1

@@ -993,7 +993,31 @@ export function buildFightTargetOptions({
       })
   })
 
-  const targets = [...targetMap.values()]
+  // Compute accumulated threat per target key; use Math.abs so threat reductions
+  // (negative amounts) don't cancel out genuine activity.
+  const threatByTarget = new Map<string, number>()
+
+  events.forEach((event) => {
+    ;(event.threat?.changes ?? []).forEach((change) => {
+      const key = buildTargetKey({
+        id: change.targetId,
+        instance: change.targetInstance ?? defaultTargetInstance,
+      })
+      threatByTarget.set(
+        key,
+        (threatByTarget.get(key) ?? 0) + Math.abs(change.amount),
+      )
+    })
+  })
+
+  // Only apply the zero-threat filter when events have been loaded. When the
+  // events array is empty (data not yet available), include all targets from
+  // fight metadata so the target selector renders immediately during loading.
+  const allTargets = [...targetMap.values()]
+  const targets =
+    events.length > 0
+      ? allTargets.filter((target) => (threatByTarget.get(target.key) ?? 0) > 0)
+      : allTargets
   const bossTargets = targets
     .filter((target) => target.isBoss)
     .sort(compareTargetsByName)
