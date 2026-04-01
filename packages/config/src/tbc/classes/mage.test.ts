@@ -200,6 +200,64 @@ describe('tbc mage config', () => {
       expect(uninstall).toHaveBeenCalledTimes(1)
     })
 
+    it('returns correctionMultiplier 1.25 when removed in under 1 second', () => {
+      const handler = createInvisibilityHandler()
+      const uninstall = vi.fn()
+      const ctx = createMockInterceptorContext({
+        installedAt: 1000,
+        timestamp: 1500, // 0.5 seconds later (nbSeconds=0)
+        uninstall,
+      })
+
+      const result = handler(
+        createRemoveBuffEvent({
+          sourceID: 1,
+          targetID: 1,
+          abilityGameID: Spells.Invisibility,
+        }),
+        ctx,
+      )
+
+      // nbSeconds=0, targetMultiplier=max(0, 1-0)=1.0, correctionMultiplier=1.0/0.8=1.25
+      expect(result).toEqual({
+        action: 'augment',
+        effects: [
+          {
+            type: 'modifyThreat',
+            multiplier: expect.closeTo(1.25),
+            target: 'all',
+          },
+        ],
+      })
+      expect(uninstall).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns correctionMultiplier 0.0 after 6 seconds (clamped, no negative)', () => {
+      const handler = createInvisibilityHandler()
+      const uninstall = vi.fn()
+      const ctx = createMockInterceptorContext({
+        installedAt: 1000,
+        timestamp: 7000, // 6 seconds later
+        uninstall,
+      })
+
+      const result = handler(
+        createRemoveBuffEvent({
+          sourceID: 1,
+          targetID: 1,
+          abilityGameID: Spells.Invisibility,
+        }),
+        ctx,
+      )
+
+      // nbSeconds=6, targetMultiplier=max(0, 1-1.2)=0.0, correctionMultiplier=0.0/0.8=0.0
+      expect(result).toEqual({
+        action: 'augment',
+        effects: [{ type: 'modifyThreat', multiplier: 0, target: 'all' }],
+      })
+      expect(uninstall).toHaveBeenCalledTimes(1)
+    })
+
     it('returns passthrough for removebuff of a different spell', () => {
       const handler = createInvisibilityHandler()
       const uninstall = vi.fn()
@@ -269,6 +327,68 @@ describe('tbc mage config', () => {
       )
 
       expect(result).toEqual({ action: 'passthrough' })
+    })
+
+    it('returns passthrough for removebuff with wrong sourceId', () => {
+      const handler = createInvisibilityInterceptor(1, Spells.Invisibility)
+      const uninstall = vi.fn()
+      const ctx = createMockInterceptorContext({ uninstall })
+
+      const result = handler(
+        createRemoveBuffEvent({
+          sourceID: 99,
+          targetID: 99,
+          abilityGameID: Spells.Invisibility,
+        }),
+        ctx,
+      )
+
+      expect(result).toEqual({ action: 'passthrough' })
+      expect(uninstall).not.toHaveBeenCalled()
+    })
+
+    it('returns passthrough for removebuff with wrong spellId', () => {
+      const handler = createInvisibilityInterceptor(1, Spells.Invisibility)
+      const uninstall = vi.fn()
+      const ctx = createMockInterceptorContext({ uninstall })
+
+      const result = handler(
+        createRemoveBuffEvent({
+          sourceID: 1,
+          targetID: 1,
+          abilityGameID: 9999,
+        }),
+        ctx,
+      )
+
+      expect(result).toEqual({ action: 'passthrough' })
+      expect(uninstall).not.toHaveBeenCalled()
+    })
+
+    it('calls uninstall and returns augment on matching removebuff', () => {
+      const handler = createInvisibilityInterceptor(1, Spells.Invisibility)
+      const uninstall = vi.fn()
+      const ctx = createMockInterceptorContext({
+        installedAt: 1000,
+        timestamp: 2000, // 1 second
+        uninstall,
+      })
+
+      const result = handler(
+        createRemoveBuffEvent({
+          sourceID: 1,
+          targetID: 1,
+          abilityGameID: Spells.Invisibility,
+        }),
+        ctx,
+      )
+
+      // nbSeconds=1, targetMultiplier=0.8, correctionMultiplier=1.0
+      expect(result).toEqual({
+        action: 'augment',
+        effects: [{ type: 'modifyThreat', multiplier: 1.0, target: 'all' }],
+      })
+      expect(uninstall).toHaveBeenCalledTimes(1)
     })
   })
 })
