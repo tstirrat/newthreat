@@ -119,7 +119,6 @@ jobs:
           test -n "$VITE_FIREBASE_AUTH_DOMAIN"
           test -n "$VITE_FIREBASE_APP_ID"
           test -n "$VITE_SENTRY_DSN"
-          test -n "$VITE_POSTHOG_KEY"
           pnpm --filter @wow-threat/web build
         env:
           VITE_API_BASE_URL: ${{ steps.deploy_backend_preview.outputs.deployment-url }}
@@ -128,7 +127,7 @@ jobs:
           VITE_FIREBASE_AUTH_DOMAIN: wow-threat-staging.firebaseapp.com
           VITE_FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          # VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }} # Enable only if we make a new project in PostHog
       - uses: FirebaseExtended/action-hosting-deploy@v0
         id: deploy_frontend_preview
         name: Deploy FE Preview
