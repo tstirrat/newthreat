@@ -74,6 +74,7 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_APP_ENV: production
       - name: Upload Sentry source maps
         run: |
           npx @sentry/cli@latest sourcemaps upload \

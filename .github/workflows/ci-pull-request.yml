@@ -127,6 +127,7 @@ jobs:
           VITE_FIREBASE_AUTH_DOMAIN: wow-threat-staging.firebaseapp.com
           VITE_FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_APP_ENV: staging
           # VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }} # Enable only if we make a new project in PostHog
       - uses: FirebaseExtended/action-hosting-deploy@v0
         id: deploy_frontend_preview
