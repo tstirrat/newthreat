@@ -36,12 +36,35 @@ jobs:
           workingDirectory: 'apps/api'
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Smoke test BE
+        if: ${{ needs.detect_changes.outputs.backend == 'true' }}
+        run: |
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+              'https://wow-threat-api.hardlyworkin.workers.dev/health')
+            if [ "$STATUS" = "200" ]; then
+              BODY=$(curl -sf 'https://wow-threat-api.hardlyworkin.workers.dev/health')
+              HEALTH_STATUS=$(echo "$BODY" | jq -r '.status')
+              if [ "$HEALTH_STATUS" = "ok" ] || [ "$HEALTH_STATUS" = "degraded" ]; then
+                echo "Backend healthy (status=$HEALTH_STATUS)"
+                exit 0
+              fi
+              echo "Attempt $i: status=$HEALTH_STATUS (expected ok or degraded)"
+            else
+              echo "Attempt $i: HTTP $STATUS (expected 200)"
+            fi
+            sleep $((i * 2))
+          done
+          echo "Backend smoke test failed after 5 attempts"
+          exit 1
       - name: Build FE
         run: |
           test -n "$VITE_FIREBASE_API_KEY"
           test -n "$VITE_FIREBASE_PROJECT_ID"
           test -n "$VITE_FIREBASE_AUTH_DOMAIN"
           test -n "$VITE_FIREBASE_APP_ID"
+          test -n "$VITE_POSTHOG_KEY"
+          test -n "$VITE_SENTRY_DSN"
           pnpm --filter @wow-threat/web build
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
@@ -50,6 +73,8 @@ jobs:
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_APP_ENV: production
       - name: Upload Sentry source maps
         run: |
           npx @sentry/cli@latest sourcemaps upload \
@@ -67,3 +92,17 @@ jobs:
           channelId: live
           entryPoint: apps/web
           projectId: wow-threat
+      - name: Smoke test FE
+        run: |
+          for i in 1 2 3 4 5; do
+            RESPONSE=$(curl -sf 'https://wow-threat.web.app' || true)
+            if echo "$RESPONSE" | grep -q '<div id="root">' && \
+               echo "$RESPONSE" | grep -q '</html>'; then
+              echo "Frontend responding with expected HTML markers"
+              exit 0
+            fi
+            echo "Attempt $i: HTML markers not found, retrying..."
+            sleep $((i * 3))
+          done
+          echo "Frontend smoke test failed after 5 attempts"
+          exit 1

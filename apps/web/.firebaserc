@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "wow-threat"
+    "default": "wow-threat",
+    "staging": "wow-threat-staging"
   }
 }

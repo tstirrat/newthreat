@@ -3,7 +3,7 @@
  */
 import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts'
-import ReactEChartsCore from 'echarts-for-react/lib/core'
+import ReactEChartsCore from 'echarts-for-react/esm/core'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
