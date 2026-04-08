@@ -242,6 +242,51 @@ describe('createMinmaxSalvationProcessor', () => {
     expect(mergedInitialAurasByActor.get(3)).toEqual([25895])
   })
 
+  it('recognizes Greater Blessing of Kings (25898) as a long-term blessing slot', () => {
+    const greaterBlessingOfKingsId = 25898
+    const fight = createFight(17, 1602, [1, 2, 3])
+    const report = createReport({
+      actors: [
+        createPlayerActor(1, 'Tanky', 'Warrior'),
+        createPlayerActor(2, 'Roguey', 'Rogue'),
+        createPlayerActor(3, 'Palatank', 'Paladin'),
+      ],
+      fight,
+    })
+    const processor = createMinmaxSalvationProcessor({
+      report,
+      fight,
+      inferThreatReduction: true,
+      tankActorIds: new Set([1, 3]),
+    })
+
+    expect(processor).not.toBeNull()
+    if (!processor) {
+      return
+    }
+
+    const context = createPrepassContext({
+      report,
+      fight,
+      inferThreatReduction: true,
+      initialAurasByActor: new Map([[2, [greaterBlessingOfKingsId]]]),
+    })
+
+    runFightPrepass({
+      rawEvents: [],
+      processors: [processor],
+      baseContext: context,
+    })
+
+    const mergedInitialAurasByActor = mergeInitialAurasWithAdditions(
+      context.initialAurasByActor,
+      context.namespace.get(initialAuraAdditionsKey),
+    )
+
+    // GBoK fills the one available blessing slot — salvation must NOT be added
+    expect(mergedInitialAurasByActor.get(2)).toEqual([greaterBlessingOfKingsId])
+  })
+
   it('skips salvation when a non-tank already has blessings equal to paladin count', () => {
     const blessingOfWisdomId = 25290
     const fight = createFight(18, 1602, [1, 2, 3])
