@@ -6,13 +6,7 @@
  */
 import { browserTracingIntegration, init } from '@sentry/react'
 
-/**
- * Determine runtime environment based on hostname.
- * PR preview channels are marked as 'staging', all others as 'production'.
- */
-function getEnvironment(): 'staging' | 'production' {
-  return window.location.hostname.includes('pr-') ? 'staging' : 'production'
-}
+import { getEnvironment } from './environment'
 
 /** Initialize Sentry if a DSN is configured. */
 export function initSentry(): void {

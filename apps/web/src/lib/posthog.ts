@@ -3,6 +3,8 @@
  */
 import type { PostHogConfig } from 'posthog-js'
 
+import { getEnvironment } from './environment'
+
 export const posthogApiKey: string = import.meta.env.VITE_POSTHOG_KEY ?? ''
 
 export const posthogOptions: Partial<PostHogConfig> = {
@@ -12,6 +14,9 @@ export const posthogOptions: Partial<PostHogConfig> = {
   persistence: 'localStorage',
   person_profiles: 'identified_only',
   disable_session_recording: true,
+  loaded: (posthog) => {
+    posthog.register({ environment: getEnvironment() })
+  },
 }
 
 export function isPostHogEnabled(): boolean {

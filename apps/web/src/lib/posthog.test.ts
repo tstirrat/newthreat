@@ -1,6 +1,7 @@
 /**
  * Tests for PostHog configuration module.
  */
+import type { PostHog } from 'posthog-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 describe('isPostHogEnabled', () => {
@@ -60,5 +61,33 @@ describe('posthogOptions', () => {
     const { posthogOptions } = await import('./posthog')
 
     expect(posthogOptions.person_profiles).toBe('identified_only')
+  })
+
+  it('loaded callback registers environment as a super property for production hostname', async () => {
+    vi.stubGlobal('location', { hostname: 'wow-threat.web.app' })
+    vi.resetModules()
+
+    const { posthogOptions } = await import('./posthog')
+    const mockPostHog = { register: vi.fn() } as unknown as PostHog
+
+    posthogOptions.loaded?.(mockPostHog)
+
+    expect(mockPostHog.register).toHaveBeenCalledWith({
+      environment: 'production',
+    })
+  })
+
+  it('loaded callback registers environment as development for localhost', async () => {
+    vi.stubGlobal('location', { hostname: 'localhost' })
+    vi.resetModules()
+
+    const { posthogOptions } = await import('./posthog')
+    const mockPostHog = { register: vi.fn() } as unknown as PostHog
+
+    posthogOptions.loaded?.(mockPostHog)
+
+    expect(mockPostHog.register).toHaveBeenCalledWith({
+      environment: 'development',
+    })
   })
 })
