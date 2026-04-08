@@ -175,6 +175,55 @@ describe('resolveConfigOrNull', () => {
     expect(config).toBeNull()
   })
 
+  it('resolves era for hc (hardcore) gameVersion 2 with hc season id', () => {
+    const config = resolveConfigOrNull(
+      createResolverInput({
+        gameVersion: 2,
+        fights: [
+          {
+            classicSeasonID: 2,
+          },
+        ],
+      }),
+    )
+
+    expect(config).toBe(eraConfig)
+  })
+
+  it('resolves era for hc gameVersion 2 with hc season id and hardcore partition', () => {
+    const config = resolveConfigOrNull(
+      createResolverInput({
+        gameVersion: 2,
+        partitions: [{ id: 7, name: 'Hardcore' }],
+        fights: [
+          {
+            classicSeasonID: 2,
+          },
+        ],
+      }),
+    )
+
+    expect(config).toBe(eraConfig)
+  })
+
+  it('resolves sod when both hc and sod season ids are present', () => {
+    const config = resolveConfigOrNull(
+      createResolverInput({
+        gameVersion: 2,
+        fights: [
+          {
+            classicSeasonID: 2,
+          },
+          {
+            classicSeasonID: 3,
+          },
+        ],
+      }),
+    )
+
+    expect(config).toBe(sodConfig)
+  })
+
   it('returns null for unknown classic season ids', () => {
     const config = resolveConfigOrNull(
       createResolverInput({

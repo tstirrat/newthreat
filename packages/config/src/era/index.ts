@@ -37,6 +37,7 @@ import { naxxAbilities } from './raids/naxx'
 import { onyxiaAbilities } from './raids/ony'
 import { zgAbilities, zgAggroLossBuffs, zgEncounters } from './raids/zg'
 
+const HC_CLASSIC_SEASON_ID = 2
 const SOD_CLASSIC_SEASON_ID = 3
 const ANNIVERSARY_CLASSIC_SEASON_ID = 5
 
@@ -67,7 +68,7 @@ const globalAuraModifiers = {
 }
 
 export const eraConfig: ThreatConfig = {
-  version: 12,
+  version: 13,
   displayName: 'Vanilla (Era)',
   wowhead: {
     domain: 'classic',
@@ -89,6 +90,10 @@ export const eraConfig: ThreatConfig = {
         )
       ) {
         return meta.report.startTime < FRESH_TBC_CUTOVER_TIMESTAMP_MS
+      }
+
+      if (seasonIds.includes(HC_CLASSIC_SEASON_ID)) {
+        return true
       }
 
       return false
