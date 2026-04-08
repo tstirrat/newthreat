@@ -89,6 +89,7 @@ jobs:
           command: >-
             versions upload
             --env staging
+            --account-id ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
             --preview-alias ${{ env.PREVIEW_CHANNEL_ID }}
             --var ALLOWED_ORIGINS:${{ env.PREVIEW_ALLOWED_ORIGINS }}
       - name: Smoke test BE preview
