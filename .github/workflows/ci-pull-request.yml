@@ -81,6 +81,9 @@ jobs:
       - name: Deploy BE Preview
         id: deploy_backend_preview
         uses: cloudflare/wrangler-action@v3
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         with:
           workingDirectory: apps/api
           packageManager: pnpm
@@ -89,7 +92,6 @@ jobs:
           command: >-
             versions upload
             --env staging
-            --account-id ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
             --preview-alias ${{ env.PREVIEW_CHANNEL_ID }}
             --var ALLOWED_ORIGINS:${{ env.PREVIEW_ALLOWED_ORIGINS }}
       - name: Smoke test BE preview
