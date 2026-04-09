@@ -21,7 +21,7 @@ const LONG_TERM_BLESSING_AURA_ID_LOOKUP: Readonly<Record<number, true>> = {
   25290: true, // Blessing of Wisdom (Rank 6)
   20914: true, // Blessing of Sanctuary (Rank 4)
   19979: true, // Blessing of Light (Rank 3)
-  25894: true, // Greater Blessing of Kings
+  25898: true, // Greater Blessing of Kings
   25896: true, // Greater Blessing of Might
   25918: true, // Greater Blessing of Wisdom
   25899: true, // Greater Blessing of Sanctuary
