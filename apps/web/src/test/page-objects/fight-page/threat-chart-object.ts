@@ -58,7 +58,7 @@ export class ThreatChartObject {
 
   inferThreatReductionCheckbox(): Locator {
     return this.section.getByRole('checkbox', {
-      name: 'Infer threat reduction buffs',
+      name: 'Infer common threat buffs',
     })
   }
 
