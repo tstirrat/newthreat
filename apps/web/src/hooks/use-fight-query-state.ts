@@ -18,6 +18,7 @@ export interface UseFightQueryStateResult {
   setFocusAndPlayers: (focusId: number | null, players: number[]) => void
   setTarget: (target: FightTarget | null) => void
   setWindow: (startMs: number | null, endMs: number | null) => void
+  setPlayheadMs: (playheadMs: number | null) => void
 }
 
 /** Manage fight query params with parsing + normalization rules. */
@@ -113,6 +114,15 @@ export function useFightQueryState({
     [setSearchParams],
   )
 
+  const setPlayheadMs = useCallback(
+    (playheadMs: number | null): void => {
+      setSearchParams((currentSearchParams) =>
+        applyFightQueryState(currentSearchParams, { playheadMs }),
+      )
+    },
+    [setSearchParams],
+  )
+
   return useMemo(
     () => ({
       state,
@@ -122,10 +132,12 @@ export function useFightQueryState({
       setFocusAndPlayers,
       setTarget,
       setWindow,
+      setPlayheadMs,
     }),
     [
       setFocusAndPlayers,
       setFocusId,
+      setPlayheadMs,
       setPinnedPlayers,
       setPlayers,
       setTarget,

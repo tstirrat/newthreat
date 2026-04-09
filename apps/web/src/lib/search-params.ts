@@ -125,6 +125,14 @@ export function resolveFightQueryState({
     maxDurationMs,
   )
 
+  const parsedPlayheadMs = parseInteger(searchParams.get('playheadMs'))
+  const playheadMs =
+    parsedPlayheadMs !== null &&
+    parsedPlayheadMs >= 0 &&
+    parsedPlayheadMs <= maxDurationMs
+      ? parsedPlayheadMs
+      : null
+
   return {
     players,
     pinnedPlayers,
@@ -133,6 +141,7 @@ export function resolveFightQueryState({
     targetInstance: parsedTargetSelection?.targetInstance ?? null,
     startMs,
     endMs,
+    playheadMs,
   }
 }
 
@@ -201,6 +210,14 @@ export function applyFightQueryState(
     } else {
       next.set('startMs', String(state.startMs))
       next.set('endMs', String(state.endMs))
+    }
+  }
+
+  if (state.playheadMs !== undefined) {
+    if (state.playheadMs === null) {
+      next.delete('playheadMs')
+    } else {
+      next.set('playheadMs', String(state.playheadMs))
     }
   }
 

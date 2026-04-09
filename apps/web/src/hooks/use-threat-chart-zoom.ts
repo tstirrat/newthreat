@@ -37,6 +37,7 @@ export function useThreatChartZoom({
   bounds,
   borderColor,
   chartRef,
+  enabled = true,
   isChartReady,
   onWindowChange,
   renderer,
@@ -46,6 +47,7 @@ export function useThreatChartZoom({
   bounds: { max: number; min: number }
   borderColor: string
   chartRef: MutableRefObject<ReactEChartsCore | null>
+  enabled?: boolean
   isChartReady: boolean
   onWindowChange: (startMs: number | null, endMs: number | null) => void
   renderer: 'canvas' | 'svg'
@@ -148,7 +150,7 @@ export function useThreatChartZoom({
   }, [activeXAxisWindow, isFullChartZoom, onWindowChange, yAxisWindow])
 
   useEffect(() => {
-    if (!isChartReady) {
+    if (!enabled || !isChartReady) {
       return
     }
 
@@ -371,6 +373,7 @@ export function useThreatChartZoom({
     bounds.max,
     bounds.min,
     chartRef,
+    enabled,
     isChartReady,
     onWindowChange,
     renderer,
