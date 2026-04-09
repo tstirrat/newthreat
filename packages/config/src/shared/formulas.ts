@@ -398,7 +398,7 @@ export function threatOnBuff(
       return undefined
     }
 
-    const spellModifier = createSpellModifier({ modifier: 0, bonus: value })
+    const spellModifier = createSpellModifier({ modifier: 1, bonus: value })
 
     return {
       value,
