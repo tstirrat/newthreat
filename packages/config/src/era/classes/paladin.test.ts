@@ -271,7 +271,6 @@ describe('Paladin Config', () => {
 
         expect(result.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: 60,
         })
         expect(result.value).toBe(60)
@@ -295,7 +294,6 @@ describe('Paladin Config', () => {
 
         expect(result.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: 60,
         })
         expect(result.value).toBe(60)
