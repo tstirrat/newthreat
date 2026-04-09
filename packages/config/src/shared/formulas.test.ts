@@ -367,12 +367,19 @@ describe('formulas', () => {
       expect(applyResult.value).toBe(70)
       expect(applyResult.spellModifier).toEqual({
         type: 'spell',
-        value: 0,
         bonus: 70,
       })
       expect(refreshResult.value).toBe(70)
       expect(stackResult.value).toBe(70)
       expect(applyResult.splitAmongEnemies).toBe(true)
+    })
+
+    it('applies player multipliers by default', () => {
+      const formula = threatOnBuff(70)
+      const result = assertDefined(
+        formula(createMockContext({ event: createApplyBuffEvent() })),
+      )
+      expect(result.applyPlayerMultipliers).not.toBe(false)
     })
   })
 
@@ -400,11 +407,18 @@ describe('formulas', () => {
       expect(buffResult.value).toBe(58)
       expect(buffResult.spellModifier).toEqual({
         type: 'spell',
-        value: 0,
         bonus: 58,
       })
       expect(damageResult.value).toBe(321)
       expect(damageResult.spellModifier).toBeUndefined()
+    })
+
+    it('applies player multipliers by default', () => {
+      const formula = threatOnBuffOrDamage(58)
+      const result = assertDefined(
+        formula(createMockContext({ event: createApplyBuffEvent() })),
+      )
+      expect(result.applyPlayerMultipliers).not.toBe(false)
     })
   })
 
@@ -430,14 +444,12 @@ describe('formulas', () => {
       expect(castResult.value).toBe(301)
       expect(castResult.spellModifier).toEqual({
         type: 'spell',
-        value: 0,
         bonus: 301,
       })
       expect(castResult.note).toBe('castThreat(rollbackOnMiss)')
       expect(missResult.value).toBe(-301)
       expect(missResult.spellModifier).toEqual({
         type: 'spell',
-        value: 0,
         bonus: -301,
       })
       expect(missResult.note).toBe('castThreat(missRollback)')
@@ -460,6 +472,22 @@ describe('formulas', () => {
           }),
         ),
       ).toBeUndefined()
+    })
+
+    it('applies player multipliers by default', () => {
+      const formula = threatOnCastRollbackOnMiss(301)
+      const castResult = assertDefined(
+        formula(createMockContext({ event: createCastEvent() })),
+      )
+      const missResult = assertDefined(
+        formula(
+          createMockContext({
+            event: createDamageEvent({ hitType: HitTypeCode.Miss }),
+          }),
+        ),
+      )
+      expect(castResult.applyPlayerMultipliers).not.toBe(false)
+      expect(missResult.applyPlayerMultipliers).not.toBe(false)
     })
 
     it('supports disabling player multipliers for both phases', () => {

@@ -420,7 +420,7 @@ export function threatOnBuffOrDamage(value: number): FormulaFn {
       ctx.event.type === 'refreshbuff' ||
       ctx.event.type === 'applybuffstack'
     ) {
-      const spellModifier = createSpellModifier({ modifier: 0, bonus: value })
+      const spellModifier = createSpellModifier({ modifier: 1, bonus: value })
 
       return {
         value,
@@ -451,7 +451,7 @@ export function threatOnCastRollbackOnMiss(
 ): FormulaFn {
   return (ctx) => {
     if (ctx.event.type === 'cast') {
-      const spellModifier = createSpellModifier({ modifier: 0, bonus: value })
+      const spellModifier = createSpellModifier({ modifier: 1, bonus: value })
 
       return {
         value,
@@ -468,7 +468,7 @@ export function threatOnCastRollbackOnMiss(
     ) {
       const rollbackValue = -value
       const spellModifier = createSpellModifier({
-        modifier: 0,
+        modifier: 1,
         bonus: rollbackValue,
       })
 
