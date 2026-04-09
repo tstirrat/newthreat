@@ -3,12 +3,14 @@
  */
 import type { FightProcessorFactory } from '../event-processors'
 import { createInferInitialBuffsProcessor } from './infer-initial-buffs'
+import { createInferRighteousFuryProcessor } from './infer-righteous-fury'
 import { createInsignificantEnemyFilterProcessor } from './insignificant-enemy-filter'
 import { createMinmaxSalvationProcessor } from './minmax-salvation'
 import { createPartyDetectionProcessor } from './party-detection'
 import { createTranquilAirEmulationProcessor } from './tranquil-air-emulation'
 
 export { createInferInitialBuffsProcessor } from './infer-initial-buffs'
+export { createInferRighteousFuryProcessor } from './infer-righteous-fury'
 export {
   createInsignificantEnemyFilterProcessor,
   significantEnemyIdsKey,
@@ -28,4 +30,5 @@ export const defaultFightProcessorFactories: FightProcessorFactory[] = [
   createTranquilAirEmulationProcessor,
   createInferInitialBuffsProcessor,
   createMinmaxSalvationProcessor,
+  createInferRighteousFuryProcessor,
 ]
