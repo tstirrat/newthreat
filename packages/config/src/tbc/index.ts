@@ -73,7 +73,7 @@ function inferGlobalGearAuras(gear: GearItem[]): number[] {
   return inferredAuras
 }
 
-export const anniversaryConfig = extendConfig(eraConfig, {
+export const tbcConfig = extendConfig(eraConfig, {
   version: 14,
   displayName: 'TBC (Anniversary)',
   wowhead: {
@@ -129,5 +129,5 @@ export const anniversaryConfig = extendConfig(eraConfig, {
 })
 
 // Validate for duplicate spell IDs (dev-time warning)
-validateAuraModifiers(anniversaryConfig)
-validateAbilities(anniversaryConfig)
+validateAuraModifiers(tbcConfig)
+validateAbilities(tbcConfig)

@@ -6,12 +6,12 @@
  */
 import { eraConfig } from './era'
 import { sodConfig } from './sod'
-import { anniversaryConfig } from './tbc'
+import { tbcConfig } from './tbc'
 
 export const configVersionVector = {
   era: eraConfig.version,
   sod: sodConfig.version,
-  anniversary: anniversaryConfig.version,
+  anniversary: tbcConfig.version,
 } as const
 
 /**

@@ -26,17 +26,17 @@ import { rogueConfig as anniversaryRogueConfig } from './classes/rogue'
 import { shamanConfig as anniversaryShamanConfig } from './classes/shaman'
 import { warlockConfig as anniversaryWarlockConfig } from './classes/warlock'
 import { warriorConfig as anniversaryWarriorConfig } from './classes/warrior'
-import { anniversaryConfig } from './index'
+import { tbcConfig } from './index'
 import { naxxAbilities as anniversaryNaxxAbilities } from './raids/naxx'
 
 describe('anniversary deltas', () => {
   it('shares base threat rules with era', () => {
-    expect(anniversaryConfig.baseThreat).toBe(eraBaseThreat)
+    expect(tbcConfig.baseThreat).toBe(eraBaseThreat)
   })
 
   it('keeps unchanged vanilla raid abilities shared by reference', () => {
-    expect(anniversaryConfig.abilities?.[18670]).toBe(eraBwlAbilities[18670])
-    expect(anniversaryConfig.abilities?.[18392]).toBe(eraOnyxiaAbilities[18392])
+    expect(tbcConfig.abilities?.[18670]).toBe(eraBwlAbilities[18670])
+    expect(tbcConfig.abilities?.[18392]).toBe(eraOnyxiaAbilities[18392])
   })
 
   it('overrides naxx hateful strike with tbc behavior', () => {
@@ -68,19 +68,19 @@ describe('anniversary deltas', () => {
   })
 
   it('registers tbc raid abilities from karazhan/ssc/tk/gruul/bt', () => {
-    expect(anniversaryConfig.abilities?.[37098]).toBeDefined() // Nightbane
-    expect(anniversaryConfig.abilities?.[38112]).toBeDefined() // Vashj
-    expect(anniversaryConfig.abilities?.[33237]).toBeDefined() // HKM
-    expect(anniversaryConfig.abilities?.[33813]).toBeDefined() // Gruul
-    expect(anniversaryConfig.abilities?.[40647]).toBeDefined() // Illidan
+    expect(tbcConfig.abilities?.[37098]).toBeDefined() // Nightbane
+    expect(tbcConfig.abilities?.[38112]).toBeDefined() // Vashj
+    expect(tbcConfig.abilities?.[33237]).toBeDefined() // HKM
+    expect(tbcConfig.abilities?.[33813]).toBeDefined() // Gruul
+    expect(tbcConfig.abilities?.[40647]).toBeDefined() // Illidan
   })
 
   it('adds tbc global enchant aura modifiers and gear implications', () => {
-    expect(anniversaryConfig.auraModifiers[2613]).toBeDefined()
-    expect(anniversaryConfig.auraModifiers[2621]).toBeDefined()
-    expect(anniversaryConfig.auraModifiers[40618]).toBeDefined()
+    expect(tbcConfig.auraModifiers[2613]).toBeDefined()
+    expect(tbcConfig.auraModifiers[2621]).toBeDefined()
+    expect(tbcConfig.auraModifiers[40618]).toBeDefined()
 
-    const inferred = anniversaryConfig.gearImplications?.([
+    const inferred = tbcConfig.gearImplications?.([
       { id: 1, permanentEnchant: 2613 },
       { id: 2, permanentEnchant: 2621 },
     ])
@@ -88,36 +88,34 @@ describe('anniversary deltas', () => {
   })
 
   it('extends fixate buffs with black temple fel rage', () => {
-    expect(anniversaryConfig.fixateBuffs?.has(40604)).toBe(true)
+    expect(tbcConfig.fixateBuffs?.has(40604)).toBe(true)
   })
 
   it('inherits era vanilla raid abilities via extendConfig', () => {
     // BWL — Broodlord Knock Away
-    expect(anniversaryConfig.abilities?.[18670]).toBe(eraBwlAbilities[18670])
+    expect(tbcConfig.abilities?.[18670]).toBe(eraBwlAbilities[18670])
     // Onyxia — Fireball
-    expect(anniversaryConfig.abilities?.[18392]).toBe(eraOnyxiaAbilities[18392])
+    expect(tbcConfig.abilities?.[18392]).toBe(eraOnyxiaAbilities[18392])
   })
 
   it('inherits era aq40 aura modifiers via extendConfig', () => {
     // Fetish of the Sand Reaver
     const fetish = 26400
-    expect(anniversaryConfig.auraModifiers[fetish]).toBe(
-      aq40AuraModifiers[fetish],
-    )
+    expect(tbcConfig.auraModifiers[fetish]).toBe(aq40AuraModifiers[fetish])
   })
 
   it('inherits era aggro-loss buffs via extendConfig', () => {
     // MC: Lucifron Dominate Mind
     for (const spellId of mcAggroLossBuffs) {
-      expect(anniversaryConfig.aggroLossBuffs?.has(spellId)).toBe(true)
+      expect(tbcConfig.aggroLossBuffs?.has(spellId)).toBe(true)
     }
     // AQ40: Princess Yauj Fear
     for (const spellId of aq40AggroLossBuffs) {
-      expect(anniversaryConfig.aggroLossBuffs?.has(spellId)).toBe(true)
+      expect(tbcConfig.aggroLossBuffs?.has(spellId)).toBe(true)
     }
     // AQ20: Ossirian Enveloping Winds
     for (const spellId of aq20AggroLossBuffs) {
-      expect(anniversaryConfig.aggroLossBuffs?.has(spellId)).toBe(true)
+      expect(tbcConfig.aggroLossBuffs?.has(spellId)).toBe(true)
     }
   })
 })
