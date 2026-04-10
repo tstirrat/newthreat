@@ -73,6 +73,8 @@ describe('search-params', () => {
       targetInstance: 0,
       startMs: 100,
       endMs: 200,
+      playheadMs: null,
+      replay: false,
     })
   })
 
@@ -98,6 +100,8 @@ describe('search-params', () => {
       targetInstance: null,
       startMs: null,
       endMs: null,
+      playheadMs: null,
+      replay: false,
     })
   })
 
@@ -121,6 +125,72 @@ describe('search-params', () => {
     expect(next.toString()).toContain('endMs=80')
   })
 
+  it('parses valid playheadMs from query params', () => {
+    const params = new URLSearchParams({ playheadMs: '5000' })
+
+    expect(
+      resolveFightQueryState({
+        searchParams: params,
+        validPlayerIds: new Set(),
+        validActorIds: new Set(),
+        validTargetKeys: new Set(),
+        maxDurationMs: 10000,
+      }),
+    ).toMatchObject({ playheadMs: 5000 })
+  })
+
+  it('rejects playheadMs exceeding fight duration', () => {
+    const params = new URLSearchParams({ playheadMs: '20000' })
+
+    expect(
+      resolveFightQueryState({
+        searchParams: params,
+        validPlayerIds: new Set(),
+        validActorIds: new Set(),
+        validTargetKeys: new Set(),
+        maxDurationMs: 10000,
+      }),
+    ).toMatchObject({ playheadMs: null })
+  })
+
+  it('rejects negative playheadMs', () => {
+    const params = new URLSearchParams({ playheadMs: '-100' })
+
+    expect(
+      resolveFightQueryState({
+        searchParams: params,
+        validPlayerIds: new Set(),
+        validActorIds: new Set(),
+        validTargetKeys: new Set(),
+        maxDurationMs: 10000,
+      }),
+    ).toMatchObject({ playheadMs: null })
+  })
+
+  it('accepts playheadMs of zero', () => {
+    const params = new URLSearchParams({ playheadMs: '0' })
+
+    expect(
+      resolveFightQueryState({
+        searchParams: params,
+        validPlayerIds: new Set(),
+        validActorIds: new Set(),
+        validTargetKeys: new Set(),
+        maxDurationMs: 10000,
+      }),
+    ).toMatchObject({ playheadMs: 0 })
+  })
+
+  it('serializes and deletes playheadMs in applyFightQueryState', () => {
+    const withPlayhead = applyFightQueryState(new URLSearchParams(), {
+      playheadMs: 7500,
+    })
+    expect(withPlayhead.get('playheadMs')).toBe('7500')
+
+    const cleared = applyFightQueryState(withPlayhead, { playheadMs: null })
+    expect(cleared.has('playheadMs')).toBe(false)
+  })
+
   it('keeps players empty when players is missing and pinnedPlayers exists', () => {
     const params = new URLSearchParams({
       pinnedPlayers: '3,1,3',
@@ -142,6 +212,8 @@ describe('search-params', () => {
       targetInstance: null,
       startMs: null,
       endMs: null,
+      playheadMs: null,
+      replay: false,
     })
   })
 })
