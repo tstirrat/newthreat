@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { eraConfig } from './era'
 import { sodConfig } from './sod'
-import { anniversaryConfig } from './tbc'
+import { tbcConfig } from './tbc'
 import { configCacheVersion, configVersionVector } from './version'
 
 describe('configCacheVersion', () => {
@@ -13,16 +13,16 @@ describe('configCacheVersion', () => {
     expect(configVersionVector).toEqual({
       era: eraConfig.version,
       sod: sodConfig.version,
-      anniversary: anniversaryConfig.version,
+      anniversary: tbcConfig.version,
     })
     expect(configCacheVersion).toBe(
-      `${eraConfig.version}${sodConfig.version}${anniversaryConfig.version}`,
+      `${eraConfig.version}${sodConfig.version}${tbcConfig.version}`,
     )
   })
 
   it('uses numeric versions for each top-level config', () => {
     expect(typeof eraConfig.version).toBe('number')
     expect(typeof sodConfig.version).toBe('number')
-    expect(typeof anniversaryConfig.version).toBe('number')
+    expect(typeof tbcConfig.version).toBe('number')
   })
 })

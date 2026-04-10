@@ -139,12 +139,12 @@ export const ThreatChartControls: FC<ThreatChartControlsProps> = ({
             className="cursor-pointer text-sm"
             htmlFor={inferThreatReductionId}
           >
-            Infer threat reduction buffs
+            Infer common threat buffs
           </Label>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                aria-label="Infer threat reduction buffs help"
+                aria-label="Infer common threat buffs help"
                 className="h-6 w-6"
                 size="icon-xs"
                 type="button"
@@ -159,6 +159,7 @@ export const ThreatChartControls: FC<ThreatChartControlsProps> = ({
                   Infers Salvation for non-tank players when a Paladin is
                   present in the fight
                 </li>
+                <li>Infers Righteous Fury on Paladin tanks</li>
                 <li>Attempts to emulate Tranquil Air Totem if dropped</li>
               </ul>
             </TooltipContent>

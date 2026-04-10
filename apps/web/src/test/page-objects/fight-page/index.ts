@@ -5,4 +5,5 @@ export { FightQuickSwitcherObject } from '../components/fight-quick-switcher-obj
 export { FightPageHeaderObject } from './fight-page-header-object'
 export { FightPageObject } from './fight-page-object'
 export { FocusedPlayerSummaryObject } from './focused-player-summary-object'
+export { ReplayModeObject } from './replay-mode-object'
 export { ThreatChartObject } from './threat-chart-object'

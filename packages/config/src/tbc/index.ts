@@ -4,17 +4,11 @@
  * Anniversary config for WCL gameVersion 2 reports that resolve to
  * Anniversary-specific metadata (season/partition).
  */
-import type {
-  SpellId,
-  ThreatConfig,
-  ThreatConfigResolutionInput,
-  ThreatContext,
-  ThreatModifier,
-} from '@wow-threat/shared'
+import type { ThreatContext, ThreatModifier } from '@wow-threat/shared'
 import type { GearItem } from '@wow-threat/wcl-types'
 
 import { eraConfig } from '../era'
-import { baseThreat } from '../era/general'
+import { extendConfig } from '../shared/extend-config'
 import {
   FRESH_TBC_CUTOVER_TIMESTAMP_MS,
   getClassicSeasonIds,
@@ -23,9 +17,6 @@ import {
   validateAbilities,
   validateAuraModifiers,
 } from '../shared/utils'
-import { aq40Abilities } from '../sod/raids/aq40'
-import { mcAbilities } from '../sod/raids/mc'
-import { zgAbilities } from '../sod/raids/zg'
 import { druidConfig } from './classes/druid'
 import { hunterConfig } from './classes/hunter'
 import { mageConfig } from './classes/mage'
@@ -36,22 +27,17 @@ import { shamanConfig } from './classes/shaman'
 import { warlockConfig } from './classes/warlock'
 import { warriorConfig } from './classes/warrior'
 import { miscAbilities } from './misc'
-import { aq40AggroLossBuffs, aq40AuraModifiers } from './raids/aq40'
 import {
   blackTempleAbilities,
   blackTempleAuraModifiers,
   blackTempleFixateBuffs,
 } from './raids/black-temple'
-import { bwlAbilities, bwlAggroLossBuffs } from './raids/bwl'
 import { commonRaidAbilities } from './raids/common'
 import { gruulsLairAbilities } from './raids/gruuls-lair'
 import { karazhanAbilities } from './raids/karazhan'
-import { mcAggroLossBuffs } from './raids/mc'
 import { naxxAbilities } from './raids/naxx'
-import { onyxiaAbilities } from './raids/ony'
 import { serpentshrineCavernAbilities } from './raids/serpentshrine-cavern'
 import { tempestKeepAbilities } from './raids/tempest-keep'
-import { zgAggroLossBuffs, zgEncounters } from './raids/zg'
 
 const ANNIVERSARY_CLASSIC_SEASON_ID = 5
 const Enchants = {
@@ -59,36 +45,8 @@ const Enchants = {
   CloakSubtlety: 2621,
 } as const
 
-// Fixate buffs (taunt effects)
-// Class-specific fixates are in class configs
-const fixateBuffs = new Set<SpellId>([
-  ...(eraConfig.fixateBuffs ?? []),
-  ...blackTempleFixateBuffs,
-])
-
-// Aggro loss buffs (fear, polymorph, etc.)
-// Class-specific aggro loss buffs are in class configs
-const aggroLossBuffs = new Set<SpellId>([
-  ...bwlAggroLossBuffs,
-  ...mcAggroLossBuffs,
-  ...aq40AggroLossBuffs,
-  ...zgAggroLossBuffs,
-])
-
-// Invulnerability buffs
-// Class-specific invulnerabilities are in class configs
-const invulnerabilityBuffs = new Set<SpellId>([
-  ...(eraConfig.invulnerabilityBuffs ?? []),
-  ...[],
-])
-
 // Global aura modifiers (items, consumables, cross-class buffs)
-const globalAuraModifiers: Record<
-  number,
-  (ctx: ThreatContext) => ThreatModifier
-> = {
-  ...(eraConfig.auraModifiers ?? {}),
-  ...aq40AuraModifiers,
+const auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
   ...blackTempleAuraModifiers,
   [Enchants.GlovesThreat]: () => ({
     source: 'gear',
@@ -115,13 +73,13 @@ function inferGlobalGearAuras(gear: GearItem[]): number[] {
   return inferredAuras
 }
 
-export const anniversaryConfig: ThreatConfig = {
-  version: 11,
+export const tbcConfig = extendConfig(eraConfig, {
+  version: 14,
   displayName: 'TBC (Anniversary)',
   wowhead: {
     domain: 'tbc',
   },
-  resolve: (input: ThreatConfigResolutionInput): boolean => {
+  resolve: (input) => {
     if (!isSupportedClassicGameVersion(input.report.masterData.gameVersion)) {
       return false
     }
@@ -142,8 +100,6 @@ export const anniversaryConfig: ThreatConfig = {
     return true
   },
 
-  baseThreat,
-
   classes: {
     warrior: warriorConfig,
     paladin: paladinConfig,
@@ -158,11 +114,6 @@ export const anniversaryConfig: ThreatConfig = {
 
   abilities: {
     ...naxxAbilities,
-    ...onyxiaAbilities,
-    ...bwlAbilities,
-    ...mcAbilities,
-    ...zgAbilities,
-    ...aq40Abilities,
     ...commonRaidAbilities,
     ...karazhanAbilities,
     ...serpentshrineCavernAbilities,
@@ -172,16 +123,11 @@ export const anniversaryConfig: ThreatConfig = {
     ...miscAbilities,
   },
 
-  auraModifiers: globalAuraModifiers,
+  auraModifiers,
   gearImplications: inferGlobalGearAuras,
-  fixateBuffs,
-  aggroLossBuffs,
-  invulnerabilityBuffs,
-  encounters: {
-    ...zgEncounters,
-  },
-}
+  fixateBuffs: blackTempleFixateBuffs,
+})
 
 // Validate for duplicate spell IDs (dev-time warning)
-validateAuraModifiers(anniversaryConfig)
-validateAbilities(anniversaryConfig)
+validateAuraModifiers(tbcConfig)
+validateAbilities(tbcConfig)

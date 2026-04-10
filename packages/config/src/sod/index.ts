@@ -4,15 +4,11 @@
  * Ports upstream SoD global behavior from:
  * https://github.com/Voomlz/voomlz.github.io/blob/master/sod/spells.js
  */
-import type {
-  ThreatConfig,
-  ThreatContext,
-  ThreatModifier,
-} from '@wow-threat/shared'
+import type { ThreatContext, ThreatModifier } from '@wow-threat/shared'
 import type { GearItem } from '@wow-threat/wcl-types'
 
 import { eraConfig } from '../era'
-import { baseThreat } from '../era/general'
+import { extendConfig } from '../shared/extend-config'
 import {
   getClassicSeasonIds,
   hasZonePartition,
@@ -22,16 +18,9 @@ import {
 } from '../shared/utils'
 import { sodClasses } from './classes'
 import { miscAbilities } from './misc'
-import {
-  aq40Abilities,
-  aq40AggroLossBuffs,
-  aq40AuraModifiers,
-} from './raids/aq40'
-import { bwlAbilities } from './raids/bwl'
+import { aq40Abilities } from './raids/aq40'
 import { mcAbilities } from './raids/mc'
-import { naxxAbilities } from './raids/naxx'
-import { onyxiaAbilities } from './raids/onyxia'
-import { zgAbilities, zgEncounters } from './raids/zg'
+import { zgAbilities } from './raids/zg'
 
 // ============================================================================
 // SoD Constants
@@ -51,10 +40,7 @@ const Mods = {
   EyeOfDiminution: 0.3,
 } as const
 
-const eraAuraModifiers = eraConfig.auraModifiers ?? {}
 const auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
-  ...eraAuraModifiers,
-  ...aq40AuraModifiers,
   [Items.EnchantGlovesThreat]: () => ({
     source: 'gear',
     name: 'Enchant Gloves - Threat',
@@ -71,16 +57,6 @@ const auraModifiers: Record<number, (ctx: ThreatContext) => ThreatModifier> = {
     value: Mods.EyeOfDiminution,
   }),
 }
-
-const aggroLossBuffs = new Set<number>([
-  ...(eraConfig.aggroLossBuffs ?? []),
-  ...aq40AggroLossBuffs,
-])
-
-const invulnerabilityBuffs = new Set<number>([
-  ...(eraConfig.invulnerabilityBuffs ?? []),
-  ...[],
-])
 
 function inferGlobalGearAuras(gear: GearItem[]): number[] {
   const inferredAuras: number[] = []
@@ -100,12 +76,9 @@ function inferGlobalGearAuras(gear: GearItem[]): number[] {
   return inferredAuras
 }
 
-export const sodConfig: ThreatConfig = {
-  version: 10,
+export const sodConfig = extendConfig(eraConfig, {
+  version: 14,
   displayName: 'Season of Discovery',
-  wowhead: {
-    domain: 'classic',
-  },
   resolve: (input) => {
     if (!isSupportedClassicGameVersion(input.report.masterData.gameVersion)) {
       return false
@@ -119,13 +92,8 @@ export const sodConfig: ThreatConfig = {
     return hasZonePartition(input, ['discovery'])
   },
 
-  baseThreat,
-
   classes: sodClasses,
   abilities: {
-    ...naxxAbilities,
-    ...onyxiaAbilities,
-    ...bwlAbilities,
     ...mcAbilities,
     ...zgAbilities,
     ...aq40Abilities,
@@ -134,12 +102,7 @@ export const sodConfig: ThreatConfig = {
 
   auraModifiers,
   gearImplications: inferGlobalGearAuras,
-  aggroLossBuffs,
-  invulnerabilityBuffs,
-  encounters: {
-    ...zgEncounters,
-  },
-}
+})
 
 validateAuraModifiers(sodConfig)
 validateAbilities(sodConfig)

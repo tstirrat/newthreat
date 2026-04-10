@@ -127,6 +127,7 @@ Additional component composition guidance:
 - It is fine to keep small UI-local state/effects in the component body when they are tied to DOM/view concerns and do not represent a broader feature workflow.
 - Treat feature boundaries as the primary organizing unit: new logical features should usually keep their state/effects/handlers together in a hook, but avoid extracting trivial one-off logic into hooks unnecessarily.
 - Hook extraction can be private to the component file when reuse is unlikely; prefer clarity and separation of concerns over forcing everything into the component body.
+- Avoid large blocks of inlined JSX. Find natural component boundaries and extract named child components (with descriptive props) within the same file. This applies to repeated items in lists, conditional branches, and any section of markup that has its own logical identity.
 - React Compiler is enabled for this app. Do not add `useMemo` or `useCallback` as default optimization tools.
 - Only add manual memoization when there is a demonstrated correctness or performance need that the compiler does not cover.
 

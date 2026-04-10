@@ -11,7 +11,7 @@ import {
   loadConfigFixture,
   runConfigFixture,
 } from '../../test/integration/helpers'
-import { anniversaryConfig } from '../index'
+import { tbcConfig } from '../index'
 
 const fixtureName = 'fresh/naxx'
 
@@ -24,7 +24,7 @@ describe('anniversary warrior integration', () => {
 
     const { actorMap, augmentedEvents, abilityNameMap, fightStartTime } =
       runConfigFixture(fixture, {
-        config: anniversaryConfig,
+        config: tbcConfig,
       })
     const warriorIds = new Set(
       [...actorMap.entries()]
@@ -76,7 +76,7 @@ describe('anniversary warrior integration', () => {
     }
 
     const { actorMap, augmentedEvents } = runConfigFixture(fixture, {
-      config: anniversaryConfig,
+      config: tbcConfig,
     })
     const warriors = buildActorThreatTotals(augmentedEvents, actorMap)
       .filter(({ actorId }) => actorMap.get(actorId)?.class === 'warrior')

@@ -14,6 +14,10 @@ export class KeyboardShortcutsOverlayObject {
     return this.page.getByRole('dialog', { name: 'Keyboard shortcuts' })
   }
 
+  groupHeading(name: string): Locator {
+    return this.dialog().locator('h3').filter({ hasText: name }).first()
+  }
+
   shortcutListItem(description: string): Locator {
     return this.dialog()
       .getByRole('listitem')

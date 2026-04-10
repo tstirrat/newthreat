@@ -24,9 +24,11 @@ and this project adheres to [Conventional Commits](https://www.conventionalcommi
 
 ### Fixed
 
+- **config**: Fix `threatOnBuff`, `threatOnBuffOrDamage`, and `threatOnCastRollbackOnMiss` formulas incorrectly passing `modifier: 0` to `createSpellModifier`. This set `spellModifier.value = 0` in the tooltip metadata, causing the UI to display a **0× multiplier** for buff and cast-phase threat events instead of the correct implicit **1×**. Player multipliers (class, aura, talent) are now correctly applied by default for all three formulas.
 - **engine**: Exclude insignificant enemies (Gothik non-character adds, Sapphiron Blizzard adds, Ossirian Wind Vortexes) from split-threat distribution. A new `InsignificantEnemyFilterProcessor` runs during the prepass phase and identifies enemies that never interact with players; split threat (heals, AoE) is then distributed only among significant enemies. Direct-target threat is unaffected. Fallback: if all enemies are insignificant, split uses the full alive enemy list ([AGE-34]).
 - **web**: Reset `databasePromise` singleton in the `onerror` handler of `openThreatWorkerCacheDatabase` so failed IndexedDB connection attempts do not permanently disable the cache for the session ([AGE-11]). Previously, a connection failure cached a settled null-promise, causing all subsequent calls to bypass the open attempt entirely with no retry opportunity.
 - **web**: Fix Priest class color invisible in light mode ([AGE-50]). Priest's `classColors` entry is now `var(--foreground)` — a shadcn CSS variable that resolves to near-black in light mode and near-white in dark mode. A `resolveCssColor()` utility reads the computed value at render time for ECharts (canvas) contexts where CSS variables are not resolved natively. The `isDarkMode` parameter and `lightModeClassColorOverrides` map have been removed.
+- **config**: Correct Greater Blessing of Kings spell ID from `25894` to `25898` in the Era paladin config and minmax-salvation blessing lookup. `applybuff`/`refreshbuff` events for spell 25898 now correctly generate 60 split threat with Righteous Fury applied ([AGE-43]).
 
 ### Security
 

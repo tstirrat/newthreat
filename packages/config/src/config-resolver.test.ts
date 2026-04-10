@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveConfigOrNull } from './config-resolver'
 import { eraConfig } from './era'
 import { sodConfig } from './sod'
-import { anniversaryConfig } from './tbc'
+import { tbcConfig } from './tbc'
 
 const BEFORE_FRESH_TBC_CUTOVER = Date.UTC(2026, 0, 12, 23, 59, 59, 999)
 const ON_FRESH_TBC_CUTOVER = Date.UTC(2026, 0, 13, 0, 0, 0, 0)
@@ -39,7 +39,7 @@ describe('resolveConfigOrNull', () => {
     expect(sodConfig.wowhead).toEqual({
       domain: 'classic',
     })
-    expect(anniversaryConfig.wowhead).toEqual({
+    expect(tbcConfig.wowhead).toEqual({
       domain: 'tbc',
     })
   })
@@ -77,7 +77,7 @@ describe('resolveConfigOrNull', () => {
       }),
     )
 
-    expect(config).toBe(anniversaryConfig)
+    expect(config).toBe(tbcConfig)
   })
 
   it('resolves anniversary for gameVersion 3 with Anniversary season id', () => {
@@ -92,7 +92,7 @@ describe('resolveConfigOrNull', () => {
       }),
     )
 
-    expect(config).toBe(anniversaryConfig)
+    expect(config).toBe(tbcConfig)
   })
 
   it('resolves era for gameVersion 2 with Anniversary season id before 2026-01-13', () => {
@@ -142,7 +142,7 @@ describe('resolveConfigOrNull', () => {
       }),
     )
 
-    expect(config).toBe(anniversaryConfig)
+    expect(config).toBe(tbcConfig)
   })
 
   it('resolves era for fresh phase partitions before 2026-01-13', () => {
@@ -166,7 +166,7 @@ describe('resolveConfigOrNull', () => {
       }),
     )
 
-    expect(config).toBe(anniversaryConfig)
+    expect(config).toBe(tbcConfig)
   })
 
   it('returns null for classic progression game version', () => {
