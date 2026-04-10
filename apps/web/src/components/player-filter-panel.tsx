@@ -4,7 +4,6 @@
 import type { PlayerClass } from '@wow-threat/wcl-types'
 import type { FC } from 'react'
 
-import { useIsDarkMode } from '../hooks/use-is-dark-mode'
 import { getClassColor } from '../lib/class-colors'
 import type { ReportActorSummary } from '../types/api'
 import { Button } from './ui/button'
@@ -23,7 +22,6 @@ export const PlayerFilterPanel: FC<PlayerFilterPanelProps> = ({
   selectedPlayerIds,
   onChange,
 }) => {
-  const isDarkMode = useIsDarkMode()
   const selectedSet = new Set(selectedPlayerIds)
 
   return (
@@ -50,7 +48,6 @@ export const PlayerFilterPanel: FC<PlayerFilterPanelProps> = ({
         {players.map((player) => {
           const classColor = getClassColor(
             player.subType as PlayerClass | undefined,
-            isDarkMode,
           )
           const isChecked = selectedSet.has(player.id)
           const inputId = `player-filter-${player.id}`

@@ -1,33 +1,34 @@
 /**
- * Unit tests for class color resolution, including light-mode overrides.
+ * Unit tests for class color resolution and CSS color utilities.
  */
 import { describe, expect, it } from 'vitest'
 
 import type { ReportActorSummary } from '../types/api'
-import { classColors, getActorColor, getClassColor } from './class-colors'
+import {
+  classColors,
+  getActorColor,
+  getClassColor,
+  resolveCssColor,
+} from './class-colors'
 
 describe('getClassColor', () => {
-  it('returns the dark-mode color for Priest by default', () => {
-    expect(getClassColor('Priest')).toBe('#FFFFFF')
+  it('returns the CSS variable for Priest', () => {
+    expect(getClassColor('Priest')).toBe('var(--foreground)')
   })
 
-  it('returns the dark-mode color for Priest when isDarkMode is true', () => {
-    expect(getClassColor('Priest', true)).toBe('#FFFFFF')
+  it('returns hex color for Warrior', () => {
+    expect(getClassColor('Warrior')).toBe('#C79C6E')
   })
 
-  it('returns the light-mode override for Priest when isDarkMode is false', () => {
-    expect(getClassColor('Priest', false)).toBe('#71717a')
-  })
-
-  it('returns the same color in dark and light mode for classes without an override', () => {
-    const warriorDark = getClassColor('Warrior', true)
-    const warriorLight = getClassColor('Warrior', false)
-    expect(warriorDark).toBe('#C79C6E')
-    expect(warriorLight).toBe('#C79C6E')
-  })
-
-  it('returns the same color in dark and light mode for Mage', () => {
-    expect(getClassColor('Mage', true)).toBe(getClassColor('Mage', false))
+  it('returns same colors for all classes without special handling', () => {
+    const classesWithoutVarColor = Object.keys(classColors).filter(
+      (c) => c !== 'Priest',
+    )
+    for (const cls of classesWithoutVarColor) {
+      expect(getClassColor(cls as Parameters<typeof getClassColor>[0])).toBe(
+        classColors[cls as keyof typeof classColors],
+      )
+    }
   })
 
   it('returns fallback color for null class', () => {
@@ -36,17 +37,6 @@ describe('getClassColor', () => {
 
   it('returns fallback color for undefined class', () => {
     expect(getClassColor(undefined)).toBe('#94a3b8')
-  })
-
-  it('returns dark-mode colors for all classes without override in light mode', () => {
-    const classesWithoutOverride = Object.keys(classColors).filter(
-      (c) => c !== 'Priest',
-    )
-    for (const cls of classesWithoutOverride) {
-      expect(
-        getClassColor(cls as Parameters<typeof getClassColor>[0], false),
-      ).toBe(classColors[cls as keyof typeof classColors])
-    }
   })
 })
 
@@ -63,24 +53,17 @@ describe('getActorColor', () => {
 
   const emptyMap = new Map<number, ReportActorSummary>()
 
-  it('returns Priest dark-mode color in dark mode', () => {
+  it('returns CSS variable for Priest player', () => {
     const priest = makePlayer(1, 'Priest')
-    expect(getActorColor(priest, emptyMap, true)).toBe('#FFFFFF')
+    expect(getActorColor(priest, emptyMap)).toBe('var(--foreground)')
   })
 
-  it('returns Priest light-mode override in light mode', () => {
-    const priest = makePlayer(1, 'Priest')
-    expect(getActorColor(priest, emptyMap, false)).toBe('#71717a')
-  })
-
-  it('returns same Warrior color in both modes', () => {
+  it('returns hex color for Warrior player', () => {
     const warrior = makePlayer(1, 'Warrior')
-    expect(getActorColor(warrior, emptyMap, true)).toBe(
-      getActorColor(warrior, emptyMap, false),
-    )
+    expect(getActorColor(warrior, emptyMap)).toBe('#C79C6E')
   })
 
-  it('resolves pet color from owner class in dark mode', () => {
+  it('resolves pet color from owner class', () => {
     const owner = makePlayer(1, 'Priest')
     const ownerMap = new Map([[1, owner]])
     const pet: ReportActorSummary = {
@@ -89,18 +72,25 @@ describe('getActorColor', () => {
       type: 'Pet',
       petOwner: 1,
     }
-    expect(getActorColor(pet, ownerMap, true)).toBe('#FFFFFF')
+    expect(getActorColor(pet, ownerMap)).toBe('var(--foreground)')
+  })
+})
+
+describe('resolveCssColor', () => {
+  it('returns non-var colors unchanged', () => {
+    expect(resolveCssColor('#C79C6E')).toBe('#C79C6E')
+    expect(resolveCssColor('rgb(200, 100, 50)')).toBe('rgb(200, 100, 50)')
   })
 
-  it('resolves pet color from owner class in light mode', () => {
-    const owner = makePlayer(1, 'Priest')
-    const ownerMap = new Map([[1, owner]])
-    const pet: ReportActorSummary = {
-      id: 2,
-      name: 'Minipet',
-      type: 'Pet',
-      petOwner: 1,
-    }
-    expect(getActorColor(pet, ownerMap, false)).toBe('#71717a')
+  it('resolves a CSS variable from document', () => {
+    document.documentElement.style.setProperty('--test-color', '#abcdef')
+    const result = resolveCssColor('var(--test-color)')
+    expect(result).toBe('#abcdef')
+    document.documentElement.style.removeProperty('--test-color')
+  })
+
+  it('returns the var() string as fallback when variable is not set', () => {
+    const result = resolveCssColor('var(--not-a-real-variable)')
+    expect(result).toBe('var(--not-a-real-variable)')
   })
 })

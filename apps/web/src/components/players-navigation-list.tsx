@@ -5,7 +5,6 @@ import type { PlayerClass } from '@wow-threat/wcl-types'
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
-import { useIsDarkMode } from '../hooks/use-is-dark-mode'
 import { getClassColor } from '../lib/class-colors'
 import {
   isBossFightForNavigation,
@@ -38,7 +37,6 @@ export const PlayersNavigationList: FC<PlayersNavigationListProps> = ({
   players,
   fights,
 }) => {
-  const isDarkMode = useIsDarkMode()
   const playerRows = players.filter((actor) => actor.type === 'Player')
 
   if (playerRows.length === 0) {
@@ -120,7 +118,6 @@ export const PlayersNavigationList: FC<PlayersNavigationListProps> = ({
         {sortedPlayers.map((player) => {
           const classColor = getClassColor(
             player.subType as PlayerClass | undefined,
-            isDarkMode,
           )
           const role = resolvePlayerRole(player)
 
