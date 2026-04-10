@@ -5,8 +5,8 @@ import { createDamageEvent, createMockActorContext } from '@wow-threat/shared'
 import type {
   TalentImplicationContext,
   ThreatContext,
-} from '@wow-threat/shared/src/types'
-import { SpellSchool } from '@wow-threat/shared/src/types'
+} from '@wow-threat/shared'
+import { SpellSchool } from '@wow-threat/shared'
 import { describe, expect, it } from 'vitest'
 
 import { Spells, mageConfig } from './mage'
@@ -210,10 +210,10 @@ describe('Mage Config', () => {
       ])
     })
 
-    it('infers Arcane Subtlety and Burning Soul when both conditions met', () => {
+    it('infers Arcane Subtlety and Burning Soul when arcane dominant and fire meets threshold', () => {
       const result = mageConfig.talentImplications!(
         createTalentContext({
-          talentPoints: [21, 30, 0],
+          talentPoints: [21, 12, 0],
         }),
       )
 
