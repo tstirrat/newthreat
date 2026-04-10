@@ -542,6 +542,275 @@ describe('createTranquilAirEmulationProcessor', () => {
     expect(partyDamageEvent?.threat?.calculation.modifiedThreat).toBe(80)
   })
 
+  it('removes Tranquil Air aura when shaman drops a different air totem', () => {
+    const fight = createFight(14, 1602, [1, 2, 10])
+    const report = createReport({
+      actors: [
+        createPlayerActor(1, 'One', 'Warrior'),
+        createPlayerActor(2, 'Two', 'Warrior'),
+        createPlayerActor(10, 'Shaman', 'Shaman'),
+      ],
+      fight,
+    })
+    const result = createEngine().processEvents({
+      rawEvents: [
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 1,
+          abilityGameID: 25316,
+          x: 1000,
+          y: 0,
+        }),
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 2,
+          abilityGameID: 25316,
+          x: 1000,
+          y: 0,
+        }),
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 10,
+          abilityGameID: 25316,
+          x: 100,
+          y: 0,
+        }),
+        createTotemCastEvent({
+          timestamp: 1099,
+          sourceID: 10,
+          x: 0,
+          y: 0,
+        }),
+        createSummonEvent({
+          timestamp: 1100,
+          sourceID: 10,
+          abilityGameID: TRANQUIL_AIR_TOTEM_SPELL_ID,
+        }),
+        createDamageEvent({
+          timestamp: 1200,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+        // Shaman drops Windfury Totem (R3) — replaces Tranquil Air
+        createSummonEvent({
+          timestamp: 1300,
+          sourceID: 10,
+          abilityGameID: 10614,
+        }),
+        createDamageEvent({
+          timestamp: 1400,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+        createDamageEvent({
+          timestamp: 1401,
+          sourceID: 2,
+          targetID: 99,
+          amount: 100,
+        }),
+      ],
+      actorMap: createActorMap(),
+      friendlyActorIds: new Set([1, 2, 10]),
+      enemies: [{ id: 99, name: 'Boss', instance: 0 }],
+      report,
+      fight,
+      inferThreatReduction: true,
+      config: createTranquilAirConfig(),
+    })
+
+    const damageEventsBySourceId = new Map(
+      result.augmentedEvents
+        .filter((event) => event.type === 'damage')
+        .map((event) => [`${event.sourceID}-${event.timestamp}`, event]),
+    )
+
+    // Before Windfury: buff active
+    expect(
+      damageEventsBySourceId.get('1-1200')?.threat?.calculation.modifiedThreat,
+    ).toBe(80)
+    // After Windfury: buff removed
+    expect(
+      damageEventsBySourceId.get('1-1400')?.threat?.calculation.modifiedThreat,
+    ).toBe(100)
+    expect(
+      damageEventsBySourceId.get('2-1401')?.threat?.calculation.modifiedThreat,
+    ).toBe(100)
+  })
+
+  it('ignores non-air-totem summons from the same shaman', () => {
+    const fight = createFight(15, 1602, [1, 10])
+    const report = createReport({
+      actors: [
+        createPlayerActor(1, 'One', 'Warrior'),
+        createPlayerActor(10, 'Shaman', 'Shaman'),
+      ],
+      fight,
+    })
+    const result = createEngine().processEvents({
+      rawEvents: [
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 1,
+          abilityGameID: 25316,
+          x: 1000,
+          y: 0,
+        }),
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 10,
+          abilityGameID: 25316,
+          x: 100,
+          y: 0,
+        }),
+        createTotemCastEvent({
+          timestamp: 1099,
+          sourceID: 10,
+          x: 0,
+          y: 0,
+        }),
+        createSummonEvent({
+          timestamp: 1100,
+          sourceID: 10,
+          abilityGameID: TRANQUIL_AIR_TOTEM_SPELL_ID,
+        }),
+        // Shaman drops Strength of Earth Totem (earth totem, not an air totem)
+        createSummonEvent({
+          timestamp: 1200,
+          sourceID: 10,
+          abilityGameID: 25361,
+        }),
+        createDamageEvent({
+          timestamp: 1300,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+      ],
+      actorMap: createActorMap(),
+      friendlyActorIds: new Set([1, 10]),
+      enemies: [{ id: 99, name: 'Boss', instance: 0 }],
+      report,
+      fight,
+      inferThreatReduction: true,
+      config: createTranquilAirConfig(),
+    })
+
+    const warriorDamageEvent = result.augmentedEvents.find(
+      (event) => event.type === 'damage' && event.sourceID === 1,
+    )
+    // Buff remains active — non-air totem does not replace Tranquil Air
+    expect(warriorDamageEvent?.threat?.calculation.modifiedThreat).toBe(80)
+  })
+
+  it('re-applies Tranquil Air aura after twisting back', () => {
+    const fight = createFight(16, 1602, [1, 10])
+    const report = createReport({
+      actors: [
+        createPlayerActor(1, 'One', 'Warrior'),
+        createPlayerActor(10, 'Shaman', 'Shaman'),
+      ],
+      fight,
+    })
+    const result = createEngine().processEvents({
+      rawEvents: [
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 1,
+          abilityGameID: 25316,
+          x: 1000,
+          y: 0,
+        }),
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 10,
+          abilityGameID: 25316,
+          x: 100,
+          y: 0,
+        }),
+        // Drop Tranquil Air — buff applied
+        createTotemCastEvent({
+          timestamp: 1099,
+          sourceID: 10,
+          x: 0,
+          y: 0,
+        }),
+        createSummonEvent({
+          timestamp: 1100,
+          sourceID: 10,
+          abilityGameID: TRANQUIL_AIR_TOTEM_SPELL_ID,
+        }),
+        createDamageEvent({
+          timestamp: 1200,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+        // Drop Windfury — buff removed
+        createSummonEvent({
+          timestamp: 1300,
+          sourceID: 10,
+          abilityGameID: 10614,
+        }),
+        createDamageEvent({
+          timestamp: 1400,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+        // Drop Tranquil Air again — buff re-applied
+        createTotemCastEvent({
+          timestamp: 1499,
+          sourceID: 10,
+          x: 0,
+          y: 0,
+        }),
+        createSummonEvent({
+          timestamp: 1500,
+          sourceID: 10,
+          abilityGameID: TRANQUIL_AIR_TOTEM_SPELL_ID,
+        }),
+        createDamageEvent({
+          timestamp: 1600,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+      ],
+      actorMap: createActorMap(),
+      friendlyActorIds: new Set([1, 10]),
+      enemies: [{ id: 99, name: 'Boss', instance: 0 }],
+      report,
+      fight,
+      inferThreatReduction: true,
+      config: createTranquilAirConfig(),
+    })
+
+    const damageEventsByTimestamp = new Map(
+      result.augmentedEvents
+        .filter((event) => event.type === 'damage' && event.sourceID === 1)
+        .map((event) => [event.timestamp, event]),
+    )
+
+    expect(
+      damageEventsByTimestamp.get(1200)?.threat?.calculation.modifiedThreat,
+    ).toBe(80) // Tranquil Air active
+    expect(
+      damageEventsByTimestamp.get(1400)?.threat?.calculation.modifiedThreat,
+    ).toBe(100) // Windfury replaced it
+    expect(
+      damageEventsByTimestamp.get(1600)?.threat?.calculation.modifiedThreat,
+    ).toBe(80) // Tranquil Air re-applied
+  })
+
   it('does not apply to players outside the shaman inferred membership group', () => {
     const fight = createFight(13, 1602, [1, 10, 30])
     const report = createReport({
