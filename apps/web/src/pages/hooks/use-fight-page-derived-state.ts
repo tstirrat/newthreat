@@ -5,6 +5,7 @@ import type { ThreatConfig } from '@wow-threat/shared'
 import { useMemo } from 'react'
 
 import { useFightQueryState } from '../../hooks/use-fight-query-state'
+import { useIsDarkMode } from '../../hooks/use-is-dark-mode'
 import { buildVisibleSeriesForLegend } from '../../lib/fight-page-series'
 import {
   buildFightTargetOptions,
@@ -113,6 +114,7 @@ export function useFightPageDerivedState({
   showPets: boolean
   threatConfig: ThreatConfig | null
 }): UseFightPageDerivedStateResult {
+  const isDarkMode = useIsDarkMode()
   const validPlayerIds = useMemo(
     () =>
       new Set(
@@ -211,6 +213,7 @@ export function useFightPageDerivedState({
       fightStartTime: fightData.startTime,
       fightEndTime: fightData.endTime,
       target: selectedTarget,
+      isDarkMode,
     })
 
     return {
@@ -228,6 +231,7 @@ export function useFightPageDerivedState({
     actorRoleById,
     eventsData,
     fightData,
+    isDarkMode,
     reportData.abilities,
     selectedTarget,
   ])
@@ -271,12 +275,14 @@ export function useFightPageDerivedState({
       focusedPlayerId,
       windowStartMs: selectedWindowStartMs,
       windowEndMs: selectedWindowEndMs,
+      isDarkMode,
     })
   }, [
     eventsData?.events,
     fightData?.actors,
     fightData?.startTime,
     focusedPlayerId,
+    isDarkMode,
     reportData.abilities,
     selectedTarget,
     selectedWindowEndMs,

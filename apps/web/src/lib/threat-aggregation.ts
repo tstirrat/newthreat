@@ -125,6 +125,7 @@ interface BuildThreatSeriesParams {
   fightStartTime: number
   fightEndTime: number
   target: FightTarget
+  isDarkMode?: boolean
 }
 
 interface BuildThreatSeriesWithTargetDeathTimeResult {
@@ -1090,6 +1091,7 @@ export function buildThreatSeriesWithTargetDeathTime({
   fightStartTime,
   fightEndTime,
   target,
+  isDarkMode = true,
 }: BuildThreatSeriesParams): BuildThreatSeriesWithTargetDeathTimeResult {
   const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
   const abilityById = createAbilityMap(abilities)
@@ -1116,7 +1118,7 @@ export function buildThreatSeriesWithTargetDeathTime({
         actorType: actor.type as 'Player' | 'Pet',
         ownerId: actor.type === 'Pet' ? (actor.petOwner ?? null) : null,
         label: buildActorLabel(actor, actorsById),
-        color: getActorColor(actor, actorsById),
+        color: getActorColor(actor, actorsById, isDarkMode),
         points: [],
         maxThreat: 0,
         totalThreat: 0,
@@ -1561,6 +1563,7 @@ function buildFocusedPlayerAggregationInternal({
   focusedPlayerId,
   windowStartMs,
   windowEndMs,
+  isDarkMode = true,
 }: {
   events: AugmentedEventsResponse['events']
   actors: ReportActorSummary[]
@@ -1570,6 +1573,7 @@ function buildFocusedPlayerAggregationInternal({
   focusedPlayerId: number | null
   windowStartMs: number
   windowEndMs: number
+  isDarkMode?: boolean
 }): FocusedPlayerAggregation {
   if (focusedPlayerId === null) {
     return {
@@ -1832,7 +1836,7 @@ function buildFocusedPlayerAggregationInternal({
     totalTps: totals.totalThreat / windowDurationSeconds,
     totalDamage: totals.totalDamage,
     totalHealing: totals.totalHealing,
-    color: getActorColor(focusedPlayer, actorsById),
+    color: getActorColor(focusedPlayer, actorsById, isDarkMode),
     modifiers: finalizeAppliedModifiers(modifierCountsByKey),
   }
 
@@ -1896,6 +1900,7 @@ export function buildFocusedPlayerAggregation({
   focusedPlayerId,
   windowStartMs,
   windowEndMs,
+  isDarkMode = true,
 }: {
   events: AugmentedEventsResponse['events']
   actors: ReportActorSummary[]
@@ -1905,6 +1910,7 @@ export function buildFocusedPlayerAggregation({
   focusedPlayerId: number | null
   windowStartMs: number
   windowEndMs: number
+  isDarkMode?: boolean
 }): FocusedPlayerAggregation {
   return buildFocusedPlayerAggregationInternal({
     events,
@@ -1915,6 +1921,7 @@ export function buildFocusedPlayerAggregation({
     focusedPlayerId,
     windowStartMs,
     windowEndMs,
+    isDarkMode,
   })
 }
 
@@ -1928,6 +1935,7 @@ export function buildFocusedPlayerSummary({
   focusedPlayerId,
   windowStartMs,
   windowEndMs,
+  isDarkMode = true,
 }: {
   events: AugmentedEventsResponse['events']
   actors: ReportActorSummary[]
@@ -1938,6 +1946,7 @@ export function buildFocusedPlayerSummary({
   focusedPlayerId: number | null
   windowStartMs: number
   windowEndMs: number
+  isDarkMode?: boolean
 }): FocusedPlayerSummary | null {
   return buildFocusedPlayerAggregationInternal({
     events,
@@ -1948,6 +1957,7 @@ export function buildFocusedPlayerSummary({
     focusedPlayerId,
     windowStartMs,
     windowEndMs,
+    isDarkMode,
   }).summary
 }
 
@@ -1999,9 +2009,11 @@ function resolveRankingOwnerId(actor: ReportActorSummary): number | null {
 export function buildReportRankings({
   fights,
   actors,
+  isDarkMode = true,
 }: {
   fights: Array<{ fightId: number; events: AugmentedEventsResponse['events'] }>
   actors: ReportActorSummary[]
+  isDarkMode?: boolean
 }): ReportPlayerRanking[] {
   const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
   const ranking = new Map<number, ReportPlayerRanking>()
@@ -2034,7 +2046,7 @@ export function buildReportRankings({
 
       const existing = ranking.get(ownerId)
       const ownerClass = (owner.subType as PlayerClass | undefined) ?? null
-      const color = getClassColor(ownerClass)
+      const color = getClassColor(ownerClass, isDarkMode)
 
       if (existing) {
         existing.totalThreat += fightThreat

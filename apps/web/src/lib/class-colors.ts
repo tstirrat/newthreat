@@ -21,14 +21,24 @@ export const classColors: Record<PlayerClass, string> = {
   Evoker: '#33937F',
 }
 
+const lightModeClassColorOverrides: Partial<Record<PlayerClass, string>> = {
+  Priest: '#71717a',
+}
+
 const fallbackColor = '#94a3b8'
 
 /** Resolve a class color from a class name, with fallback for unknown classes. */
 export function getClassColor(
   playerClass: PlayerClass | null | undefined,
+  isDarkMode = true,
 ): string {
   if (!playerClass) {
     return fallbackColor
+  }
+
+  if (!isDarkMode) {
+    const override = lightModeClassColorOverrides[playerClass]
+    if (override) return override
   }
 
   return classColors[playerClass] ?? fallbackColor
@@ -38,15 +48,16 @@ export function getClassColor(
 export function getActorColor(
   actor: ReportActorSummary,
   actorsById: Map<number, ReportActorSummary>,
+  isDarkMode = true,
 ): string {
   if (actor.type === 'Player') {
-    return getClassColor(actor.subType as PlayerClass | undefined)
+    return getClassColor(actor.subType as PlayerClass | undefined, isDarkMode)
   }
 
   if (actor.type === 'Pet' && actor.petOwner) {
     const owner = actorsById.get(actor.petOwner)
     if (owner?.type === 'Player') {
-      return getClassColor(owner.subType as PlayerClass | undefined)
+      return getClassColor(owner.subType as PlayerClass | undefined, isDarkMode)
     }
   }
 
