@@ -16,6 +16,7 @@ import { useThreatChartSeriesData } from '../hooks/use-threat-chart-series-data'
 import { useThreatChartThemeColors } from '../hooks/use-threat-chart-theme-colors'
 import { useThreatChartVisiblePlayers } from '../hooks/use-threat-chart-visible-players'
 import { useThreatChartZoom } from '../hooks/use-threat-chart-zoom'
+import { resolveCssColor } from '../lib/class-colors'
 import { formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
 import { resolvePointSize } from '../lib/threat-chart-point-size'
@@ -372,7 +373,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       return {
         name: item.name,
         type: 'line',
-        color: item.color,
+        color: resolveCssColor(item.color),
         step: 'end',
         smooth: false,
         symbol: 'circle',
@@ -384,16 +385,16 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         triggerLineEvent: true,
         animation: false,
         itemStyle: {
-          color: item.color,
-          borderColor: item.color,
+          color: resolveCssColor(item.color),
+          borderColor: resolveCssColor(item.color),
         },
         emphasis: {
           disabled: isReplayMode,
           focus: 'series',
           scale: true,
           itemStyle: {
-            color: item.color,
-            borderColor: item.color,
+            color: resolveCssColor(item.color),
+            borderColor: resolveCssColor(item.color),
           },
           lineStyle: {
             width: 3,
