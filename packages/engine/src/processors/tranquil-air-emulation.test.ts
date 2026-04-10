@@ -811,6 +811,96 @@ describe('createTranquilAirEmulationProcessor', () => {
     ).toBe(80) // Tranquil Air re-applied
   })
 
+  it('does not remove Tranquil Air aura when a different shaman drops an air totem', () => {
+    const fight = createFight(17, 1602, [1, 10, 20])
+    const actorMap = new Map<number, Actor>([
+      [1, { id: 1, name: 'One', class: 'warrior' }],
+      [10, { id: 10, name: 'Shaman', class: 'shaman' }],
+      [20, { id: 20, name: 'OtherShaman', class: 'shaman' }],
+      [99, { id: 99, name: 'Boss', class: null }],
+    ])
+    const report = createReport({
+      actors: [
+        createPlayerActor(1, 'One', 'Warrior'),
+        createPlayerActor(10, 'Shaman', 'Shaman'),
+        createPlayerActor(20, 'OtherShaman', 'Shaman'),
+      ],
+      fight,
+    })
+    const result = createEngine().processEvents({
+      rawEvents: [
+        // Shaman 10 heals actor 1 to establish party membership
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 1,
+          abilityGameID: 25316,
+          x: 1000,
+          y: 0,
+        }),
+        createHealEvent({
+          timestamp: 1000,
+          sourceID: 10,
+          targetID: 10,
+          abilityGameID: 25316,
+          x: 100,
+          y: 0,
+        }),
+        // Shaman 10 drops Tranquil Air — buff applied to actor 1
+        createTotemCastEvent({
+          timestamp: 1099,
+          sourceID: 10,
+          x: 0,
+          y: 0,
+        }),
+        createSummonEvent({
+          timestamp: 1100,
+          sourceID: 10,
+          abilityGameID: TRANQUIL_AIR_TOTEM_SPELL_ID,
+        }),
+        createDamageEvent({
+          timestamp: 1200,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+        // Different shaman (20) drops Windfury Totem — must NOT remove shaman 10's buff
+        createSummonEvent({
+          timestamp: 1300,
+          sourceID: 20,
+          abilityGameID: 10614,
+        }),
+        createDamageEvent({
+          timestamp: 1400,
+          sourceID: 1,
+          targetID: 99,
+          amount: 100,
+        }),
+      ],
+      actorMap,
+      friendlyActorIds: new Set([1, 10, 20]),
+      enemies: [{ id: 99, name: 'Boss', instance: 0 }],
+      report,
+      fight,
+      inferThreatReduction: true,
+      config: createTranquilAirConfig(),
+    })
+
+    const damageEventsByTimestamp = new Map(
+      result.augmentedEvents
+        .filter((event) => event.type === 'damage' && event.sourceID === 1)
+        .map((event) => [event.timestamp, event]),
+    )
+
+    // Buff from shaman 10 should remain active after shaman 20 drops an air totem
+    expect(
+      damageEventsByTimestamp.get(1200)?.threat?.calculation.modifiedThreat,
+    ).toBe(80)
+    expect(
+      damageEventsByTimestamp.get(1400)?.threat?.calculation.modifiedThreat,
+    ).toBe(80)
+  })
+
   it('does not apply to players outside the shaman inferred membership group', () => {
     const fight = createFight(13, 1602, [1, 10, 30])
     const report = createReport({
