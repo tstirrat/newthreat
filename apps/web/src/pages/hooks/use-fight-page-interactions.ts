@@ -28,7 +28,10 @@ export interface UseFightPageInteractionsResult {
   handleBossDamageModeChange: (bossDamageMode: BossDamageMode) => void
   handleClearSelections: () => void
   handleInferThreatReductionChange: (inferThreatReduction: boolean) => void
-  handlePlayheadChange: (playheadMs: number | null) => void
+  handleReplayStateChange: (state: {
+    playheadMs?: number | null
+    replay?: boolean
+  }) => void
   handleSeriesClick: (playerId: number) => void
   handleShowFixateBandsChange: (showFixateBands: boolean) => void
   handleShowEnergizeEventsChange: (showEnergizeEvents: boolean) => void
@@ -49,7 +52,7 @@ export function useFightPageInteractions({
     UseFightQueryStateResult,
     | 'setFocusAndPlayers'
     | 'setFocusId'
-    | 'setPlayheadMs'
+    | 'setReplayState'
     | 'setPinnedPlayers'
     | 'setPlayers'
     | 'setTarget'
@@ -242,9 +245,9 @@ export function useFightPageInteractions({
     [updateUserSettings],
   )
 
-  const handlePlayheadChange = useCallback(
-    (playheadMs: number | null): void => {
-      queryState.setPlayheadMs(playheadMs)
+  const handleReplayStateChange = useCallback(
+    (state: { playheadMs?: number | null; replay?: boolean }): void => {
+      queryState.setReplayState(state)
     },
     [queryState],
   )
@@ -256,7 +259,7 @@ export function useFightPageInteractions({
     handleToggleFocusedPlayerIsolation,
     handleBossDamageModeChange,
     handleInferThreatReductionChange,
-    handlePlayheadChange,
+    handleReplayStateChange,
     handleSeriesClick,
     handleShowFixateBandsChange,
     handleShowEnergizeEventsChange,

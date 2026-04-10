@@ -168,7 +168,7 @@ export const FightPage: FC = () => {
     handleToggleFocusedPlayerIsolation,
     handleBossDamageModeChange,
     handleInferThreatReductionChange,
-    handlePlayheadChange,
+    handleReplayStateChange,
     handleSeriesClick,
     handleShowFixateBandsChange,
     handleShowEnergizeEventsChange,
@@ -205,7 +205,8 @@ export const FightPage: FC = () => {
 
   const replayMode = useReplayMode({
     committedPlayheadMs: queryState.state.playheadMs,
-    onCommit: handlePlayheadChange,
+    committedReplay: queryState.state.replay,
+    onCommitState: handleReplayStateChange,
     resetZoom: () => {
       registeredResetZoom?.()
     },
@@ -314,10 +315,7 @@ export const FightPage: FC = () => {
     },
     {
       description: 'Toggle replay mode',
-      metadata: {
-        order: 70,
-        showInFightOverlay: true,
-      },
+      metadata: { group: 'Replay', order: 70, showInFightOverlay: true },
       scopes: ['fight-page'],
     },
     [replayMode.toggleReplayMode],
@@ -326,19 +324,13 @@ export const FightPage: FC = () => {
   useHotkeys(
     'space',
     (event) => {
-      if (!replayMode.isReplayMode) {
-        return
-      }
-
+      if (!replayMode.isReplayMode) return
       event.preventDefault()
       replayMode.togglePlayPause()
     },
     {
       description: 'Play / Pause',
-      metadata: {
-        order: 71,
-        showInFightOverlay: true,
-      },
+      metadata: { group: 'Replay', order: 71, showInFightOverlay: true },
       scopes: ['fight-page'],
     },
     [replayMode.isReplayMode, replayMode.togglePlayPause],
@@ -347,15 +339,13 @@ export const FightPage: FC = () => {
   useHotkeys(
     'escape',
     (event) => {
-      if (!replayMode.isReplayMode) {
-        return
-      }
-
+      if (!replayMode.isReplayMode) return
       event.preventDefault()
       replayMode.exitReplayMode()
     },
     {
       description: 'Exit replay mode',
+      metadata: { group: 'Replay', order: 72, showInFightOverlay: true },
       scopes: ['fight-page'],
     },
     [replayMode.isReplayMode, replayMode.exitReplayMode],
@@ -364,15 +354,13 @@ export const FightPage: FC = () => {
   useHotkeys(
     'shift+.',
     (event) => {
-      if (!replayMode.isReplayMode) {
-        return
-      }
-
+      if (!replayMode.isReplayMode) return
       event.preventDefault()
       replayMode.increaseSpeed()
     },
     {
       description: 'Increase playback speed',
+      metadata: { group: 'Replay', order: 73, showInFightOverlay: true },
       scopes: ['fight-page'],
     },
     [replayMode.isReplayMode, replayMode.increaseSpeed],
@@ -381,15 +369,13 @@ export const FightPage: FC = () => {
   useHotkeys(
     'shift+,',
     (event) => {
-      if (!replayMode.isReplayMode) {
-        return
-      }
-
+      if (!replayMode.isReplayMode) return
       event.preventDefault()
       replayMode.decreaseSpeed()
     },
     {
       description: 'Decrease playback speed',
+      metadata: { group: 'Replay', order: 74, showInFightOverlay: true },
       scopes: ['fight-page'],
     },
     [replayMode.isReplayMode, replayMode.decreaseSpeed],
@@ -398,35 +384,31 @@ export const FightPage: FC = () => {
   useHotkeys(
     'right',
     (event) => {
-      if (replayMode.effectivePlayheadMs === null) {
-        return
-      }
-
+      if (!replayMode.isReplayMode) return
       event.preventDefault()
       replayMode.stepForward(event.shiftKey)
     },
     {
       description: 'Step playhead forward',
+      metadata: { group: 'Replay', order: 75, showInFightOverlay: true },
       scopes: ['fight-page'],
     },
-    [replayMode.effectivePlayheadMs, replayMode.stepForward],
+    [replayMode.isReplayMode, replayMode.stepForward],
   )
 
   useHotkeys(
     'left',
     (event) => {
-      if (replayMode.effectivePlayheadMs === null) {
-        return
-      }
-
+      if (!replayMode.isReplayMode) return
       event.preventDefault()
       replayMode.stepBackward(event.shiftKey)
     },
     {
       description: 'Step playhead backward',
+      metadata: { group: 'Replay', order: 76, showInFightOverlay: true },
       scopes: ['fight-page'],
     },
-    [replayMode.effectivePlayheadMs, replayMode.stepBackward],
+    [replayMode.isReplayMode, replayMode.stepBackward],
   )
 
   if (!reportId || Number.isNaN(fightId)) {

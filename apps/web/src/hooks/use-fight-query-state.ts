@@ -19,6 +19,11 @@ export interface UseFightQueryStateResult {
   setTarget: (target: FightTarget | null) => void
   setWindow: (startMs: number | null, endMs: number | null) => void
   setPlayheadMs: (playheadMs: number | null) => void
+  setReplay: (replay: boolean) => void
+  setReplayState: (state: {
+    playheadMs?: number | null
+    replay?: boolean
+  }) => void
 }
 
 /** Manage fight query params with parsing + normalization rules. */
@@ -123,6 +128,24 @@ export function useFightQueryState({
     [setSearchParams],
   )
 
+  const setReplay = useCallback(
+    (replay: boolean): void => {
+      setSearchParams((currentSearchParams) =>
+        applyFightQueryState(currentSearchParams, { replay }),
+      )
+    },
+    [setSearchParams],
+  )
+
+  const setReplayState = useCallback(
+    (replayState: { playheadMs?: number | null; replay?: boolean }): void => {
+      setSearchParams((currentSearchParams) =>
+        applyFightQueryState(currentSearchParams, replayState),
+      )
+    },
+    [setSearchParams],
+  )
+
   return useMemo(
     () => ({
       state,
@@ -133,6 +156,8 @@ export function useFightQueryState({
       setTarget,
       setWindow,
       setPlayheadMs,
+      setReplay,
+      setReplayState,
     }),
     [
       setFocusAndPlayers,
@@ -140,6 +165,8 @@ export function useFightQueryState({
       setPlayheadMs,
       setPinnedPlayers,
       setPlayers,
+      setReplay,
+      setReplayState,
       setTarget,
       setWindow,
       state,

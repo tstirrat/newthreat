@@ -9,11 +9,15 @@ import { Kbd, KbdGroup } from './ui/kbd'
 
 interface FightPageKeyboardShortcut {
   description: string
+  group: string
   hotkey: string
   order: number
 }
 
+const DEFAULT_GROUP = 'Chart'
+
 interface ShortcutMetadata {
+  group?: string
   order?: number
   showInFightOverlay?: boolean
 }
@@ -131,6 +135,7 @@ export function FightPageKeyboardShortcutsOverlay({
 
         const shortcut = {
           description: hotkey.description,
+          group: metadata.group ?? DEFAULT_GROUP,
           hotkey: hotkey.hotkey,
           order: metadata.order ?? Number.MAX_SAFE_INTEGER,
         }
@@ -144,17 +149,33 @@ export function FightPageKeyboardShortcutsOverlay({
       new Map<string, FightPageKeyboardShortcut>(),
     )
 
-    return [...shortcutMap.values()].sort((left, right) => {
-      if (left.order !== right.order) {
-        return left.order - right.order
+    const groupMap = new Map<string, FightPageKeyboardShortcut[]>()
+    for (const shortcut of shortcutMap.values()) {
+      const existing = groupMap.get(shortcut.group)
+      if (existing) {
+        existing.push(shortcut)
+      } else {
+        groupMap.set(shortcut.group, [shortcut])
       }
+    }
 
-      if (left.description !== right.description) {
-        return left.description.localeCompare(right.description)
-      }
+    const sortItems = (items: FightPageKeyboardShortcut[]) =>
+      items.sort((left, right) => {
+        if (left.order !== right.order) {
+          return left.order - right.order
+        }
 
-      return left.hotkey.localeCompare(right.hotkey)
-    })
+        if (left.description !== right.description) {
+          return left.description.localeCompare(right.description)
+        }
+
+        return left.hotkey.localeCompare(right.hotkey)
+      })
+
+    return [...groupMap.entries()].map(([name, items]) => ({
+      name,
+      items: sortItems(items),
+    }))
   }, [hotkeys])
 
   if (!isOpen) {
@@ -183,17 +204,26 @@ export function FightPageKeyboardShortcutsOverlay({
             <Kbd>Esc</Kbd>
           </KbdGroup>
         </div>
-        <ul className="space-y-2 text-sm">
-          {shortcuts.map((shortcut) => (
-            <li
-              className="flex items-center justify-between gap-3"
-              key={`${shortcut.description}-${shortcut.hotkey}`}
-            >
-              <span>{shortcut.description}</span>
-              {renderHotkey(shortcut.hotkey)}
-            </li>
+        <div className="space-y-3 text-sm">
+          {shortcuts.map((group, groupIndex) => (
+            <div key={`${group.name}-${groupIndex}`}>
+              <h3 className="mb-1.5 text-xs font-medium text-muted-foreground">
+                {group.name}
+              </h3>
+              <ul className="space-y-2">
+                {group.items.map((shortcut) => (
+                  <li
+                    className="flex items-center justify-between gap-3"
+                    key={`${shortcut.description}-${shortcut.hotkey}`}
+                  >
+                    <span>{shortcut.description}</span>
+                    {renderHotkey(shortcut.hotkey)}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </div>
   )

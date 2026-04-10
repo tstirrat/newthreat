@@ -74,6 +74,7 @@ describe('search-params', () => {
       startMs: 100,
       endMs: 200,
       playheadMs: null,
+      replay: false,
     })
   })
 
@@ -100,6 +101,7 @@ describe('search-params', () => {
       startMs: null,
       endMs: null,
       playheadMs: null,
+      replay: false,
     })
   })
 
@@ -211,6 +213,7 @@ describe('search-params', () => {
       startMs: null,
       endMs: null,
       playheadMs: null,
+      replay: false,
     })
   })
 })

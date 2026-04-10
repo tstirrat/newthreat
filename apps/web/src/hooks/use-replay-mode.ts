@@ -28,16 +28,21 @@ export interface UseReplayModeResult {
 /** Manage replay mode lifecycle, playhead position, and playback animation. */
 export function useReplayMode({
   committedPlayheadMs,
-  onCommit,
+  committedReplay,
+  onCommitState,
   resetZoom,
   maxMs,
 }: {
   committedPlayheadMs: number | null
-  onCommit: (playheadMs: number | null) => void
+  committedReplay: boolean
+  onCommitState: (state: {
+    playheadMs?: number | null
+    replay?: boolean
+  }) => void
   resetZoom: () => void
   maxMs: number
 }): UseReplayModeResult {
-  const [isReplayMode, setIsReplayMode] = useState(committedPlayheadMs !== null)
+  const [isReplayMode, setIsReplayMode] = useState(committedReplay)
   const [localPlayheadMs, setLocalPlayheadMs] = useState<number | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [speedIndex, setSpeedIndex] = useState(DEFAULT_SPEED_INDEX)
@@ -68,30 +73,25 @@ export function useReplayMode({
     lastFrameTimeRef.current = null
   }, [])
 
-  const commitPlayhead = useCallback(
-    (ms: number | null): void => {
-      onCommit(ms)
-    },
-    [onCommit],
-  )
-
   const enterReplayMode = useCallback((): void => {
     resetZoom()
     setIsReplayMode(true)
+    onCommitState({ replay: true })
     const startMs = committedPlayheadMs ?? 0
     setLocalPlayheadMs(startMs)
     playheadRef.current = startMs
-  }, [committedPlayheadMs, resetZoom])
+  }, [committedPlayheadMs, onCommitState, resetZoom])
 
   const exitReplayMode = useCallback((): void => {
     stopAnimation()
     setIsPlaying(false)
     setIsReplayMode(false)
-    if (localPlayheadMs !== null) {
-      commitPlayhead(localPlayheadMs)
-    }
+    onCommitState({
+      replay: false,
+      playheadMs: localPlayheadMs,
+    })
     setLocalPlayheadMs(null)
-  }, [commitPlayhead, localPlayheadMs, stopAnimation])
+  }, [localPlayheadMs, onCommitState, stopAnimation])
 
   const toggleReplayMode = useCallback((): void => {
     if (isReplayMode) {
@@ -106,8 +106,8 @@ export function useReplayMode({
     setIsPlaying(false)
     setIsReplayMode(false)
     setLocalPlayheadMs(null)
-    commitPlayhead(null)
-  }, [commitPlayhead, stopAnimation])
+    onCommitState({ replay: false, playheadMs: null })
+  }, [onCommitState, stopAnimation])
 
   const setPlayheadMs = useCallback((ms: number): void => {
     const clamped = Math.max(0, Math.min(ms, maxMsRef.current))
@@ -162,9 +162,9 @@ export function useReplayMode({
     stopAnimation()
     setIsPlaying(false)
     if (localPlayheadMs !== null) {
-      commitPlayhead(localPlayheadMs)
+      onCommitState({ playheadMs: localPlayheadMs })
     }
-  }, [commitPlayhead, localPlayheadMs, stopAnimation])
+  }, [localPlayheadMs, onCommitState, stopAnimation])
 
   const togglePlayPause = useCallback((): void => {
     if (isPlaying) {

@@ -12,6 +12,49 @@ import { ScrollArea } from './ui/scroll-area'
 
 const DEFAULT_VISIBLE_COUNT = 10
 
+type ThreatMeterBarProps = {
+  actorName: string
+  color: string
+  threat: number
+  widthPercent: number
+  isFocused: boolean
+  isFiltered: boolean
+}
+
+/** Single horizontal bar in the threat meter ranking. */
+const ThreatMeterBar: FC<ThreatMeterBarProps> = ({
+  actorName,
+  color,
+  threat,
+  widthPercent,
+  isFocused,
+  isFiltered,
+}) => (
+  <li
+    className={`relative flex h-5 items-center rounded-sm ${isFiltered ? 'opacity-40' : ''}`}
+    style={isFocused ? { boxShadow: 'inset 0 0 0 1px #facc15' } : undefined}
+  >
+    <div
+      className="absolute inset-y-0 left-0 rounded-sm"
+      style={{
+        width: `${widthPercent}%`,
+        backgroundColor: color,
+        opacity: 0.35,
+      }}
+    />
+    <span
+      className="relative z-10 truncate pl-1 text-[10px] font-medium leading-none"
+      style={{ color }}
+      title={actorName}
+    >
+      {actorName}
+    </span>
+    <span className="relative z-10 ml-auto shrink-0 pr-1 text-right text-[10px] text-muted-foreground tabular-nums leading-none">
+      {formatNumber(threat)}
+    </span>
+  </li>
+)
+
 export type ThreatMeterProps = {
   entries: ThreatAtTimeEntry[]
   focusedActorId: number | null
@@ -66,31 +109,15 @@ export const ThreatMeter: FC<ThreatMeterProps> = ({
                 maxThreat > 0 ? (entry.threat / maxThreat) * 100 : 0
 
               return (
-                <li
+                <ThreatMeterBar
                   key={entry.actorId}
-                  className={`flex items-center gap-1.5 rounded px-1 py-0.5 ${isFiltered ? 'opacity-40' : ''}`}
-                >
-                  <span
-                    className="w-16 shrink-0 truncate text-[10px] font-medium"
-                    style={{ color: entry.color }}
-                    title={entry.actorName}
-                  >
-                    {entry.actorName}
-                  </span>
-                  <div className="relative flex-1 h-3.5">
-                    <div
-                      className={`absolute inset-y-0 left-0 rounded-sm ${isFocused ? 'ring-2 ring-yellow-400' : ''}`}
-                      style={{
-                        width: `${widthPercent}%`,
-                        backgroundColor: entry.color,
-                        opacity: 0.7,
-                      }}
-                    />
-                  </div>
-                  <span className="w-12 shrink-0 text-right text-[10px] text-muted-foreground tabular-nums">
-                    {formatNumber(entry.threat)}
-                  </span>
-                </li>
+                  actorName={entry.actorName}
+                  color={entry.color}
+                  threat={entry.threat}
+                  widthPercent={widthPercent}
+                  isFocused={isFocused}
+                  isFiltered={isFiltered}
+                />
               )
             })}
           </ul>

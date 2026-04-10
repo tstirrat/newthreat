@@ -1,0 +1,46 @@
+/**
+ * Page object for replay mode interactions on the fight page.
+ */
+import { type Locator, type Page } from '@playwright/test'
+
+export class ReplayModeObject {
+  constructor(private readonly page: Page) {}
+
+  replayButton(): Locator {
+    return this.page.getByRole('button', { name: 'Replay', exact: true })
+  }
+
+  resumeReplayButton(): Locator {
+    return this.page.getByRole('button', {
+      name: 'Resume Replay',
+      exact: true,
+    })
+  }
+
+  exitReplayButton(): Locator {
+    return this.page.getByRole('button', {
+      name: 'Exit Replay',
+      exact: true,
+    })
+  }
+
+  playPauseButton(): Locator {
+    return this.page.getByRole('button', { name: /^(Play|Pause)$/ }).first()
+  }
+
+  threatMeter(): Locator {
+    return this.page.getByTestId('threat-meter')
+  }
+
+  async enterWithKey(): Promise<void> {
+    await this.page.keyboard.press('r')
+  }
+
+  async exitWithKey(): Promise<void> {
+    await this.page.keyboard.press('r')
+  }
+
+  async exitWithEscape(): Promise<void> {
+    await this.page.keyboard.press('Escape')
+  }
+}
