@@ -3,10 +3,7 @@
  */
 import type { Abilities } from '@wow-threat/shared'
 
-import {
-  Spells as EraSpells,
-  naxxAbilities as eraNaxxAbilities,
-} from '../../era/raids/naxx'
+import { Spells as EraSpells } from '../../era/raids/naxx'
 import { createHurtfulStrikeFormula } from './hurtful-strike'
 
 const Spells = {
@@ -15,6 +12,5 @@ const Spells = {
 } as const
 
 export const naxxAbilities: Abilities = {
-  ...eraNaxxAbilities,
   [Spells.HatefulStrike]: createHurtfulStrikeFormula(1000, 2000),
 }

@@ -1,18 +1,9 @@
 /**
  * Zul'Gurub Abilities and Encounter Hooks - Season of Discovery
  */
-import type {
-  EncounterId,
-  EncounterThreatConfig,
-  SpellId,
-  ThreatFormula,
-} from '@wow-threat/shared'
+import type { SpellId, ThreatFormula } from '@wow-threat/shared'
 
-import {
-  Spells as EraSpells,
-  zgAbilities as eraZgAbilities,
-  zgEncounters as eraZgEncounters,
-} from '../../era/raids/zg'
+import { Spells as EraSpells } from '../../era/raids/zg'
 import { modifyThreat } from '../../shared/formulas'
 
 const Spells = {
@@ -22,7 +13,6 @@ const Spells = {
 } as const
 
 export const zgAbilities: Record<SpellId, ThreatFormula> = {
-  ...eraZgAbilities,
   [Spells.MandokirCharge]: modifyThreat({
     modifier: 0,
     target: 'all',
@@ -32,8 +22,4 @@ export const zgAbilities: Record<SpellId, ThreatFormula> = {
     modifier: 0,
     eventTypes: ['applydebuff'],
   }),
-}
-
-export const zgEncounters: Record<EncounterId, EncounterThreatConfig> = {
-  ...eraZgEncounters,
 }

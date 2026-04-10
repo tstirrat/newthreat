@@ -7,7 +7,7 @@ import {
   Spells as EraSpells,
   hunterConfig as eraHunterConfig,
 } from '../../era/classes/hunter'
-import { createMisdirectionInterceptor } from '../../tbc/classes/hunter'
+import { createMisdirectionInterceptor } from '../../shared/misdirection'
 
 export const Spells = {
   ...EraSpells,

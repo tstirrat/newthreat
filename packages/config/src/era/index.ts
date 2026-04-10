@@ -29,6 +29,7 @@ import { warlockConfig } from './classes/warlock'
 import { warriorConfig } from './classes/warrior'
 import { baseThreat } from './general'
 import { miscAbilities } from './misc'
+import { aq20AggroLossBuffs } from './raids/aq20'
 import { aq40AggroLossBuffs, aq40AuraModifiers } from './raids/aq40'
 import { bwlAbilities } from './raids/bwl'
 import { bwlAggroLossBuffs } from './raids/bwl'
@@ -52,6 +53,7 @@ const aggroLossBuffs = new Set<SpellId>([
   ...mcAggroLossBuffs,
   ...zgAggroLossBuffs,
   ...aq40AggroLossBuffs,
+  ...aq20AggroLossBuffs,
 ])
 
 // Invulnerability buffs
@@ -68,7 +70,7 @@ const globalAuraModifiers = {
 }
 
 export const eraConfig: ThreatConfig = {
-  version: 16,
+  version: 17,
   displayName: 'Vanilla (Era)',
   wowhead: {
     domain: 'classic',
