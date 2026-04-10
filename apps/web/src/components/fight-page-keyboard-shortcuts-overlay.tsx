@@ -70,6 +70,14 @@ function formatHotkeyPart(part: string): string {
     return '/'
   }
 
+  if (normalized === 'period') {
+    return '>'
+  }
+
+  if (normalized === 'comma') {
+    return '<'
+  }
+
   if (normalized.length === 1) {
     return normalized.toUpperCase()
   }

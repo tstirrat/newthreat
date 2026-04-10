@@ -352,7 +352,7 @@ export const FightPage: FC = () => {
   )
 
   useHotkeys(
-    'shift+.',
+    'shift+period',
     (event) => {
       if (!replayMode.isReplayMode) return
       event.preventDefault()
@@ -367,7 +367,7 @@ export const FightPage: FC = () => {
   )
 
   useHotkeys(
-    'shift+,',
+    'shift+comma',
     (event) => {
       if (!replayMode.isReplayMode) return
       event.preventDefault()
