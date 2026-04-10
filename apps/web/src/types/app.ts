@@ -84,6 +84,8 @@ export interface FightQueryState {
   targetInstance: number | null
   startMs: number | null
   endMs: number | null
+  playheadMs: number | null
+  replay: boolean
 }
 
 export interface FightTarget {

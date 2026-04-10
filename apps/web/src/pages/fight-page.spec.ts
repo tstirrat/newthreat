@@ -570,4 +570,92 @@ test.describe('fight page', () => {
     await expect(fightPage.chart.resetZoomButton()).toBeEnabled()
     await expect(page.getByTestId('fight-chart-skeleton')).toHaveCount(0)
   })
+
+  test('enters and exits replay mode via R key', async ({ page }) => {
+    const fightPage = new FightPageObject(page)
+
+    await fightPage.goto(svgFightUrl)
+    await expect.poll(() => fightPage.chart.renderer()).toBe('svg')
+
+    // Replay button visible before entering
+    await expect(fightPage.replay.replayButton()).toBeVisible()
+    await expect(fightPage.replay.threatMeter()).toHaveCount(0)
+
+    // Enter replay mode
+    await fightPage.replay.enterWithKey()
+    await expect(fightPage.replay.threatMeter()).toBeVisible()
+    await expect(fightPage.replay.exitReplayButton()).toBeVisible()
+    await expect(fightPage.replay.replayButton()).toHaveCount(0)
+    await expectSearchParam(page, 'replay', '1')
+
+    // Exit replay mode with R
+    await fightPage.replay.exitWithKey()
+    await expect(fightPage.replay.threatMeter()).toHaveCount(0)
+    await expect(fightPage.chart.legendRoot()).toBeVisible()
+    await expectSearchParam(page, 'replay', '0')
+    // Playhead persists in URL after exit
+    await expectSearchParam(page, 'playheadMs', '0')
+  })
+
+  test('exits replay mode via Escape key', async ({ page }) => {
+    const fightPage = new FightPageObject(page)
+
+    await fightPage.goto(svgFightUrl)
+    await expect.poll(() => fightPage.chart.renderer()).toBe('svg')
+
+    await fightPage.replay.enterWithKey()
+    await expect(fightPage.replay.threatMeter()).toBeVisible()
+
+    await fightPage.replay.exitWithEscape()
+    await expect(fightPage.replay.threatMeter()).toHaveCount(0)
+    await expect(fightPage.chart.legendRoot()).toBeVisible()
+    await expectSearchParam(page, 'replay', '0')
+  })
+
+  test('deep-links into replay mode with playheadMs and replay params', async ({
+    page,
+  }) => {
+    const fightPage = new FightPageObject(page)
+
+    await fightPage.goto(`${svgFightUrl}&playheadMs=5000&replay=1`)
+    await expect.poll(() => fightPage.chart.renderer()).toBe('svg')
+
+    await expect(fightPage.replay.threatMeter()).toBeVisible()
+    await expect(fightPage.replay.exitReplayButton()).toBeVisible()
+  })
+
+  test('shows replay shortcuts in grouped section of shortcuts overlay', async ({
+    page,
+  }) => {
+    const fightPage = new FightPageObject(page)
+
+    await fightPage.goto(svgFightUrl)
+    await expect.poll(() => fightPage.chart.renderer()).toBe('svg')
+
+    await fightPage.shortcuts.open()
+    await expect(fightPage.shortcuts.dialog()).toBeVisible()
+
+    // Verify group headings
+    await expect(fightPage.shortcuts.groupHeading('Chart')).toBeVisible()
+    await expect(fightPage.shortcuts.groupHeading('Replay')).toBeVisible()
+
+    // Verify replay shortcuts
+    await expect(
+      fightPage.shortcuts.shortcutListItem('Toggle replay mode'),
+    ).toBeVisible()
+    await expect(
+      fightPage.shortcuts.shortcutKey('Toggle replay mode', 'R'),
+    ).toBeVisible()
+    await expect(
+      fightPage.shortcuts.shortcutListItem('Play / Pause'),
+    ).toBeVisible()
+    await expect(
+      fightPage.shortcuts.shortcutListItem('Increase playback speed'),
+    ).toBeVisible()
+    await expect(
+      fightPage.shortcuts.shortcutListItem('Step playhead forward'),
+    ).toBeVisible()
+
+    await fightPage.shortcuts.closeWithEscape()
+  })
 })

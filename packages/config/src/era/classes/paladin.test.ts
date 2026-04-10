@@ -271,7 +271,29 @@ describe('Paladin Config', () => {
 
         expect(result.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
+          bonus: 60,
+        })
+        expect(result.value).toBe(60)
+        expect(result.splitAmongEnemies).toBe(true)
+      })
+    })
+
+    describe('Greater Blessing of Kings', () => {
+      it('is registered under spell ID 25898', () => {
+        expect(Spells.GreaterBlessingOfKings).toBe(25898)
+      })
+
+      it('returns split threat on buff application', () => {
+        const formula = paladinConfig.abilities[Spells.GreaterBlessingOfKings]
+        expect(formula).toBeDefined()
+
+        const ctx = createMockContext({
+          event: createApplyBuffEvent(),
+        })
+        const result = assertDefined(formula!(ctx))
+
+        expect(result.spellModifier).toEqual({
+          type: 'spell',
           bonus: 60,
         })
         expect(result.value).toBe(60)

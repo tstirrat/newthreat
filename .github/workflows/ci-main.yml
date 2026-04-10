@@ -37,7 +37,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Smoke test BE
-        if: ${{ needs.detect_changes.outputs.backend == 'true' }}
         run: |
           for i in 1 2 3 4 5; do
             STATUS=$(curl -s -o /dev/null -w '%{http_code}' \

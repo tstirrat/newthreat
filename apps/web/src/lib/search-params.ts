@@ -125,6 +125,16 @@ export function resolveFightQueryState({
     maxDurationMs,
   )
 
+  const parsedPlayheadMs = parseInteger(searchParams.get('playheadMs'))
+  const playheadMs =
+    parsedPlayheadMs !== null &&
+    parsedPlayheadMs >= 0 &&
+    parsedPlayheadMs <= maxDurationMs
+      ? parsedPlayheadMs
+      : null
+
+  const replay = searchParams.get('replay') === '1'
+
   return {
     players,
     pinnedPlayers,
@@ -133,6 +143,8 @@ export function resolveFightQueryState({
     targetInstance: parsedTargetSelection?.targetInstance ?? null,
     startMs,
     endMs,
+    playheadMs,
+    replay,
   }
 }
 
@@ -201,6 +213,22 @@ export function applyFightQueryState(
     } else {
       next.set('startMs', String(state.startMs))
       next.set('endMs', String(state.endMs))
+    }
+  }
+
+  if (state.playheadMs !== undefined) {
+    if (state.playheadMs === null) {
+      next.delete('playheadMs')
+    } else {
+      next.set('playheadMs', String(state.playheadMs))
+    }
+  }
+
+  if (state.replay !== undefined) {
+    if (state.replay) {
+      next.set('replay', '1')
+    } else {
+      next.set('replay', '0')
     }
   }
 
