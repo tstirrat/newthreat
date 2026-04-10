@@ -84,6 +84,7 @@ function resolveFocusedPlayerId({
 }
 
 export interface UseFightPageDerivedStateResult {
+  allSeries: ThreatSeries[]
   durationMs: number
   focusedPlayerRows: ReturnType<typeof buildFocusedPlayerAggregation>['rows']
   focusedPlayerSummary: ReturnType<
@@ -305,6 +306,7 @@ export function useFightPageDerivedState({
   const wowheadLinksConfig = threatConfig?.wowhead ?? defaultWowheadLinksConfig
 
   return {
+    allSeries,
     durationMs,
     focusedPlayerRows: focusedPlayerAggregation.rows,
     focusedPlayerSummary: focusedPlayerAggregation.summary,

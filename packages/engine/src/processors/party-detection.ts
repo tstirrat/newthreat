@@ -131,13 +131,15 @@ const PARTY_SIGNAL_DEFINITIONS: readonly PartySignalDefinition[] = [
     eventTypes: new Set(['applybuff', 'refreshbuff', 'applybuffstack']),
     matchName: (normalizedName) => normalizedName.includes('unleashed rage'),
   },
-  {
-    fallbackSpellIds: [2825, 32182],
-    eventTypes: new Set(['applybuff', 'refreshbuff', 'applybuffstack']),
-    matchName: (normalizedName) =>
-      normalizedName.includes('bloodlust') ||
-      normalizedName.includes('heroism'),
-  },
+  // removed because its common that shamans are swapped into a dps group for
+  // bloodlust and then swapped back out.
+  // {
+  //   fallbackSpellIds: [2825, 32182],
+  //   eventTypes: new Set(['applybuff', 'refreshbuff', 'applybuffstack']),
+  //   matchName: (normalizedName) =>
+  //     normalizedName.includes('bloodlust') ||
+  //     normalizedName.includes('heroism'),
+  // },
   {
     fallbackSpellIds: [27045],
     eventTypes: new Set(['applybuff', 'refreshbuff', 'applybuffstack']),

@@ -4,3 +4,4 @@
 export const bossMeleeMarkerColor = '#ef4444'
 export const deathMarkerColor = '#dc2626'
 export const tranquilAirTotemMarkerColor = '#3b82f6'
+export const playheadColor = '#facc15'
