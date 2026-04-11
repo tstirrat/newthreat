@@ -63,35 +63,16 @@ function updateButton(baseUrl) {
   link.href = url
   link.target = '_blank'
   link.rel = 'noopener noreferrer'
-  link.style.cssText = 'position: relative; overflow: visible;'
-
   const icon = document.createElement('span')
   icon.className = 'zmdi zmdi-chart'
 
   const label = document.createElement('span')
   label.className = 'big-tab-text'
-  label.innerHTML = '<br>Threat'
-
-  const stamp = document.createElement('span')
-  stamp.textContent = 'WoW Threat'
-  stamp.style.cssText = [
-    'position: absolute',
-    'top: 6px',
-    'left: 50%',
-    'font-size: 7px',
-    'font-weight: 700',
-    'letter-spacing: 0.03em',
-    'color: #cc2200',
-    'transform: translateX(-50%) rotate(10deg)',
-    'pointer-events: none',
-    'line-height: 1',
-    'white-space: nowrap',
-    'text-shadow: 0 0 4px rgba(0,0,0,0.8)',
-  ].join('; ')
+  label.style.color = '#cc2200'
+  label.innerHTML = '<br>WoW Threat'
 
   link.appendChild(icon)
   link.appendChild(label)
-  link.appendChild(stamp)
 
   tabContainer.appendChild(link)
 }
