@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "WoW Threat",
+  "name": "WoW Threat Companion",
   "version": "1.0.0",
   "description": "Open the current WCL fight in wow-threat.web.app",
   "permissions": ["storage"],
@@ -13,7 +13,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "WoW Threat"
+    "default_title": "WoW Threat Companion"
   },
   "content_scripts": [
     {

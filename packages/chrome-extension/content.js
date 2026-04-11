@@ -64,6 +64,19 @@ function updateButton(baseUrl) {
   link.target = '_blank'
   link.rel = 'noopener noreferrer'
 
+  // Ascending bar chart icon — matches the threat-meter concept and WCL's tab icon style
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  icon.setAttribute('viewBox', '0 0 24 24')
+  icon.setAttribute('width', '20')
+  icon.setAttribute('height', '20')
+  icon.setAttribute('fill', 'currentColor')
+  icon.setAttribute('aria-hidden', 'true')
+  icon.innerHTML =
+    '<rect x="2" y="14" width="5" height="8" rx="1"/>' +
+    '<rect x="9.5" y="8" width="5" height="14" rx="1"/>' +
+    '<rect x="17" y="2" width="5" height="20" rx="1"/>'
+  link.appendChild(icon)
+
   const label = document.createElement('span')
   label.textContent = 'Threat'
   link.appendChild(label)
