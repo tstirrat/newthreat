@@ -76,14 +76,13 @@ function updateButton(baseUrl) {
   stamp.textContent = 'WoW Threat'
   stamp.style.cssText = [
     'position: absolute',
-    'top: 2px',
-    'right: -4px',
+    'top: 6px',
+    'left: 50%',
     'font-size: 7px',
     'font-weight: 700',
     'letter-spacing: 0.03em',
     'color: #cc2200',
-    'transform: rotate(12deg)',
-    'transform-origin: top right',
+    'transform: translateX(-50%) rotate(10deg)',
     'pointer-events: none',
     'line-height: 1',
     'white-space: nowrap',
