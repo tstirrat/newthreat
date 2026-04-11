@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WoW Threat Companion</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        margin: 0;
+        padding: 16px;
+        width: 220px;
+        background: #1a1a1a;
+        color: #e8e8e8;
+      }
+
+      h1 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0 0 12px;
+        color: #f0c040;
+      }
+
+      .mode-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .mode-label {
+        font-size: 13px;
+        color: #ccc;
+      }
+
+      .mode-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e8e8e8;
+      }
+
+      button {
+        margin-top: 14px;
+        width: 100%;
+        padding: 7px 0;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        background: #3a3a3a;
+        color: #e8e8e8;
+        transition: background 0.15s;
+      }
+
+      button:hover {
+        background: #4a4a4a;
+      }
+
+      button.active-local {
+        background: #1a4a2a;
+        color: #6ddb8a;
+      }
+
+      button.active-local:hover {
+        background: #1f5a32;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WoW Threat Companion</h1>
+    <div class="mode-row">
+      <span class="mode-label">Mode:</span>
+      <span class="mode-value" id="mode-display"></span>
+    </div>
+    <button id="toggle-btn"></button>
+    <script src="popup.js"></script>
+  </body>
+</html>
