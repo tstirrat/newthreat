@@ -69,7 +69,7 @@ function updateButton(baseUrl) {
 
   const label = document.createElement('span')
   label.className = 'big-tab-text'
-  label.textContent = 'Threat'
+  label.innerHTML = '<br>Threat'
 
   link.appendChild(icon)
   link.appendChild(label)
@@ -92,7 +92,8 @@ function waitForTabContainer(baseUrl) {
     }
   })
 
-  observer.observe(document.body, { childList: true, subtree: true })
+  // At document_start, document.body may not exist yet — observe from the root
+  observer.observe(document.documentElement, { childList: true, subtree: true })
 
   // Stop observing after 10 seconds to avoid leaking
   setTimeout(() => observer.disconnect(), 10_000)
