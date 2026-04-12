@@ -7,6 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
+  e2eFreshExampleReportId,
   e2eReportId,
   e2eReportResponse,
   e2eValidFreshReportUrl,
@@ -109,7 +110,7 @@ test.describe('landing page', () => {
     await maybeCaptureScreenshot(page)
     await recentReports.exampleReportLink('Fresh Example').click()
 
-    await expectPathname(page, `/report/${e2eReportId}`)
+    await expectPathname(page, `/report/${e2eFreshExampleReportId}`)
   })
 
   test('report history can be revisited from recent reports', async ({
