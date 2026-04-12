@@ -3,14 +3,7 @@
  */
 import { ExternalLink } from 'lucide-react'
 import { usePostHog } from 'posthog-js/react'
-import {
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react'
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook'
 import { useLocation, useParams } from 'react-router-dom'
 
@@ -37,6 +30,7 @@ import { useReportRouteContext } from '../routes/report-layout-context'
 import type { BossDamageMode } from '../types/app'
 import { useFightPageDerivedState } from './hooks/use-fight-page-derived-state'
 import { useFightPageInteractions } from './hooks/use-fight-page-interactions'
+import { useFightPageTracking } from './hooks/use-fight-page-tracking'
 
 const FightPageLoadingSkeleton: FC = () => {
   return (
@@ -109,6 +103,7 @@ export const FightPage: FC = () => {
   const params = useParams<{ fightId: string }>()
   const location = useLocation()
   const { reportData, reportHost, reportId } = useReportRouteContext()
+  const posthog = usePostHog()
   const fightId = Number.parseInt(params.fightId ?? '', 10)
   const searchParams = new URLSearchParams(location.search)
   const chartRenderer =
@@ -181,6 +176,9 @@ export const FightPage: FC = () => {
     queryState,
     updateUserSettings,
     validPlayerIds,
+    fightId,
+    reportId,
+    posthog,
   })
   const bossDamageMode: BossDamageMode = userSettings.showBossMelee
     ? userSettings.showAllBossDamageEvents
@@ -188,10 +186,7 @@ export const FightPage: FC = () => {
       : 'melee'
     : 'off'
   const { disableScope, enableScope } = useHotkeysContext()
-  const posthog = usePostHog()
   const [isChartReady, setIsChartReady] = useState(false)
-  const trackedFightSelectedRef = useRef<number | null>(null)
-  const trackedChartViewedRef = useRef<number | null>(null)
   const [registeredResetZoom, setRegisteredResetZoom] = useState<
     (() => void) | null
   >(null)
@@ -211,6 +206,7 @@ export const FightPage: FC = () => {
       registeredResetZoom?.()
     },
     maxMs: fightDurationMs,
+    posthog,
   })
 
   const threatAtPlayhead =
@@ -220,6 +216,16 @@ export const FightPage: FC = () => {
 
   const [isThreatMeterExpanded, setIsThreatMeterExpanded] = useState(false)
 
+  useFightPageTracking({
+    fightId,
+    reportId,
+    fightData,
+    eventsQueryError: eventsQuery.error,
+    isChartReady,
+    visibleSeriesCount: visibleSeries.length,
+    posthog,
+  })
+
   useEffect(() => {
     enableScope('fight-page')
 
@@ -227,28 +233,6 @@ export const FightPage: FC = () => {
       disableScope('fight-page')
     }
   }, [disableScope, enableScope])
-
-  useEffect(() => {
-    if (!fightData || !posthog) return
-    if (trackedFightSelectedRef.current === fightId) return
-    trackedFightSelectedRef.current = fightId
-    posthog.capture('fight_selected', {
-      report_id: reportId,
-      fight_id: fightId,
-      boss_name: fightData.name,
-    })
-  }, [fightData, fightId, posthog, reportId])
-
-  useEffect(() => {
-    if (!isChartReady || visibleSeries.length === 0 || !posthog) return
-    if (trackedChartViewedRef.current === fightId) return
-    trackedChartViewedRef.current = fightId
-    posthog.capture('threat_chart_viewed', {
-      report_id: reportId,
-      fight_id: fightId,
-      player_count: visibleSeries.length,
-    })
-  }, [isChartReady, fightId, posthog, reportId, visibleSeries.length])
 
   useHotkeys(
     'b',
@@ -476,6 +460,8 @@ export const FightPage: FC = () => {
   const chartProps: ThreatChartProps = {
     renderer: chartRenderer,
     series: visibleSeries,
+    fightId,
+    reportId,
     zoomToggleContextKey: `${reportId}:${fightId}:${selectedTarget?.id ?? 'none'}:${selectedTarget?.instance ?? 'none'}`,
     focusedActorId: queryState.state.focusId,
     selectedPlayerIds: queryState.state.players,
