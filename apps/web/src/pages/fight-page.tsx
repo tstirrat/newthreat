@@ -30,7 +30,7 @@ import { useReportRouteContext } from '../routes/report-layout-context'
 import type { BossDamageMode } from '../types/app'
 import { useFightPageDerivedState } from './hooks/use-fight-page-derived-state'
 import { useFightPageInteractions } from './hooks/use-fight-page-interactions'
-import { useFightPageTracking } from './hooks/use-fight-page-tracking'
+import { useFightPageLoadTracking } from './hooks/use-fight-page-load-tracking'
 
 const FightPageLoadingSkeleton: FC = () => {
   return (
@@ -216,7 +216,7 @@ export const FightPage: FC = () => {
 
   const [isThreatMeterExpanded, setIsThreatMeterExpanded] = useState(false)
 
-  useFightPageTracking({
+  useFightPageLoadTracking({
     fightId,
     reportId,
     fightData,

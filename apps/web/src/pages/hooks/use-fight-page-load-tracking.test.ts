@@ -5,15 +5,15 @@ import { renderHook } from '@testing-library/react'
 import type { PostHog } from 'posthog-js'
 import { describe, expect, it, vi } from 'vitest'
 
-import { useFightPageTracking } from './use-fight-page-tracking'
+import { useFightPageLoadTracking } from './use-fight-page-load-tracking'
 
 function createMockPosthog(): PostHog {
   return { capture: vi.fn() } as unknown as PostHog
 }
 
 function createProps(
-  overrides: Partial<Parameters<typeof useFightPageTracking>[0]> = {},
-): Parameters<typeof useFightPageTracking>[0] {
+  overrides: Partial<Parameters<typeof useFightPageLoadTracking>[0]> = {},
+): Parameters<typeof useFightPageLoadTracking>[0] {
   return {
     fightId: 1,
     reportId: 'ABC123',
@@ -25,12 +25,12 @@ function createProps(
   }
 }
 
-describe('useFightPageTracking', () => {
+describe('useFightPageLoadTracking', () => {
   describe('fight_loaded', () => {
     it('captures fight_loaded when fightData becomes available', () => {
       const posthog = createMockPosthog()
       renderHook(() =>
-        useFightPageTracking(
+        useFightPageLoadTracking(
           createProps({
             fightData: { name: 'Onyxia' },
             posthog,
@@ -51,7 +51,7 @@ describe('useFightPageTracking', () => {
     it('does not capture fight_loaded when fightData is null', () => {
       const posthog = createMockPosthog()
       renderHook(() =>
-        useFightPageTracking(createProps({ fightData: null, posthog })),
+        useFightPageLoadTracking(createProps({ fightData: null, posthog })),
       )
 
       expect(posthog.capture).not.toHaveBeenCalledWith(
@@ -63,7 +63,9 @@ describe('useFightPageTracking', () => {
     it('does not capture fight_loaded when posthog is absent', () => {
       const posthog = createMockPosthog()
       renderHook(() =>
-        useFightPageTracking(createProps({ fightData: { name: 'Onyxia' } })),
+        useFightPageLoadTracking(
+          createProps({ fightData: { name: 'Onyxia' } }),
+        ),
       )
 
       expect(posthog.capture).not.toHaveBeenCalled()
@@ -72,7 +74,7 @@ describe('useFightPageTracking', () => {
     it('captures fight_loaded only once per fightId', () => {
       const posthog = createMockPosthog()
       const props = createProps({ fightData: { name: 'Onyxia' }, posthog })
-      const { rerender } = renderHook(() => useFightPageTracking(props))
+      const { rerender } = renderHook(() => useFightPageLoadTracking(props))
 
       rerender()
       rerender()
@@ -88,7 +90,7 @@ describe('useFightPageTracking', () => {
     it('captures threat_chart_loaded when chart is ready with visible series', () => {
       const posthog = createMockPosthog()
       renderHook(() =>
-        useFightPageTracking(
+        useFightPageLoadTracking(
           createProps({
             isChartReady: true,
             visibleSeriesCount: 5,
@@ -110,7 +112,7 @@ describe('useFightPageTracking', () => {
     it('does not capture threat_chart_loaded when chart is not ready', () => {
       const posthog = createMockPosthog()
       renderHook(() =>
-        useFightPageTracking(
+        useFightPageLoadTracking(
           createProps({ isChartReady: false, visibleSeriesCount: 5, posthog }),
         ),
       )
@@ -124,7 +126,7 @@ describe('useFightPageTracking', () => {
     it('does not capture threat_chart_loaded when visibleSeriesCount is 0', () => {
       const posthog = createMockPosthog()
       renderHook(() =>
-        useFightPageTracking(
+        useFightPageLoadTracking(
           createProps({ isChartReady: true, visibleSeriesCount: 0, posthog }),
         ),
       )
@@ -142,7 +144,7 @@ describe('useFightPageTracking', () => {
         visibleSeriesCount: 3,
         posthog,
       })
-      const { rerender } = renderHook(() => useFightPageTracking(props))
+      const { rerender } = renderHook(() => useFightPageLoadTracking(props))
 
       rerender()
       rerender()
@@ -159,7 +161,9 @@ describe('useFightPageTracking', () => {
       const posthog = createMockPosthog()
       const error = new Error('fetch failed')
       renderHook(() =>
-        useFightPageTracking(createProps({ eventsQueryError: error, posthog })),
+        useFightPageLoadTracking(
+          createProps({ eventsQueryError: error, posthog }),
+        ),
       )
 
       expect(posthog.capture).toHaveBeenCalledWith(
@@ -175,7 +179,9 @@ describe('useFightPageTracking', () => {
     it('does not capture threat_chart_failed when eventsQueryError is null', () => {
       const posthog = createMockPosthog()
       renderHook(() =>
-        useFightPageTracking(createProps({ eventsQueryError: null, posthog })),
+        useFightPageLoadTracking(
+          createProps({ eventsQueryError: null, posthog }),
+        ),
       )
 
       expect(posthog.capture).not.toHaveBeenCalledWith(
@@ -188,7 +194,7 @@ describe('useFightPageTracking', () => {
       const posthog = createMockPosthog()
       const error = new Error('fetch failed')
       const props = createProps({ eventsQueryError: error, posthog })
-      const { rerender } = renderHook(() => useFightPageTracking(props))
+      const { rerender } = renderHook(() => useFightPageLoadTracking(props))
 
       rerender()
       rerender()

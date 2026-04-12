@@ -7,7 +7,7 @@
 import type { PostHog } from 'posthog-js'
 import { useEffect, useRef } from 'react'
 
-export interface UseFightPageTrackingParams {
+export interface UseFightPageLoadTrackingParams {
   fightId: number
   reportId: string
   fightData: { name: string } | null
@@ -18,7 +18,7 @@ export interface UseFightPageTrackingParams {
 }
 
 /** Track fight page load milestones via PostHog. */
-export function useFightPageTracking({
+export function useFightPageLoadTracking({
   fightId,
   reportId,
   fightData,
@@ -26,7 +26,7 @@ export function useFightPageTracking({
   isChartReady,
   visibleSeriesCount,
   posthog,
-}: UseFightPageTrackingParams): void {
+}: UseFightPageLoadTrackingParams): void {
   const mountTimeRef = useRef<number | null>(null)
   const trackedFightLoadedRef = useRef<number | null>(null)
   const trackedChartLoadedRef = useRef<number | null>(null)
