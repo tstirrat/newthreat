@@ -249,7 +249,10 @@ export type ThreatEffect =
       actorIds: number[]
     }
   | { type: 'state'; state: ThreatStatePayload }
-  | { type: 'eventMarker'; marker: 'bossMelee' | 'death' | 'tranquilAirTotem' }
+  | {
+      type: 'eventMarker'
+      marker: 'bossMelee' | 'death' | 'tranquilAirTotem' | 'tranquilAirTotemDesummon'
+    }
   | { type: 'customThreat'; changes: ThreatChangeRequest[] }
   | { type: 'installInterceptor'; interceptor: EventInterceptor }
 

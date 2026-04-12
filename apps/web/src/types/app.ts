@@ -128,7 +128,11 @@ export interface ThreatPointModifier {
   value: number
 }
 
-export type ThreatPointMarkerKind = 'bossMelee' | 'death' | 'tranquilAirTotem'
+export type ThreatPointMarkerKind =
+  | 'bossMelee'
+  | 'death'
+  | 'tranquilAirTotem'
+  | 'tranquilAirTotemDesummon'
 
 export type ThreatStateVisualKind = 'fixate' | 'aggroLoss' | 'invulnerable'
 

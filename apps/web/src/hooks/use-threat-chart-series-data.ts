@@ -10,6 +10,7 @@ import {
 import {
   bossMeleeMarkerColor,
   deathMarkerColor,
+  tranquilAirTotemDesummonMarkerColor,
   tranquilAirTotemMarkerColor,
 } from '../lib/threat-chart-tooltip'
 import type { SeriesChartPoint } from '../lib/threat-chart-types'
@@ -61,6 +62,10 @@ function resolvePointColor(
 
   if (point.markerKind === 'tranquilAirTotem') {
     return tranquilAirTotemMarkerColor
+  }
+
+  if (point.markerKind === 'tranquilAirTotemDesummon') {
+    return tranquilAirTotemDesummonMarkerColor
   }
 
   return seriesColor

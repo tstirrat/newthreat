@@ -286,12 +286,15 @@ export const createTranquilAirEmulationProcessor: FightProcessorFactory = ({
         recipientActorIdsByShamanId.delete(ctx.event.sourceID)
 
         if (removedActorIds.length > 0) {
-          ctx.addEffects({
-            type: 'auraMutation',
-            action: 'remove',
-            spellId: TRANQUIL_AIR_BUFF_SPELL_ID,
-            actorIds: removedActorIds,
-          })
+          ctx.addEffects(
+            {
+              type: 'auraMutation',
+              action: 'remove',
+              spellId: TRANQUIL_AIR_BUFF_SPELL_ID,
+              actorIds: removedActorIds,
+            },
+            { type: 'eventMarker', marker: 'tranquilAirTotemDesummon' },
+          )
         }
         return
       }
