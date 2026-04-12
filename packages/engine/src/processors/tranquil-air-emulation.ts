@@ -269,6 +269,10 @@ export const createTranquilAirEmulationProcessor: FightProcessorFactory = ({
       }
 
       // Another air totem replaces Tranquil Air — remove buff from all recipients
+      // TODO: party members' x,y positions are not checked here; recipients are
+      // removed unconditionally based on the prior apply list. If a party member
+      // has moved outside 30 yards before the desummon, they would already not
+      // receive the buff on a re-apply, but we do not validate range on removal.
       if (NON_TRANQUIL_AIR_TOTEM_SPELL_IDS.has(ctx.event.abilityGameID)) {
         const previousRecipients = recipientActorIdsByShamanId.get(
           ctx.event.sourceID,

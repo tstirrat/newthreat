@@ -17,7 +17,6 @@ import { resolveThreatStateStatus } from './threat-chart-visuals'
 export {
   bossMeleeMarkerColor,
   deathMarkerColor,
-  tranquilAirTotemDesummonMarkerColor,
   tranquilAirTotemMarkerColor,
 } from './threat-chart-tooltip-colors'
 
