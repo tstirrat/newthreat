@@ -63,6 +63,10 @@ function resolvePointColor(
     return tranquilAirTotemMarkerColor
   }
 
+  if (point.markerKind === 'tranquilAirTotemDesummon') {
+    return tranquilAirTotemMarkerColor
+  }
+
   return seriesColor
 }
 
