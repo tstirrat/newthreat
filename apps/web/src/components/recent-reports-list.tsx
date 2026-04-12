@@ -1,6 +1,7 @@
 /**
  * Render recent reports from local history.
  */
+import { usePostHog } from 'posthog-js/react'
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -70,6 +71,7 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({
   starredReportIds,
   onToggleStarReport,
 }) => {
+  const posthog = usePostHog()
   if (reports.length === 0) {
     return (
       <Card className="bg-panel" size="sm">
@@ -140,6 +142,11 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({
                       )}
                       state={{ host: report.sourceHost }}
                       to={`/report/${report.reportId}`}
+                      onClick={() => {
+                        posthog?.capture('recents_opened', {
+                          report_id: report.reportId,
+                        })
+                      }}
                     >
                       {firstLine}
                     </Link>

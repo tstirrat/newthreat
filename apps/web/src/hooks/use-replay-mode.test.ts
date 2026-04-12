@@ -2,9 +2,14 @@
  * Unit tests for the replay mode hook.
  */
 import { act, renderHook } from '@testing-library/react'
+import type { PostHog } from 'posthog-js'
 import { describe, expect, it, vi } from 'vitest'
 
 import { useReplayMode } from './use-replay-mode'
+
+function createMockPosthog(): PostHog {
+  return { capture: vi.fn() } as unknown as PostHog
+}
 
 function createProps(
   overrides: Partial<Parameters<typeof useReplayMode>[0]> = {},
@@ -221,6 +226,51 @@ describe('useReplayMode', () => {
         result.current.decreaseSpeed()
       })
       expect(result.current.playbackSpeed).toBe(0.25)
+    })
+  })
+
+  describe('posthog tracking', () => {
+    it('captures replay_mode_entered when entering replay mode', () => {
+      const posthog = createMockPosthog()
+      const { result } = renderHook(() =>
+        useReplayMode(createProps({ posthog })),
+      )
+
+      act(() => {
+        result.current.enterReplayMode()
+      })
+
+      expect(posthog.capture).toHaveBeenCalledWith('replay_mode_entered')
+    })
+
+    it('captures replay_mode_exited when exiting replay mode', () => {
+      const posthog = createMockPosthog()
+      const { result } = renderHook(() =>
+        useReplayMode(createProps({ committedReplay: true, posthog })),
+      )
+
+      act(() => {
+        result.current.exitReplayMode()
+      })
+
+      expect(posthog.capture).toHaveBeenCalledWith('replay_mode_exited')
+    })
+
+    it('captures the correct event on toggleReplayMode', () => {
+      const posthog = createMockPosthog()
+      const { result } = renderHook(() =>
+        useReplayMode(createProps({ posthog })),
+      )
+
+      act(() => {
+        result.current.toggleReplayMode()
+      })
+      expect(posthog.capture).toHaveBeenLastCalledWith('replay_mode_entered')
+
+      act(() => {
+        result.current.toggleReplayMode()
+      })
+      expect(posthog.capture).toHaveBeenLastCalledWith('replay_mode_exited')
     })
   })
 

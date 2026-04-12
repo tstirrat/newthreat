@@ -1,6 +1,7 @@
 /**
  * Central hook for replay mode state, playback animation, and playhead management.
  */
+import type { PostHog } from 'posthog-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 1, 1.5, 2] as const
@@ -32,6 +33,7 @@ export function useReplayMode({
   onCommitState,
   resetZoom,
   maxMs,
+  posthog,
 }: {
   committedPlayheadMs: number | null
   committedReplay: boolean
@@ -41,6 +43,7 @@ export function useReplayMode({
   }) => void
   resetZoom: () => void
   maxMs: number
+  posthog?: PostHog
 }): UseReplayModeResult {
   const [isReplayMode, setIsReplayMode] = useState(committedReplay)
   const [localPlayheadMs, setLocalPlayheadMs] = useState<number | null>(null)
@@ -74,15 +77,17 @@ export function useReplayMode({
   }, [])
 
   const enterReplayMode = useCallback((): void => {
+    posthog?.capture('replay_mode_entered')
     resetZoom()
     setIsReplayMode(true)
     onCommitState({ replay: true })
     const startMs = committedPlayheadMs ?? 0
     setLocalPlayheadMs(startMs)
     playheadRef.current = startMs
-  }, [committedPlayheadMs, onCommitState, resetZoom])
+  }, [committedPlayheadMs, onCommitState, posthog, resetZoom])
 
   const exitReplayMode = useCallback((): void => {
+    posthog?.capture('replay_mode_exited')
     stopAnimation()
     setIsPlaying(false)
     setIsReplayMode(false)
@@ -91,7 +96,7 @@ export function useReplayMode({
       playheadMs: localPlayheadMs,
     })
     setLocalPlayheadMs(null)
-  }, [localPlayheadMs, onCommitState, stopAnimation])
+  }, [localPlayheadMs, onCommitState, posthog, stopAnimation])
 
   const toggleReplayMode = useCallback((): void => {
     if (isReplayMode) {

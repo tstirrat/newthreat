@@ -1,6 +1,7 @@
 /**
  * Render preconfigured example report links.
  */
+import { usePostHog } from 'posthog-js/react'
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -12,6 +13,8 @@ export type ExampleReportListProps = {
 }
 
 export const ExampleReportList: FC<ExampleReportListProps> = ({ examples }) => {
+  const posthog = usePostHog()
+
   return (
     <ul aria-label="Example reports" className="space-y-2">
       {examples.map((example) => (
@@ -22,6 +25,11 @@ export const ExampleReportList: FC<ExampleReportListProps> = ({ examples }) => {
                 className="font-medium underline"
                 state={{ host: example.host }}
                 to={`/report/${example.reportId}`}
+                onClick={() => {
+                  posthog?.capture('recents_example_opened', {
+                    report_id: example.reportId,
+                  })
+                }}
               >
                 {example.label}
               </Link>

@@ -4,6 +4,7 @@
 import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts'
 import ReactEChartsCore from 'echarts-for-react/esm/core'
+import { usePostHog } from 'posthog-js/react'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
@@ -60,6 +61,8 @@ export type ThreatChartProps = {
   playheadMs?: number | null
   onPlayheadChange?: (timeMs: number) => void
   rightPanel?: React.ReactNode
+  fightId?: number
+  reportId?: string
 }
 
 export const ThreatChart: FC<ThreatChartProps> = ({
@@ -91,9 +94,12 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   playheadMs = null,
   onPlayheadChange,
   rightPanel,
+  fightId,
+  reportId,
 }) => {
   const chartRef = useRef<ReactEChartsCore>(null)
   const [isChartReady, setIsChartReady] = useState(false)
+  const posthog = usePostHog()
   const themeColors = useThreatChartThemeColors()
   const {
     visibleSeries,
@@ -167,6 +173,9 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     onFocusAndIsolatePlayer,
     onToggleFocusedPlayerIsolation,
     series,
+    fightId,
+    reportId,
+    posthog,
   })
   const canClearIsolate = visibleIsolatedActorId !== null || hasHiddenActors
   const handleClearSelections = useCallback((): void => {
@@ -473,6 +482,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
           selectPlayer({
             playerId,
             shouldAddToFilter: false,
+            selectionMethod: 'click',
           })
         }}
       />
