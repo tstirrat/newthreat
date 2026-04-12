@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.13.5",
-    "@cloudflare/workers-types": "^4.20260329.1",
+    "@cloudflare/workers-types": "^4.20260412.1",
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^1.2.0",
     "@eslint/markdown": "^8.0.0",
