@@ -218,6 +218,12 @@ function calculateRemovedAuraActorIds({
 
 /**
  * Emulate Tranquil Air aura state by party assignment and summon-time distance.
+ *
+ * TODO: Buff application and removal are currently evaluated only at totem
+ * summon time. A more accurate implementation would continuously check each
+ * party member's position on every event while the totem is active, applying
+ * the buff when a member moves within 30 yards and removing it when they move
+ * beyond 30 yards — mirroring the real in-game aura pulse behaviour.
  */
 export const createTranquilAirEmulationProcessor: FightProcessorFactory = ({
   fight,
@@ -269,10 +275,6 @@ export const createTranquilAirEmulationProcessor: FightProcessorFactory = ({
       }
 
       // Another air totem replaces Tranquil Air — remove buff from all recipients
-      // TODO: party members' x,y positions are not checked here; recipients are
-      // removed unconditionally based on the prior apply list. If a party member
-      // has moved outside 30 yards before the desummon, they would already not
-      // receive the buff on a re-apply, but we do not validate range on removal.
       if (NON_TRANQUIL_AIR_TOTEM_SPELL_IDS.has(ctx.event.abilityGameID)) {
         const previousRecipients = recipientActorIdsByShamanId.get(
           ctx.event.sourceID,
