@@ -74,24 +74,19 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({
   const posthog = usePostHog()
   if (reports.length === 0) {
     return (
-      <Card className="bg-panel" size="sm">
-        <CardContent className="space-y-4">
-          <p className="font-medium text-muted-foreground">
-            No recent reports yet (fresh)
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Load a report to populate zone - date and time - boss count.
-          </p>
-          {exampleReports && exampleReports.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Example logs
-              </p>
-              <ExampleReportList examples={exampleReports} />
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Load a report to populate zone - date and time - boss count.
+        </p>
+        {exampleReports && exampleReports.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Example logs
+            </p>
+            <ExampleReportList examples={exampleReports} />
+          </div>
+        ) : null}
+      </div>
     )
   }
 

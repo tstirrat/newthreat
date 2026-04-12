@@ -70,6 +70,7 @@ export interface ExampleReportLink {
   reportId: string
   host: WarcraftLogsHost
   href: string
+  zoneName?: string
 }
 
 export interface WowheadLinksConfig {
