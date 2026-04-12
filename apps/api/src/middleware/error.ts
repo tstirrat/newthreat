@@ -142,6 +142,17 @@ export function firestoreError(message: string): AppError {
   return new AppError(ErrorCodes.FIRESTORE_ERROR, message, 500)
 }
 
+// Errors that are expected operational noise — suppress from Sentry alerts.
+// INVALID_* codes are intentionally excluded: they arrive via the app's own
+// URL generation / param encoding and may indicate a frontend bug.
+const SUPPRESS_FROM_SENTRY = new Set<string>([
+  ErrorCodes.REPORT_NOT_FOUND,
+  ErrorCodes.FIGHT_NOT_FOUND,
+  ErrorCodes.WCL_API_ERROR,
+  ErrorCodes.WCL_RATE_LIMITED,
+  ErrorCodes.UNAUTHORIZED,
+])
+
 function resolveRetryAfterHeader(
   details?: Record<string, unknown>,
 ): string | null {
@@ -175,7 +186,7 @@ export const errorHandler: ErrorHandler<{
   console.error(`[${requestId}] Error:`, err)
 
   if (err instanceof AppError) {
-    if (err.statusCode >= 500) {
+    if (!SUPPRESS_FROM_SENTRY.has(err.code)) {
       Sentry.captureException(err)
     }
 
