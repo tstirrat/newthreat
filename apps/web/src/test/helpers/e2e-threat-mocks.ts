@@ -17,6 +17,7 @@ import type {
 export const e2eReportId = 'f9yPamzBxQqhGndZ'
 export const e2eReportTitle = 'Threat Regression Raid'
 export const e2eValidFreshReportUrl = `https://fresh.warcraftlogs.com/reports/${e2eReportId}?view=rankings&fight=26`
+export const e2eFreshExampleReportId = 'T43YpndkCZ8zVayw'
 const fixateSpellId = 6795
 
 const reportActors: ReportActorSummary[] = [

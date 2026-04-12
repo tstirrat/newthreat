@@ -15,7 +15,9 @@ export class RecentReportsObject {
   }
 
   noRecentReportsText(): Locator {
-    return this.recentReportsSection().getByText(/No recent reports yet/i)
+    return this.recentReportsSection().getByText(
+      /Load a report to populate zone/i,
+    )
   }
 
   recentReportsList(): Locator {
@@ -48,8 +50,7 @@ export class RecentReportsObject {
 
   exampleReportLink(name: string): Locator {
     return this.exampleReportsSection().getByRole('link', {
-      name,
-      exact: true,
+      name: new RegExp(name),
     })
   }
 }
