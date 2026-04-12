@@ -2,6 +2,7 @@
  * Input form for loading a report from URL/code with autocomplete suggestions.
  */
 import { Search } from 'lucide-react'
+import { usePostHog } from 'posthog-js/react'
 import { type FC, type ReactNode, type Ref, useState } from 'react'
 
 import { useReportAutocomplete } from '../hooks/use-report-autocomplete'
@@ -186,6 +187,7 @@ export const ReportUrlForm: FC<ReportUrlFormProps> = ({
   onValueChange,
   className,
 }) => {
+  const posthog = usePostHog()
   const [internalValue, setInternalValue] = useState('')
   const value = controlledValue ?? internalValue
   const trimmedValue = value.trim()
@@ -207,17 +209,36 @@ export const ReportUrlForm: FC<ReportUrlFormProps> = ({
     setValue,
     onSelectSuggestion,
   })
+
+  const submitReport = (inputText: string): void => {
+    posthog?.capture('report_input_submitted', {
+      input_text: inputText,
+      input_type: /^https?:\/\//i.test(inputText.trim()) ? 'url' : 'code',
+    })
+    onSubmit(inputText)
+  }
+
+  const selectSuggestionWithTracking = (
+    suggestion: ReportSearchSuggestion,
+  ): void => {
+    posthog?.capture('report_input_option_selected', {
+      report_id: suggestion.reportId,
+      source_tags: suggestion.sourceTags,
+    })
+    selectSuggestion(suggestion)
+  }
+
   const handleFormSubmit = (): void => {
     if (
       !isFullyQualifiedUrlInput &&
       selectedSuggestion &&
       shouldShowSuggestions
     ) {
-      selectSuggestion(selectedSuggestion)
+      selectSuggestionWithTracking(selectedSuggestion)
       return
     }
 
-    onSubmit(value)
+    submitReport(value)
   }
 
   return (
@@ -281,14 +302,14 @@ export const ReportUrlForm: FC<ReportUrlFormProps> = ({
                   if (isFullyQualifiedUrlInput) {
                     event.preventDefault()
                     event.stopPropagation()
-                    onSubmit(value)
+                    submitReport(value)
                     return
                   }
 
                   if (selectedSuggestion) {
                     event.preventDefault()
                     event.stopPropagation()
-                    selectSuggestion(selectedSuggestion)
+                    selectSuggestionWithTracking(selectedSuggestion)
                   }
                 }}
                 onValueChange={handleInputValueChange}
@@ -352,7 +373,7 @@ export const ReportUrlForm: FC<ReportUrlFormProps> = ({
                             event.preventDefault()
                           }}
                           onSelect={() => {
-                            selectSuggestion(suggestion)
+                            selectSuggestionWithTracking(suggestion)
                           }}
                         >
                           <div className="flex min-w-0 flex-1 flex-col gap-1">

@@ -3,7 +3,16 @@
  */
 import { useAuth } from '@/auth/auth-provider'
 import { ArrowUp, X } from 'lucide-react'
-import { type FC, useMemo, useState } from 'react'
+import type { PostHog } from 'posthog-js'
+import { usePostHog } from 'posthog-js/react'
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { AccountRecentReportsList } from '../components/account-recent-reports-list'
 import { RecentReportsList } from '../components/recent-reports-list'
@@ -19,6 +28,38 @@ import { exampleReports } from '../lib/constants'
 import { superKey } from '../lib/keyboard-shortcut'
 
 const reportHintDismissedStorageKey = 'landing-report-hint-dismissed'
+
+function useGuildLogTracking({
+  isLoadingGuildReports,
+  guildReportCount,
+  posthog,
+}: {
+  isLoadingGuildReports: boolean
+  guildReportCount: number
+  posthog?: PostHog
+}): { trackGuildLogOpened: () => void } {
+  const loadStartTimeRef = useRef<number | null>(null)
+  const loadedTrackedRef = useRef(false)
+
+  const trackGuildLogOpened = useCallback((): void => {
+    posthog?.capture('guild_log_opened')
+    loadStartTimeRef.current = performance.now()
+    loadedTrackedRef.current = false
+  }, [posthog])
+
+  useEffect(() => {
+    if (!posthog || loadedTrackedRef.current) return
+    if (isLoadingGuildReports || guildReportCount === 0) return
+    if (loadStartTimeRef.current === null) return
+    loadedTrackedRef.current = true
+    posthog.capture('guild_log_loaded', {
+      report_count: guildReportCount,
+      load_time_ms: Math.round(performance.now() - loadStartTimeRef.current),
+    })
+  }, [guildReportCount, isLoadingGuildReports, posthog])
+
+  return { trackGuildLogOpened }
+}
 
 export const LandingPage: FC = () => {
   const { authEnabled, wclUserId } = useAuth()
@@ -37,6 +78,12 @@ export const LandingPage: FC = () => {
     refreshGuildReports,
   } = useReportIndex()
   const { settings, toggleStarredReport, unstarReport } = useUserSettings()
+  const posthog = usePostHog()
+  const { trackGuildLogOpened } = useGuildLogTracking({
+    isLoadingGuildReports,
+    guildReportCount: starredGuildReports.length,
+    posthog,
+  })
   const trackedGuildCount = useMemo(
     () =>
       settings.starredEntities.filter((entry) => entry.entityType === 'guild')
@@ -151,6 +198,7 @@ export const LandingPage: FC = () => {
                 type="button"
                 variant="outline"
                 onClick={() => {
+                  trackGuildLogOpened()
                   void refreshGuildReports()
                 }}
               >
