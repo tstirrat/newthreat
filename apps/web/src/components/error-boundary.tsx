@@ -10,8 +10,6 @@ import {
   type ErrorBoundaryFallbackProps,
 } from './error-boundary-fallback'
 
-export type { ErrorBoundaryFallbackProps }
-
 export type ErrorBoundaryProps = {
   children: ReactNode
   fallback?: (props: ErrorBoundaryFallbackProps) => ReactNode
@@ -38,7 +36,9 @@ export class ErrorBoundary extends Component<
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('[ErrorBoundary] Uncaught error:', error, errorInfo)
-    captureException(error, { extra: { componentStack: errorInfo.componentStack } })
+    captureException(error, {
+      extra: { componentStack: errorInfo.componentStack },
+    })
   }
 
   private readonly resetError = (): void => {
