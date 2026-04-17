@@ -4,7 +4,7 @@
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { bossMeleeMarkerColor } from '../lib/threat-chart-tooltip'
+import { bossMeleeMarkerColor } from '../components/threat-chart-tooltip'
 import type { ThreatPoint, ThreatSeries } from '../types/app'
 import { useThreatChartSeriesData } from './use-threat-chart-series-data'
 

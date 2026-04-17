@@ -11,7 +11,7 @@ import {
   bossMeleeMarkerColor,
   deathMarkerColor,
   tranquilAirTotemMarkerColor,
-} from '../lib/threat-chart-tooltip'
+} from '../components/threat-chart-tooltip'
 import type { SeriesChartPoint } from '../lib/threat-chart-types'
 import { buildThreatStateVisualMaps } from '../lib/threat-chart-visuals'
 import type { BossDamageMode, ThreatSeries } from '../types/app'
