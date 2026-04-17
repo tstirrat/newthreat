@@ -2976,9 +2976,9 @@ describe('threat-aggregation', () => {
           targetID: 0,
           targetIsFriendly: false,
           auras: [
-            { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
-            { abilityGameID: 12303, name: 'Defiance', stacks: 5 },
-            { abilityGameID: 25289, name: 'Battle Shout', stacks: 1 },
+            { ability: 71, name: 'Defensive Stance', stacks: 1 },
+            { ability: 12303, name: 'Defiance', stacks: 5 },
+            { ability: 25289, name: 'Battle Shout', stacks: 1 },
           ],
           threat: {
             changes: [],
@@ -3015,9 +3015,9 @@ describe('threat-aggregation', () => {
 
       const result = getInitialAuras(events, 1)
       expect(result).toEqual([
-        { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
-        { abilityGameID: 12303, name: 'Defiance', stacks: 5 },
-        { abilityGameID: 25289, name: 'Battle Shout', stacks: 1 },
+        { ability: 71, name: 'Defensive Stance', stacks: 1 },
+        { ability: 12303, name: 'Defiance', stacks: 5 },
+        { ability: 25289, name: 'Battle Shout', stacks: 1 },
       ])
     })
 
@@ -3031,10 +3031,10 @@ describe('threat-aggregation', () => {
           targetID: 0,
           targetIsFriendly: false,
           auras: [
-            { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
-            { abilityGameID: 12303, name: 'Defiance', stacks: 5 },
-            { abilityGameID: 25289, name: 'Battle Shout', stacks: 1 },
-            { abilityGameID: 9999, name: 'Non-Notable Buff', stacks: 1 },
+            { ability: 71, name: 'Defensive Stance', stacks: 1 },
+            { ability: 12303, name: 'Defiance', stacks: 5 },
+            { ability: 25289, name: 'Battle Shout', stacks: 1 },
+            { ability: 9999, name: 'Non-Notable Buff', stacks: 1 },
           ],
           threat: {
             changes: [],
@@ -3121,7 +3121,7 @@ describe('threat-aggregation', () => {
           sourceIsFriendly: true,
           targetID: 0,
           targetIsFriendly: false,
-          auras: [{ abilityGameID: 71, name: 'Defensive Stance', stacks: 1 }],
+          auras: [{ ability: 71, name: 'Defensive Stance', stacks: 1 }],
           threat: {
             changes: [],
             calculation: {
@@ -3157,10 +3157,10 @@ describe('threat-aggregation', () => {
           targetID: 0,
           targetIsFriendly: false,
           auras: [
-            { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
+            { ability: 71, name: 'Defensive Stance', stacks: 1 },
             { ability: 12303, name: 'Defiance', stacks: 5 },
             { name: 'Missing Spell', stacks: 1 },
-            { abilityGameID: 0, name: 'Zero Spell', stacks: 1 },
+            { ability: 0, name: 'Zero Spell', stacks: 1 },
           ],
           threat: {
             changes: [],
@@ -3178,7 +3178,7 @@ describe('threat-aggregation', () => {
 
       const result = getInitialAuras(events, 1)
       expect(result).toEqual([
-        { abilityGameID: 71, name: 'Defensive Stance', stacks: 1 },
+        { ability: 71, name: 'Defensive Stance', stacks: 1 },
         { ability: 12303, name: 'Defiance', stacks: 5 },
       ])
     })
@@ -3192,7 +3192,7 @@ describe('threat-aggregation', () => {
           sourceIsFriendly: true,
           targetID: 0,
           targetIsFriendly: false,
-          auras: [{ abilityGameID: 71, name: 'Defensive Stance', stacks: 1 }],
+          auras: [{ ability: 71, name: 'Defensive Stance', stacks: 1 }],
           threat: {
             changes: [],
             calculation: {
