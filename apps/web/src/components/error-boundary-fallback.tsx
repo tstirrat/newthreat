@@ -3,8 +3,12 @@
  */
 import type { FC } from 'react'
 
-import type { ErrorBoundaryFallbackProps } from './error-boundary'
 import { Button } from './ui/button'
+
+export type ErrorBoundaryFallbackProps = {
+  error: Error
+  resetError: () => void
+}
 
 /** Centered error message with try-again and reload buttons. */
 export const ErrorBoundaryFallback: FC<ErrorBoundaryFallbackProps> = ({

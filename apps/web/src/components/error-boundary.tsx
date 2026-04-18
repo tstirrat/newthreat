@@ -2,14 +2,13 @@
  * Root-level React error boundary that catches unhandled component errors
  * and renders a user-friendly fallback UI with a reload option.
  */
+import { captureException } from '@sentry/react'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
-import { ErrorBoundaryFallback } from './error-boundary-fallback'
-
-export type ErrorBoundaryFallbackProps = {
-  error: Error
-  resetError: () => void
-}
+import {
+  ErrorBoundaryFallback,
+  type ErrorBoundaryFallbackProps,
+} from './error-boundary-fallback'
 
 export type ErrorBoundaryProps = {
   children: ReactNode
@@ -36,8 +35,10 @@ export class ErrorBoundary extends Component<
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // TODO: Report to Sentry when integrated (AGE-3)
     console.error('[ErrorBoundary] Uncaught error:', error, errorInfo)
+    captureException(error, {
+      extra: { componentStack: errorInfo.componentStack },
+    })
   }
 
   private readonly resetError = (): void => {

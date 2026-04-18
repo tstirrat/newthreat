@@ -219,6 +219,10 @@ Relative imports (`./`, `../`) must stay within the current workspace package on
 Never use relative paths that cross a package boundary; cross-package imports must use
 workspace package specifiers (e.g. `@wow-threat/shared`, `@wow-threat/engine`).
 
+Re-exporting from other modules (`export { x } from './abc'`) is only allowed in
+`index.ts` or `index.d.ts` files. In all other files, import what you need and use it
+directly — do not create pass-through re-exports.
+
 ### Naming Conventions
 
 | Element             | Convention | Examples                                              |

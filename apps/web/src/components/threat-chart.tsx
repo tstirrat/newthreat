@@ -21,7 +21,7 @@ import { resolveCssColor } from '../lib/class-colors'
 import { formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
 import { resolvePointSize } from '../lib/threat-chart-point-size'
-import { createThreatChartTooltipFormatter } from '../lib/threat-chart-tooltip'
+import { createThreatChartTooltipFormatter } from './threat-chart-tooltip'
 import {
   deathMarkerColor,
   playheadColor,
