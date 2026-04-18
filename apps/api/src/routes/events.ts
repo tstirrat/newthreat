@@ -8,6 +8,7 @@ import {
   getSupportedGameVersions,
   resolveConfigOrNull,
 } from '@wow-threat/config'
+import { serializeInitialAurasByActor } from '@wow-threat/shared'
 import { Hono } from 'hono'
 
 import {
@@ -48,19 +49,6 @@ function parseEventsCursor(value: string | undefined): number | undefined {
   }
 
   return Number.parseInt(value, 10)
-}
-
-function serializeInitialAurasByActor(
-  initialAurasByActor: Map<number, readonly number[]>,
-): Record<string, number[]> {
-  return Object.fromEntries(
-    [...initialAurasByActor.entries()]
-      .filter(([, auraIds]) => auraIds.length > 0)
-      .map(([actorId, auraIds]) => [
-        String(actorId),
-        [...new Set(auraIds)].sort((left, right) => left - right),
-      ]),
-  )
 }
 
 function countSerializedInitialAuraIds(
