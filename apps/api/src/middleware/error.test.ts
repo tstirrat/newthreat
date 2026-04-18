@@ -14,12 +14,12 @@ import {
   fightNotFound,
   firestoreError,
   invalidFightId,
+  invalidGameVersion,
   invalidReportCode,
   reportNotFound,
   unauthorized,
   wclApiError,
   wclRateLimited,
-  invalidGameVersion,
 } from './error'
 
 vi.mock('@sentry/cloudflare', () => ({
