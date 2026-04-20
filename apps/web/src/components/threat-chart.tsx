@@ -21,7 +21,6 @@ import { resolveCssColor } from '../lib/class-colors'
 import { formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
 import { resolvePointSize } from '../lib/threat-chart-point-size'
-import { createThreatChartTooltipFormatter } from './threat-chart-tooltip'
 import {
   deathMarkerColor,
   playheadColor,
@@ -31,6 +30,7 @@ import { buildAuraMarkArea } from '../lib/threat-chart-visuals'
 import type { BossDamageMode, ThreatSeries } from '../types/app'
 import { ThreatChartLegend } from './threat-chart-legend'
 import { ThreatChartPlayerSearch } from './threat-chart-player-search'
+import { createThreatChartTooltipFormatter } from './threat-chart-tooltip'
 
 export type ThreatChartProps = {
   series: ThreatSeries[]

@@ -4,14 +4,14 @@
 import { useMemo } from 'react'
 
 import {
-  shouldRenderThreatPoint,
-  sortThreatPointsForRendering,
-} from '../lib/threat-chart-event-visibility'
-import {
   bossMeleeMarkerColor,
   deathMarkerColor,
   tranquilAirTotemMarkerColor,
 } from '../components/threat-chart-tooltip'
+import {
+  shouldRenderThreatPoint,
+  sortThreatPointsForRendering,
+} from '../lib/threat-chart-event-visibility'
 import type { SeriesChartPoint } from '../lib/threat-chart-types'
 import { buildThreatStateVisualMaps } from '../lib/threat-chart-visuals'
 import type { BossDamageMode, ThreatSeries } from '../types/app'
