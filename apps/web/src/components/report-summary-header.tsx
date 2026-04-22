@@ -7,14 +7,16 @@ import { Link } from 'react-router-dom'
 
 import { buildBossKillNavigationFights } from '../lib/fight-navigation'
 import { formatReportHeaderDate } from '../lib/format'
+import {
+  type ReportGuildFaction,
+  normalizeGuildFaction,
+} from '../lib/guild-faction'
 import { buildReportUrl } from '../lib/wcl-url'
 import type { ReportResponse } from '../types/api'
 import type { WarcraftLogsHost } from '../types/app'
 import { ReportStarButton } from './report-star-button'
 import { Card, CardHeader, CardTitle } from './ui/card'
 import { Skeleton } from './ui/skeleton'
-
-type ReportGuildFaction = 'alliance' | 'horde' | null
 
 export type ReportSummaryHeaderProps = {
   report: ReportResponse
@@ -25,24 +27,6 @@ export type ReportSummaryHeaderProps = {
   isStarred: boolean
   onToggleStar: () => void
   isStarToggleDisabled?: boolean
-}
-
-function normalizeGuildFaction(
-  value: string | null | undefined,
-): ReportGuildFaction {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'alliance') {
-    return 'alliance'
-  }
-  if (normalized === 'horde') {
-    return 'horde'
-  }
-
-  return null
 }
 
 function resolveGuildTextClass(faction: ReportGuildFaction): string {

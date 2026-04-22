@@ -13,6 +13,10 @@ import { Button } from '../components/ui/button'
 import { useEntityReports } from '../hooks/use-entity-reports'
 import { useUserSettings } from '../hooks/use-user-settings'
 import { defaultHost } from '../lib/constants'
+import {
+  type ReportGuildFaction,
+  normalizeGuildFaction,
+} from '../lib/guild-faction'
 import { buildGuildUrl } from '../lib/wcl-url'
 import type { StarredGuildReportEntry, WarcraftLogsHost } from '../types/app'
 
@@ -24,25 +28,7 @@ interface GuildReportsPageProps {
   entityId: string
 }
 
-type GuildFaction = 'alliance' | 'horde' | null
-
-function normalizeGuildFaction(value: string | null | undefined): GuildFaction {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'alliance') {
-    return 'alliance'
-  }
-  if (normalized === 'horde') {
-    return 'horde'
-  }
-
-  return null
-}
-
-function resolveGuildTextClass(faction: GuildFaction): string {
+function resolveGuildTextClass(faction: ReportGuildFaction): string {
   if (faction === 'alliance') {
     return 'text-sky-600 dark:text-sky-400'
   }
