@@ -7,7 +7,6 @@ import { Link } from 'react-router-dom'
 
 import { formatReportHeaderDate } from '../lib/format'
 import {
-  type ReportGuildFaction,
   normalizeGuildFaction,
   resolveTitleRowClass,
 } from '../lib/guild-faction'
