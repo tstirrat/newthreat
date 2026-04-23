@@ -6,6 +6,10 @@ import { usePostHog } from 'posthog-js/react'
 import { type FC, type ReactNode, type Ref, useState } from 'react'
 
 import { useReportAutocomplete } from '../hooks/use-report-autocomplete'
+import {
+  type ReportGuildFaction,
+  normalizeGuildFaction,
+} from '../lib/guild-faction'
 import type {
   ReportSearchMatchRange,
   ReportSearchSuggestion,
@@ -38,26 +42,6 @@ function formatSourceTag(sourceTag: string): string {
   }
 
   return 'example'
-}
-
-type ReportGuildFaction = 'alliance' | 'horde' | null
-
-function normalizeGuildFaction(
-  value: string | null | undefined,
-): ReportGuildFaction {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'alliance') {
-    return 'alliance'
-  }
-  if (normalized === 'horde') {
-    return 'horde'
-  }
-
-  return null
 }
 
 function resolveFactionTextClass(faction: ReportGuildFaction): string {

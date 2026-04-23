@@ -6,6 +6,10 @@ import { Link } from 'react-router-dom'
 
 import { defaultHost } from '../lib/constants'
 import { formatReportHeaderDate } from '../lib/format'
+import {
+  normalizeGuildFaction,
+  resolveTitleRowClass,
+} from '../lib/guild-faction'
 import { cn } from '../lib/utils'
 import type { RecentReportSummary } from '../types/api'
 import { Card, CardContent } from './ui/card'
@@ -14,38 +18,9 @@ export type AccountRecentReportsListProps = {
   reports: RecentReportSummary[]
 }
 
-type ReportGuildFaction = 'alliance' | 'horde' | null
-
-function normalizeGuildFaction(
-  value: string | null | undefined,
-): ReportGuildFaction {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'alliance') {
-    return 'alliance'
-  }
-  if (normalized === 'horde') {
-    return 'horde'
-  }
-
-  return null
-}
-
-function resolveTitleRowClass(faction: ReportGuildFaction): string {
-  if (faction === 'alliance') {
-    return 'text-sky-600 dark:text-sky-400'
-  }
-  if (faction === 'horde') {
-    return 'text-red-600 dark:text-red-400'
-  }
-
-  return ''
-}
-
-function resolveSourceLabel(source: RecentReportSummary['source']): string {
+function resolveAccountSourceLabel(
+  source: RecentReportSummary['source'],
+): string {
   return source === 'guild' ? 'guild log' : 'personal log'
 }
 
@@ -76,7 +51,7 @@ export const AccountRecentReportsList: FC<AccountRecentReportsListProps> = ({
           .join(' ')
         const zoneLabel = report.zoneName ?? 'Unknown zone'
         const startLabel = formatReportHeaderDate(report.startTime)
-        const sourceLabel = resolveSourceLabel(report.source)
+        const sourceLabel = resolveAccountSourceLabel(report.source)
         const titleRowClass = resolveTitleRowClass(
           normalizeGuildFaction(report.guildFaction),
         )

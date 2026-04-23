@@ -5,48 +5,21 @@ import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import { formatReportHeaderDate } from '../lib/format'
+import {
+  normalizeGuildFaction,
+  resolveTitleRowClass,
+} from '../lib/guild-faction'
 import { cn } from '../lib/utils'
 import type { StarredReportEntry } from '../types/app'
 import { ReportStarButton } from './report-star-button'
 import { Card, CardContent } from './ui/card'
-
-type ReportGuildFaction = 'alliance' | 'horde' | null
 
 export interface StarredReportsListProps {
   reports: StarredReportEntry[]
   onToggleStarReport: (reportId: string) => void
 }
 
-function normalizeGuildFaction(
-  value: string | null | undefined,
-): ReportGuildFaction {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'alliance') {
-    return 'alliance'
-  }
-  if (normalized === 'horde') {
-    return 'horde'
-  }
-
-  return null
-}
-
-function resolveTitleRowClass(faction: ReportGuildFaction): string {
-  if (faction === 'alliance') {
-    return 'text-sky-600 dark:text-sky-400'
-  }
-  if (faction === 'horde') {
-    return 'text-red-600 dark:text-red-400'
-  }
-
-  return ''
-}
-
-function resolveSourceLabel(sourceHost: string): string {
+function resolveHostPrefixLabel(sourceHost: string): string {
   return sourceHost.split('.')[0]?.toLowerCase() ?? 'unknown'
 }
 
@@ -74,7 +47,7 @@ export const StarredReportsList: FC<StarredReportsListProps> = ({
     <ul aria-label="Starred reports" className="space-y-2">
       {reports.map((report) => {
         const guildName = report.guildName ? `<${report.guildName}>` : null
-        const sourceLabel = resolveSourceLabel(report.sourceHost)
+        const sourceLabel = resolveHostPrefixLabel(report.sourceHost)
         const titleParts = [report.title || report.reportId, guildName]
           .filter((value): value is string => Boolean(value))
           .join(' ')
