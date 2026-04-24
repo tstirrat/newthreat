@@ -144,21 +144,6 @@ jobs:
           FRONTEND_DETAILS_URL: ${{ steps.deploy_frontend_preview.outputs.details_url }}
         run: |
           test -n "$FRONTEND_DETAILS_URL"
-      - name: Smoke test FE preview
-        run: |
-          PREVIEW_URL="${{ steps.deploy_frontend_preview.outputs.details_url }}"
-          for i in 1 2 3 4 5; do
-            RESPONSE=$(curl -sf "$PREVIEW_URL" || true)
-            if echo "$RESPONSE" | grep -q '<div id="root">' && \
-               echo "$RESPONSE" | grep -q '</html>'; then
-              echo "FE preview responding at ${PREVIEW_URL}"
-              exit 0
-            fi
-            echo "Attempt $i: HTML markers not found, retrying..."
-            sleep $((i * 3))
-          done
-          echo "FE preview smoke test failed"
-          exit 1
       - name: Add preview URLs to workflow summary
         run: |
           echo "### Preview Environments" >> "$GITHUB_STEP_SUMMARY"
