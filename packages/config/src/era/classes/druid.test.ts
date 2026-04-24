@@ -189,13 +189,11 @@ describe('Druid Config', () => {
 
         expect(castResult?.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: -240,
         })
         expect(castResult?.value).toBe(-240)
         expect(missResult?.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: 240,
         })
         expect(missResult?.value).toBe(240)

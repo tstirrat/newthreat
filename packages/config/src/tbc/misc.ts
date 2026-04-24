@@ -6,7 +6,6 @@
  */
 import type { ThreatFormula } from '@wow-threat/shared'
 
-import { miscAbilities as eraMisc } from '../era/misc'
 import { noThreat, threat, threatOnSuccessfulHit } from '../shared/formulas'
 
 const noThreatFormula = noThreat()
@@ -47,8 +46,6 @@ const ENGINEERING_DAMAGE_SPELLS = [
 ] as const
 
 export const miscAbilities: Record<number, ThreatFormula> = {
-  ...eraMisc,
-
   // Thunderfury behavior differs in TBC.
   21992: threatOnSuccessfulHit({ modifier: 0.5, bonus: 63 }),
   26992: threat({ modifier: 1 }),

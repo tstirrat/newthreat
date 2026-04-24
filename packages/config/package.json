@@ -21,7 +21,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@eslint/markdown": "^8.0.0",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "@wow-threat/engine": "workspace:*",
     "@wow-threat/shared": "workspace:*",
     "@wow-threat/typescript-config": "workspace:*",

@@ -4,27 +4,33 @@
 import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts'
 import ReactEChartsCore from 'echarts-for-react/esm/core'
+import { usePostHog } from 'posthog-js/react'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import { useThreatChartLegendState } from '../hooks/use-threat-chart-legend-state'
 import { useThreatChartPlayerSearch } from '../hooks/use-threat-chart-player-search'
+import { useThreatChartPlayhead } from '../hooks/use-threat-chart-playhead'
 import { useThreatChartSelectedWindow } from '../hooks/use-threat-chart-selected-window'
 import { useThreatChartSeriesClickHandler } from '../hooks/use-threat-chart-series-click-handler'
 import { useThreatChartSeriesData } from '../hooks/use-threat-chart-series-data'
 import { useThreatChartThemeColors } from '../hooks/use-threat-chart-theme-colors'
 import { useThreatChartVisiblePlayers } from '../hooks/use-threat-chart-visible-players'
 import { useThreatChartZoom } from '../hooks/use-threat-chart-zoom'
+import { resolveCssColor } from '../lib/class-colors'
 import { formatTimelineTime } from '../lib/format'
 import { resolveSeriesWindowBounds } from '../lib/threat-aggregation'
 import { resolvePointSize } from '../lib/threat-chart-point-size'
-import { createThreatChartTooltipFormatter } from '../lib/threat-chart-tooltip'
-import { deathMarkerColor } from '../lib/threat-chart-tooltip-colors'
+import {
+  deathMarkerColor,
+  playheadColor,
+} from '../lib/threat-chart-tooltip-colors'
 import type { SeriesChartPoint } from '../lib/threat-chart-types'
 import { buildAuraMarkArea } from '../lib/threat-chart-visuals'
 import type { BossDamageMode, ThreatSeries } from '../types/app'
 import { ThreatChartLegend } from './threat-chart-legend'
 import { ThreatChartPlayerSearch } from './threat-chart-player-search'
+import { createThreatChartTooltipFormatter } from './threat-chart-tooltip'
 
 export type ThreatChartProps = {
   series: ThreatSeries[]
@@ -51,6 +57,12 @@ export type ThreatChartProps = {
   targetDeathTimeMs?: number | null
   onChartReadyChange?: (isReady: boolean) => void
   onRegisterResetZoom?: (resetZoom: (() => void) | null) => void
+  isReplayMode?: boolean
+  playheadMs?: number | null
+  onPlayheadChange?: (timeMs: number) => void
+  rightPanel?: React.ReactNode
+  fightId?: number
+  reportId?: string
 }
 
 export const ThreatChart: FC<ThreatChartProps> = ({
@@ -78,9 +90,16 @@ export const ThreatChart: FC<ThreatChartProps> = ({
   targetDeathTimeMs = null,
   onChartReadyChange,
   onRegisterResetZoom,
+  isReplayMode = false,
+  playheadMs = null,
+  onPlayheadChange,
+  rightPanel,
+  fightId,
+  reportId,
 }) => {
   const chartRef = useRef<ReactEChartsCore>(null)
   const [isChartReady, setIsChartReady] = useState(false)
+  const posthog = usePostHog()
   const themeColors = useThreatChartThemeColors()
   const {
     visibleSeries,
@@ -105,11 +124,20 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     bounds,
     borderColor: themeColors.border,
     chartRef,
+    enabled: !isReplayMode,
     isChartReady,
     onWindowChange,
     renderer,
     selectedWindow,
     zoomToggleContextKey,
+  })
+
+  useThreatChartPlayhead({
+    chartRef,
+    isChartReady,
+    enabled: isReplayMode,
+    bounds,
+    onPlayheadChange: onPlayheadChange ?? (() => {}),
   })
 
   const { actorIdByLabel, chartSeries, threatStateVisualMaps } =
@@ -145,6 +173,9 @@ export const ThreatChart: FC<ThreatChartProps> = ({
     onFocusAndIsolatePlayer,
     onToggleFocusedPlayerIsolation,
     series,
+    fightId,
+    reportId,
+    posthog,
   })
   const canClearIsolate = visibleIsolatedActorId !== null || hasHiddenActors
   const handleClearSelections = useCallback((): void => {
@@ -351,7 +382,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
       return {
         name: item.name,
         type: 'line',
-        color: item.color,
+        color: resolveCssColor(item.color),
         step: 'end',
         smooth: false,
         symbol: 'circle',
@@ -363,15 +394,16 @@ export const ThreatChart: FC<ThreatChartProps> = ({
         triggerLineEvent: true,
         animation: false,
         itemStyle: {
-          color: item.color,
-          borderColor: item.color,
+          color: resolveCssColor(item.color),
+          borderColor: resolveCssColor(item.color),
         },
         emphasis: {
+          disabled: isReplayMode,
           focus: 'series',
           scale: true,
           itemStyle: {
-            color: item.color,
-            borderColor: item.color,
+            color: resolveCssColor(item.color),
+            borderColor: resolveCssColor(item.color),
           },
           lineStyle: {
             width: 3,
@@ -387,27 +419,52 @@ export const ThreatChart: FC<ThreatChartProps> = ({
             : [],
           invulnerabilityWindows: [],
         }),
-        ...(seriesIndex === 0 && targetDeathTimeMs !== null
-          ? {
-              markLine: {
-                silent: true,
-                symbol: ['none', 'none'],
-                lineStyle: {
-                  color: deathMarkerColor,
-                  type: 'solid',
-                  width: 2,
-                },
-                label: {
-                  formatter: 'Target death',
-                  color: deathMarkerColor,
-                },
-                data: [{ xAxis: targetDeathTimeMs }],
-              },
-            }
+        ...(seriesIndex === 0
+          ? (() => {
+              const markLineData: Record<string, unknown>[] = []
+              if (targetDeathTimeMs !== null) {
+                markLineData.push({
+                  xAxis: targetDeathTimeMs,
+                  lineStyle: {
+                    color: deathMarkerColor,
+                    type: 'solid' as const,
+                    width: 2,
+                  },
+                  label: {
+                    formatter: 'Target death',
+                    color: deathMarkerColor,
+                  },
+                })
+              }
+              if (playheadMs !== null) {
+                markLineData.push({
+                  xAxis: playheadMs,
+                  lineStyle: {
+                    color: playheadColor,
+                    type: 'solid' as const,
+                    width: 2,
+                  },
+                  label: {
+                    formatter: formatTimelineTime(playheadMs),
+                    color: playheadColor,
+                    position: 'start',
+                  },
+                })
+              }
+              return markLineData.length > 0
+                ? {
+                    markLine: {
+                      silent: true,
+                      symbol: ['none', 'none'],
+                      data: markLineData,
+                    },
+                  }
+                : {}
+            })()
           : {}),
         data: item.data,
       }
-    }),
+    }) as EChartsOption['series'],
   }
 
   return (
@@ -425,6 +482,7 @@ export const ThreatChart: FC<ThreatChartProps> = ({
           selectPlayer({
             playerId,
             shouldAddToFilter: false,
+            selectionMethod: 'click',
           })
         }}
       />
@@ -445,18 +503,20 @@ export const ThreatChart: FC<ThreatChartProps> = ({
             }}
           />
         </div>
-        <ThreatChartLegend
-          series={series}
-          isActorVisible={isActorVisible}
-          onActorClick={handleLegendItemClick}
-          onActorFocus={onSeriesClick}
-          pinnedPlayerIds={pinnedPlayerIds}
-          onTogglePinnedPlayer={onTogglePinnedPlayer}
-          showClearSelections={canClearIsolate}
-          onClearSelections={handleClearSelections}
-          showPets={showPets}
-          onShowPetsChange={onShowPetsChange}
-        />
+        {rightPanel ?? (
+          <ThreatChartLegend
+            series={series}
+            isActorVisible={isActorVisible}
+            onActorClick={handleLegendItemClick}
+            onActorFocus={onSeriesClick}
+            pinnedPlayerIds={pinnedPlayerIds}
+            onTogglePinnedPlayer={onTogglePinnedPlayer}
+            showClearSelections={canClearIsolate}
+            onClearSelections={handleClearSelections}
+            showPets={showPets}
+            onShowPetsChange={onShowPetsChange}
+          />
+        )}
       </div>
     </div>
   )

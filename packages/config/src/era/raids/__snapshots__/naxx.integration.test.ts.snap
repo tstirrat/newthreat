@@ -28,7 +28,7 @@ T         | Spell                          | Amount  | Spell Mod      | Note    
 00:07.490 | Melee (damage)                 | 416.00  | -              | -                                 | 621.92  | 621.92    | 10046.09  | Defensive Stance (stance) x1.30, Defiance (Rank 5) (talent) x1.15
 00:07.780 | Melee (damage)                 | 343.00  | -              | -                                 | 512.78  | 512.78    | 10558.88  | Defensive Stance (stance) x1.30, Defiance (Rank 5) (talent) x1.15
 00:08.596 | Hateful Strike (damage)        | 0.00    | x0.00 + 500.00 | hatefulStrike(target+nearbyMelee) | 500.00  | 500.00    | 11058.88  | -
-00:09.016 | Sunder Armor (cast)            | 0.00    | x0.00 + 261.00 | castThreat(rollbackOnMiss)        | 390.19  | 390.19    | 11449.07  | Defensive Stance (stance) x1.30, Defiance (Rank 5) (talent) x1.15
+00:09.016 | Sunder Armor (cast)            | 0.00    | +261.00        | castThreat(rollbackOnMiss)        | 390.19  | 390.19    | 11449.07  | Defensive Stance (stance) x1.30, Defiance (Rank 5) (talent) x1.15
 00:09.138 | Heroic Strike (damage)         | 645.00  | +175.00        | -                                 | 1225.90 | 1225.90   | 12674.97  | Defensive Stance (stance) x1.30, Defiance (Rank 5) (talent) x1.15
 00:09.687 | Melee (damage)                 | 354.00  | -              | -                                 | 529.23  | 529.23    | 13204.20  | Defensive Stance (stance) x1.30, Defiance (Rank 5) (talent) x1.15
 00:09.814 | Hateful Strike (damage)        | 0.00    | x0.00 + 500.00 | hatefulStrike(target+nearbyMelee) | 500.00  | 500.00    | 13704.20  | -

@@ -49,7 +49,7 @@ describe('sod hunter config', () => {
     expect(result.value).toBe(2)
   })
 
-  it('installs misdirection interceptor using tbc behavior', () => {
+  it('installs misdirection interceptor', () => {
     const formula = checkExists(hunterConfig.abilities[Spells.Misdirection])
     const result = checkExists(
       formula(

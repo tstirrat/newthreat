@@ -24,20 +24,23 @@ export const defaultHost: WarcraftLogsHost = 'fresh.warcraftlogs.com'
 export const exampleReports: ExampleReportLink[] = [
   {
     label: 'Fresh Example',
-    reportId: 'f9yPamzBxQqhGndZ',
+    reportId: 'T43YpndkCZ8zVayw',
     host: 'fresh.warcraftlogs.com',
-    href: 'https://fresh.warcraftlogs.com/reports/f9yPamzBxQqhGndZ?view=rankings&fight=26',
+    href: 'https://fresh.warcraftlogs.com/reports/T43YpndkCZ8zVayw?fight=15',
+    zoneName: "Gruul's Lair / Magtheridon",
   },
   {
     label: 'SoD Example',
-    reportId: 'DcCXarqJMBRkTPgA',
+    reportId: 'gbQwq2kP9WH6yJMd',
     host: 'sod.warcraftlogs.com',
-    href: 'https://sod.warcraftlogs.com/reports/DcCXarqJMBRkTPgA?view=rankings&boss=-2&difficulty=0&wipes=2',
+    href: 'https://sod.warcraftlogs.com/reports/gbQwq2kP9WH6yJMd?fight=17',
+    zoneName: 'Scarlet Enclave',
   },
   {
     label: 'Vanilla Era Example',
-    reportId: 'DtFAg9L2WBZabRX8',
+    reportId: 'TGw2BFt7DVWgQh81',
     host: 'vanilla.warcraftlogs.com',
-    href: 'https://vanilla.warcraftlogs.com/reports/DtFAg9L2WBZabRX8?boss=-2&wipes=2&view=rankings&difficulty=0',
+    href: 'https://vanilla.warcraftlogs.com/reports/TGw2BFt7DVWgQh81?fight=38',
+    zoneName: 'Naxxramas',
   },
 ]

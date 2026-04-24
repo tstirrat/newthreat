@@ -61,8 +61,14 @@ const FROST_CHANNELING_RANKS = [
   Spells.FrostChannelingRank3,
 ] as const
 
+const ARCANE = 0
 const FIRE = 1
+const FROST = 2
+
+// Minimum points in a tree to infer max-rank talent regardless of dominance
+const ARCANE_SUBTLETY_THRESHOLD = 21
 const BURNING_SOUL_THRESHOLD = 12
+const FROST_CHANNELING_THRESHOLD = 21
 
 // ============================================================================
 // Configuration
@@ -126,19 +132,41 @@ export const mageConfig: ClassThreatConfig = {
   talentImplications: (ctx: TalentImplicationContext) => {
     const syntheticAuras: SpellId[] = []
 
-    const arcaneSubtletySpellId = inferTalent(ctx, ARCANE_SUBTLETY_RANKS)
+    const arcaneSubtletySpellId = inferTalent(
+      ctx,
+      ARCANE_SUBTLETY_RANKS,
+      (points) => {
+        const arcane = points[ARCANE]
+        const isArcaneDominant = arcane > points[FIRE] && arcane > points[FROST]
+        return isArcaneDominant || arcane >= ARCANE_SUBTLETY_THRESHOLD ? 2 : 0
+      },
+    )
     if (arcaneSubtletySpellId) {
       syntheticAuras.push(arcaneSubtletySpellId)
     }
 
-    const burningSoulSpellId = inferTalent(ctx, BURNING_SOUL_RANKS, (points) =>
-      points[FIRE] >= BURNING_SOUL_THRESHOLD ? 2 : 0,
+    const burningSoulSpellId = inferTalent(
+      ctx,
+      BURNING_SOUL_RANKS,
+      (points) => {
+        const fire = points[FIRE]
+        const isFireDominant = fire > points[ARCANE] && fire > points[FROST]
+        return isFireDominant || fire >= BURNING_SOUL_THRESHOLD ? 2 : 0
+      },
     )
     if (burningSoulSpellId) {
       syntheticAuras.push(burningSoulSpellId)
     }
 
-    const frostChannelingSpellId = inferTalent(ctx, FROST_CHANNELING_RANKS)
+    const frostChannelingSpellId = inferTalent(
+      ctx,
+      FROST_CHANNELING_RANKS,
+      (points) => {
+        const frost = points[FROST]
+        const isFrostDominant = frost > points[ARCANE] && frost > points[FIRE]
+        return isFrostDominant || frost >= FROST_CHANNELING_THRESHOLD ? 3 : 0
+      },
+    )
     if (frostChannelingSpellId) {
       syntheticAuras.push(frostChannelingSpellId)
     }

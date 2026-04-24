@@ -63,7 +63,6 @@ describe('tbc paladin config', () => {
     )
     expect(buffResult.spellModifier).toEqual({
       type: 'spell',
-      value: 0,
       bonus: 58,
     })
     expect(buffResult.value).toBe(58)

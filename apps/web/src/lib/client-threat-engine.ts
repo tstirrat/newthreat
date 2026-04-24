@@ -1,8 +1,7 @@
 /**
  * Client-side fight event processing using raw paginated events.
  */
-import { resolveConfigOrNull } from '@wow-threat/config'
-import { ThreatEngine, buildThreatEngineInput } from '@wow-threat/engine'
+import { ThreatEngine } from '@wow-threat/engine'
 import type {
   Report,
   ReportActor,
@@ -11,6 +10,7 @@ import type {
 } from '@wow-threat/wcl-types'
 
 import { getFightEventsPage } from '../api/reports'
+import { runThreatEngineForFight } from '../lib/threat-engine-runner'
 import {
   buildThreatWorkerJobKey,
   chunkThreatWorkerEvents,
@@ -322,50 +322,6 @@ async function runThreatEngineWorker(
   })
 }
 
-function deserializeInitialAurasByActor(
-  initialAurasByActor: Record<string, number[]> | undefined,
-): Map<number, readonly number[]> {
-  if (!initialAurasByActor) {
-    return new Map()
-  }
-
-  return Object.entries(initialAurasByActor).reduce(
-    (result, [actorId, auraIds]) => {
-      const parsedActorId = Number.parseInt(actorId, 10)
-      if (!Number.isFinite(parsedActorId)) {
-        return result
-      }
-
-      const sanitizedAuraIds = auraIds
-        .filter((auraId) => Number.isFinite(auraId))
-        .map((auraId) => Math.trunc(auraId))
-      if (sanitizedAuraIds.length === 0) {
-        return result
-      }
-
-      result.set(
-        parsedActorId,
-        [...new Set(sanitizedAuraIds)].sort((left, right) => left - right),
-      )
-      return result
-    },
-    new Map<number, readonly number[]>(),
-  )
-}
-
-function serializeInitialAurasByActor(
-  initialAurasByActor: Map<number, readonly number[]>,
-): Record<string, number[]> {
-  return Object.fromEntries(
-    [...initialAurasByActor.entries()]
-      .filter(([, auraIds]) => auraIds.length > 0)
-      .map(([actorId, auraIds]) => [
-        String(actorId),
-        [...new Set(auraIds)].sort((left, right) => left - right),
-      ]),
-  )
-}
-
 function processThreatEventsOnMainThread(params: {
   fightId: number
   inferThreatReduction: boolean
@@ -374,63 +330,11 @@ function processThreatEventsOnMainThread(params: {
   report: Report
   tankActorIds: number[]
 }): ThreatEngineWorkerProcessedPayload {
-  const {
-    fightId,
-    inferThreatReduction,
-    initialAurasByActor: serializedInitialAurasByActor,
-    rawEvents,
-    report,
-    tankActorIds,
-  } = params
-  const startedAt = performance.now()
-  const fight = report.fights.find(
-    (candidateFight) => candidateFight.id === fightId,
-  )
-  if (!fight) {
-    throw new Error(`fight ${fightId} not found in report payload`)
-  }
-
-  const config = resolveConfigOrNull({
-    report,
+  return runThreatEngineForFight({
+    engine: fallbackThreatEngine,
+    startedAt: performance.now(),
+    ...params,
   })
-  if (!config) {
-    throw new Error(
-      `no threat config for gameVersion ${report.masterData.gameVersion}`,
-    )
-  }
-
-  const initialAurasByActor = deserializeInitialAurasByActor(
-    serializedInitialAurasByActor,
-  )
-  const { actorMap, friendlyActorIds, enemies, abilitySchoolMap } =
-    buildThreatEngineInput({
-      fight,
-      actors: report.masterData.actors,
-      abilities: report.masterData.abilities,
-    })
-  const { augmentedEvents, initialAurasByActor: effectiveInitialAurasByActor } =
-    fallbackThreatEngine.processEvents({
-      rawEvents,
-      initialAurasByActor,
-      actorMap,
-      friendlyActorIds,
-      abilitySchoolMap,
-      enemies,
-      encounterId: fight.encounterID ?? null,
-      report,
-      fight,
-      inferThreatReduction,
-      tankActorIds: new Set(tankActorIds),
-      config,
-    })
-
-  return {
-    augmentedEvents,
-    initialAurasByActor: serializeInitialAurasByActor(
-      effectiveInitialAurasByActor,
-    ),
-    processDurationMs: Math.round(performance.now() - startedAt),
-  }
 }
 
 async function fetchAllRawEvents(

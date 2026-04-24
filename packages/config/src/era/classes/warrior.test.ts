@@ -381,13 +381,11 @@ describe('era warrior config', () => {
 
         expect(castResult.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: 261,
         })
         expect(castResult.value).toBe(261)
         expect(missResult.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: -261,
         })
         expect(missResult.value).toBe(-261)
@@ -416,13 +414,11 @@ describe('era warrior config', () => {
 
         expect(castResult.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: 261,
         })
         expect(castResult.value).toBe(261)
         expect(missResult.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: -261,
         })
         expect(missResult.value).toBe(-261)
@@ -498,7 +494,6 @@ describe('era warrior config', () => {
 
         expect(result.spellModifier).toEqual({
           type: 'spell',
-          value: 0,
           bonus: 60,
         })
         expect(result.value).toBe(60)

@@ -3,36 +3,34 @@
  */
 import { ExternalLink } from 'lucide-react'
 import { usePostHog } from 'posthog-js/react'
-import {
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react'
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook'
 import { useLocation, useParams } from 'react-router-dom'
 
 import { ErrorBoundary } from '../components/error-boundary'
 import { ErrorState } from '../components/error-state'
+import { PlaybackControls } from '../components/playback-controls'
 import { PlayerSummaryTable } from '../components/player-summary-table'
 import { SectionCard } from '../components/section-card'
 import { TargetSelector } from '../components/target-selector'
 import { ThreatChart, type ThreatChartProps } from '../components/threat-chart'
 import { ThreatChartControls } from '../components/threat-chart-controls'
+import { ThreatMeter } from '../components/threat-meter'
 import { Skeleton } from '../components/ui/skeleton'
 import { useFightData } from '../hooks/use-fight-data'
 import { useFightEvents } from '../hooks/use-fight-events'
+import { useReplayMode } from '../hooks/use-replay-mode'
 import { useUserSettings } from '../hooks/use-user-settings'
 import { formatClockDuration } from '../lib/format'
 import { parseBooleanQueryParam } from '../lib/query-params'
+import { getThreatAtTime } from '../lib/threat-at-time'
 import { resolveCurrentThreatConfig } from '../lib/threat-config'
 import { buildCharacterUrl, buildFightRankingsUrl } from '../lib/wcl-url'
 import { useReportRouteContext } from '../routes/report-layout-context'
 import type { BossDamageMode } from '../types/app'
 import { useFightPageDerivedState } from './hooks/use-fight-page-derived-state'
 import { useFightPageInteractions } from './hooks/use-fight-page-interactions'
+import { useFightPageLoadTracking } from './hooks/use-fight-page-load-tracking'
 
 const FightPageLoadingSkeleton: FC = () => {
   return (
@@ -105,6 +103,7 @@ export const FightPage: FC = () => {
   const params = useParams<{ fightId: string }>()
   const location = useLocation()
   const { reportData, reportHost, reportId } = useReportRouteContext()
+  const posthog = usePostHog()
   const fightId = Number.parseInt(params.fightId ?? '', 10)
   const searchParams = new URLSearchParams(location.search)
   const chartRenderer =
@@ -136,6 +135,7 @@ export const FightPage: FC = () => {
   const eventsData = eventsQuery.data ?? null
 
   const {
+    allSeries,
     focusedPlayerRows,
     focusedPlayerSummary,
     initialAuras,
@@ -163,6 +163,7 @@ export const FightPage: FC = () => {
     handleToggleFocusedPlayerIsolation,
     handleBossDamageModeChange,
     handleInferThreatReductionChange,
+    handleReplayStateChange,
     handleSeriesClick,
     handleShowFixateBandsChange,
     handleShowEnergizeEventsChange,
@@ -175,6 +176,9 @@ export const FightPage: FC = () => {
     queryState,
     updateUserSettings,
     validPlayerIds,
+    fightId,
+    reportId,
+    posthog,
   })
   const bossDamageMode: BossDamageMode = userSettings.showBossMelee
     ? userSettings.showAllBossDamageEvents
@@ -182,10 +186,7 @@ export const FightPage: FC = () => {
       : 'melee'
     : 'off'
   const { disableScope, enableScope } = useHotkeysContext()
-  const posthog = usePostHog()
   const [isChartReady, setIsChartReady] = useState(false)
-  const trackedFightSelectedRef = useRef<number | null>(null)
-  const trackedChartViewedRef = useRef<number | null>(null)
   const [registeredResetZoom, setRegisteredResetZoom] = useState<
     (() => void) | null
   >(null)
@@ -197,6 +198,34 @@ export const FightPage: FC = () => {
     [],
   )
 
+  const replayMode = useReplayMode({
+    committedPlayheadMs: queryState.state.playheadMs,
+    committedReplay: queryState.state.replay,
+    onCommitState: handleReplayStateChange,
+    resetZoom: () => {
+      registeredResetZoom?.()
+    },
+    maxMs: fightDurationMs,
+    posthog,
+  })
+
+  const threatAtPlayhead =
+    replayMode.effectivePlayheadMs !== null
+      ? getThreatAtTime(allSeries, replayMode.effectivePlayheadMs)
+      : null
+
+  const [isThreatMeterExpanded, setIsThreatMeterExpanded] = useState(false)
+
+  useFightPageLoadTracking({
+    fightId,
+    reportId,
+    fightData,
+    eventsQueryError: eventsQuery.error,
+    isChartReady,
+    visibleSeriesCount: visibleSeries.length,
+    posthog,
+  })
+
   useEffect(() => {
     enableScope('fight-page')
 
@@ -204,28 +233,6 @@ export const FightPage: FC = () => {
       disableScope('fight-page')
     }
   }, [disableScope, enableScope])
-
-  useEffect(() => {
-    if (!fightData || !posthog) return
-    if (trackedFightSelectedRef.current === fightId) return
-    trackedFightSelectedRef.current = fightId
-    posthog.capture('fight_selected', {
-      report_id: reportId,
-      fight_id: fightId,
-      boss_name: fightData.name,
-    })
-  }, [fightData, fightId, posthog, reportId])
-
-  useEffect(() => {
-    if (!isChartReady || visibleSeries.length === 0 || !posthog) return
-    if (trackedChartViewedRef.current === fightId) return
-    trackedChartViewedRef.current = fightId
-    posthog.capture('threat_chart_viewed', {
-      report_id: reportId,
-      fight_id: fightId,
-      player_count: visibleSeries.length,
-    })
-  }, [isChartReady, fightId, posthog, reportId, visibleSeries.length])
 
   useHotkeys(
     'b',
@@ -282,6 +289,110 @@ export const FightPage: FC = () => {
       scopes: ['fight-page'],
     },
     [handleShowEnergizeEventsChange, userSettings.showEnergizeEvents],
+  )
+
+  useHotkeys(
+    'r',
+    (event) => {
+      event.preventDefault()
+      replayMode.toggleReplayMode()
+    },
+    {
+      description: 'Toggle replay mode',
+      metadata: { group: 'Replay', order: 70, showInFightOverlay: true },
+      scopes: ['fight-page'],
+    },
+    [replayMode.toggleReplayMode],
+  )
+
+  useHotkeys(
+    'space',
+    (event) => {
+      if (!replayMode.isReplayMode) return
+      event.preventDefault()
+      replayMode.togglePlayPause()
+    },
+    {
+      description: 'Play / Pause',
+      metadata: { group: 'Replay', order: 71, showInFightOverlay: true },
+      scopes: ['fight-page'],
+    },
+    [replayMode.isReplayMode, replayMode.togglePlayPause],
+  )
+
+  useHotkeys(
+    'escape',
+    (event) => {
+      if (!replayMode.isReplayMode) return
+      event.preventDefault()
+      replayMode.exitReplayMode()
+    },
+    {
+      description: 'Exit replay mode',
+      metadata: { group: 'Replay', order: 72, showInFightOverlay: true },
+      scopes: ['fight-page'],
+    },
+    [replayMode.isReplayMode, replayMode.exitReplayMode],
+  )
+
+  useHotkeys(
+    'shift+period',
+    (event) => {
+      if (!replayMode.isReplayMode) return
+      event.preventDefault()
+      replayMode.increaseSpeed()
+    },
+    {
+      description: 'Increase playback speed',
+      metadata: { group: 'Replay', order: 73, showInFightOverlay: true },
+      scopes: ['fight-page'],
+    },
+    [replayMode.isReplayMode, replayMode.increaseSpeed],
+  )
+
+  useHotkeys(
+    'shift+comma',
+    (event) => {
+      if (!replayMode.isReplayMode) return
+      event.preventDefault()
+      replayMode.decreaseSpeed()
+    },
+    {
+      description: 'Decrease playback speed',
+      metadata: { group: 'Replay', order: 74, showInFightOverlay: true },
+      scopes: ['fight-page'],
+    },
+    [replayMode.isReplayMode, replayMode.decreaseSpeed],
+  )
+
+  useHotkeys(
+    'right',
+    (event) => {
+      if (!replayMode.isReplayMode) return
+      event.preventDefault()
+      replayMode.stepForward(event.shiftKey)
+    },
+    {
+      description: 'Step playhead forward',
+      metadata: { group: 'Replay', order: 75, showInFightOverlay: true },
+      scopes: ['fight-page'],
+    },
+    [replayMode.isReplayMode, replayMode.stepForward],
+  )
+
+  useHotkeys(
+    'left',
+    (event) => {
+      if (!replayMode.isReplayMode) return
+      event.preventDefault()
+      replayMode.stepBackward(event.shiftKey)
+    },
+    {
+      description: 'Step playhead backward',
+      metadata: { group: 'Replay', order: 76, showInFightOverlay: true },
+      scopes: ['fight-page'],
+    },
+    [replayMode.isReplayMode, replayMode.stepBackward],
   )
 
   if (!reportId || Number.isNaN(fightId)) {
@@ -349,6 +460,8 @@ export const FightPage: FC = () => {
   const chartProps: ThreatChartProps = {
     renderer: chartRenderer,
     series: visibleSeries,
+    fightId,
+    reportId,
     zoomToggleContextKey: `${reportId}:${fightId}:${selectedTarget?.id ?? 'none'}:${selectedTarget?.instance ?? 'none'}`,
     focusedActorId: queryState.state.focusId,
     selectedPlayerIds: queryState.state.players,
@@ -371,6 +484,20 @@ export const FightPage: FC = () => {
     onChartReadyChange: setIsChartReady,
     onRegisterResetZoom: handleRegisterResetZoom,
     targetDeathTimeMs,
+    isReplayMode: replayMode.isReplayMode,
+    playheadMs: replayMode.effectivePlayheadMs,
+    onPlayheadChange: replayMode.setPlayheadMs,
+    rightPanel:
+      replayMode.isReplayMode && threatAtPlayhead ? (
+        <ThreatMeter
+          entries={threatAtPlayhead}
+          focusedActorId={queryState.state.focusId}
+          selectedPlayerIds={queryState.state.players}
+          playheadMs={replayMode.effectivePlayheadMs ?? 0}
+          isExpanded={isThreatMeterExpanded}
+          onExpandedChange={setIsThreatMeterExpanded}
+        />
+      ) : undefined,
   }
 
   const fightTimelineTitle = (
@@ -438,22 +565,37 @@ export const FightPage: FC = () => {
           {isUserSettingsLoading ? (
             <FightChartLoadingSkeleton loadingMessage="Loading fight settings" />
           ) : (
-            <ThreatChartControls
-              onResetZoom={() => {
-                registeredResetZoom?.()
-              }}
-              isResetZoomDisabled={
-                !isChartReady || registeredResetZoom === null
-              }
-              showFixateBands={userSettings.showFixateBands}
-              onShowFixateBandsChange={handleShowFixateBandsChange}
-              showEnergizeEvents={userSettings.showEnergizeEvents}
-              onShowEnergizeEventsChange={handleShowEnergizeEventsChange}
-              bossDamageMode={bossDamageMode}
-              onBossDamageModeChange={handleBossDamageModeChange}
-              inferThreatReduction={userSettings.inferThreatReduction}
-              onInferThreatReductionChange={handleInferThreatReductionChange}
-            />
+            <>
+              <ThreatChartControls
+                onResetZoom={() => {
+                  registeredResetZoom?.()
+                }}
+                isResetZoomDisabled={
+                  !isChartReady ||
+                  registeredResetZoom === null ||
+                  replayMode.isReplayMode
+                }
+                showFixateBands={userSettings.showFixateBands}
+                onShowFixateBandsChange={handleShowFixateBandsChange}
+                showEnergizeEvents={userSettings.showEnergizeEvents}
+                onShowEnergizeEventsChange={handleShowEnergizeEventsChange}
+                bossDamageMode={bossDamageMode}
+                onBossDamageModeChange={handleBossDamageModeChange}
+                inferThreatReduction={userSettings.inferThreatReduction}
+                onInferThreatReductionChange={handleInferThreatReductionChange}
+              />
+              <PlaybackControls
+                isPlaying={replayMode.isPlaying}
+                isReplayMode={replayMode.isReplayMode}
+                playbackSpeed={replayMode.playbackSpeed}
+                hasPlayhead={replayMode.effectivePlayheadMs !== null}
+                onTogglePlayPause={replayMode.togglePlayPause}
+                onIncreaseSpeed={replayMode.increaseSpeed}
+                onDecreaseSpeed={replayMode.decreaseSpeed}
+                onToggleReplayMode={replayMode.toggleReplayMode}
+                onClearPlayhead={replayMode.clearPlayhead}
+              />
+            </>
           )}
 
           {isUserSettingsLoading ? null : selectedTarget === null ? (

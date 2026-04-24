@@ -9,6 +9,7 @@ import { resolveSpellSchoolColorFromLabels } from '../lib/spell-school-colors'
 import {
   bossMeleeMarkerColor,
   deathMarkerColor,
+  tranquilAirTotemDesummonMarkerColor,
   tranquilAirTotemMarkerColor,
 } from '../lib/threat-chart-tooltip-colors'
 import type { TooltipPointPayload } from '../lib/threat-chart-types'
@@ -241,6 +242,13 @@ export const ThreatChartTooltipContent: FC<ThreatChartTooltipContentProps> = ({
           Marker:{' '}
           <strong style={{ color: tranquilAirTotemMarkerColor }}>
             Tranquil Air Totem
+          </strong>
+        </div>
+      ) : data.markerKind === 'tranquilAirTotemDesummon' ? (
+        <div>
+          Marker:{' '}
+          <strong style={{ color: tranquilAirTotemDesummonMarkerColor }}>
+            Tranquil Air Totem (desummoned)
           </strong>
         </div>
       ) : null}

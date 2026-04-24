@@ -33,6 +33,7 @@ import { getActorColor, getClassColor } from './class-colors'
 
 const trackableActorTypes = new Set(['Player', 'Pet'])
 const markerPriorityByKind: Record<ThreatPointMarkerKind, number> = {
+  tranquilAirTotemDesummon: 0,
   bossMelee: 1,
   tranquilAirTotem: 2,
   death: 3,
@@ -241,6 +242,7 @@ function resolveEventPointDecorations({
   let hasBossMeleeMarker = false
   let hasDeathMarker = false
   let hasTranquilAirTotemMarker = false
+  let hasTranquilAirTotemDesummonMarker = false
 
   const setMarker = ({
     actorId,
@@ -272,6 +274,9 @@ function resolveEventPointDecorations({
       hasTranquilAirTotemMarker =
         hasTranquilAirTotemMarker ||
         String(effect.marker) === 'tranquilAirTotem'
+      hasTranquilAirTotemDesummonMarker =
+        hasTranquilAirTotemDesummonMarker ||
+        effect.marker === 'tranquilAirTotemDesummon'
       return
     }
 
@@ -317,6 +322,13 @@ function resolveEventPointDecorations({
     })
   }
 
+  if (hasTranquilAirTotemDesummonMarker) {
+    setMarker({
+      actorId: event.sourceID,
+      markerKind: 'tranquilAirTotemDesummon',
+    })
+  }
+
   return {
     markersByActorId,
     invulnerabilityStartActorIds,
@@ -324,20 +336,10 @@ function resolveEventPointDecorations({
 }
 
 function getAuraSpellId(aura: CombatantInfoAura): number | null {
-  const abilityGameId =
-    typeof aura.abilityGameID === 'number' ? aura.abilityGameID : null
-  if (abilityGameId && abilityGameId > 0) {
-    return abilityGameId
-  }
-
   const legacyAura = aura as CombatantInfoAura & { ability?: number }
   const ability =
     typeof legacyAura.ability === 'number' ? legacyAura.ability : null
-  if (ability && ability > 0) {
-    return ability
-  }
-
-  return null
+  return ability && ability > 0 ? ability : null
 }
 
 function buildAbilityNameMap(

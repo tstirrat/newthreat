@@ -10,7 +10,7 @@ export const classColors: Record<PlayerClass, string> = {
   Paladin: '#F58CBA',
   Hunter: '#ABD473',
   Rogue: '#FFF569',
-  Priest: '#FFFFFF',
+  Priest: 'var(--foreground)',
   'Death Knight': '#C41F3B',
   Shaman: '#0070DE',
   Mage: '#69CCF0',
@@ -22,6 +22,23 @@ export const classColors: Record<PlayerClass, string> = {
 }
 
 const fallbackColor = '#94a3b8'
+
+/**
+ * Resolve a CSS variable color string to its computed value for canvas (ECharts) contexts.
+ * Returns the input unchanged for non-variable color strings.
+ */
+export function resolveCssColor(color: string): string {
+  if (!color.startsWith('var(')) {
+    return color
+  }
+
+  const varName = color.slice(4, -1).trim()
+  return (
+    getComputedStyle(document.documentElement)
+      .getPropertyValue(varName)
+      .trim() || color
+  )
+}
 
 /** Resolve a class color from a class name, with fallback for unknown classes. */
 export function getClassColor(

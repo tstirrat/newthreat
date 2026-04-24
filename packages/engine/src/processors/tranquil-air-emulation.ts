@@ -12,6 +12,22 @@ import type { ActorId } from '../instance-refs'
 import { partyAssignmentsKey } from './party-detection'
 
 const TRANQUIL_AIR_TOTEM_SPELL_IDS = new Set<number>([25908])
+
+/** Air totem summon spell IDs that are NOT Tranquil Air — summoning any of these
+ *  replaces the active air totem, so Tranquil Air buff must be removed. */
+const NON_TRANQUIL_AIR_TOTEM_SPELL_IDS = new Set<number>([
+  // Windfury Totem (Ranks 1-3)
+  8512, 10613, 10614,
+  // Grace of Air Totem (Ranks 1-3)
+  8835, 10627, 25359,
+  // Grounding Totem
+  8177,
+  // Nature Resistance Totem (Ranks 1-3)
+  10595, 10600, 10601,
+  // Windwall Totem (Ranks 1-3)
+  15107, 15111, 15112,
+])
+
 const TRANQUIL_AIR_BUFF_SPELL_ID = 25909
 const POSITION_UNITS_PER_YARD = 200
 const TRANQUIL_AIR_RANGE_YARDS = 30
@@ -202,6 +218,12 @@ function calculateRemovedAuraActorIds({
 
 /**
  * Emulate Tranquil Air aura state by party assignment and summon-time distance.
+ *
+ * TODO: Buff application and removal are currently evaluated only at totem
+ * summon time. A more accurate implementation would continuously check each
+ * party member's position on every event while the totem is active, applying
+ * the buff when a member moves within 30 yards and removing it when they move
+ * beyond 30 yards — mirroring the real in-game aura pulse behaviour.
  */
 export const createTranquilAirEmulationProcessor: FightProcessorFactory = ({
   fight,
@@ -248,10 +270,42 @@ export const createTranquilAirEmulationProcessor: FightProcessorFactory = ({
         return
       }
 
-      if (
-        ctx.event.type !== 'summon' ||
-        !TRANQUIL_AIR_TOTEM_SPELL_IDS.has(ctx.event.abilityGameID)
-      ) {
+      if (ctx.event.type !== 'summon') {
+        return
+      }
+
+      // Another air totem replaces Tranquil Air — remove buff from all recipients
+      if (NON_TRANQUIL_AIR_TOTEM_SPELL_IDS.has(ctx.event.abilityGameID)) {
+        const previousRecipients = recipientActorIdsByShamanId.get(
+          ctx.event.sourceID,
+        )
+        if (!previousRecipients || previousRecipients.size === 0) {
+          return
+        }
+
+        const removedActorIds = calculateRemovedAuraActorIds({
+          previousRecipients,
+          nextRecipients: new Set<ActorId>(),
+          actorSourceCountById,
+        }).sort((left, right) => left - right)
+
+        recipientActorIdsByShamanId.delete(ctx.event.sourceID)
+
+        if (removedActorIds.length > 0) {
+          ctx.addEffects(
+            {
+              type: 'auraMutation',
+              action: 'remove',
+              spellId: TRANQUIL_AIR_BUFF_SPELL_ID,
+              actorIds: removedActorIds,
+            },
+            { type: 'eventMarker', marker: 'tranquilAirTotemDesummon' },
+          )
+        }
+        return
+      }
+
+      if (!TRANQUIL_AIR_TOTEM_SPELL_IDS.has(ctx.event.abilityGameID)) {
         return
       }
 

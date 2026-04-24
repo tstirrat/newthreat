@@ -5,40 +5,13 @@ import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import { formatReportHeaderDate } from '../lib/format'
+import {
+  normalizeGuildFaction,
+  resolveTitleRowClass,
+} from '../lib/guild-faction'
 import { cn } from '../lib/utils'
 import type { StarredGuildReportEntry } from '../types/app'
 import { Card, CardContent } from './ui/card'
-
-type ReportGuildFaction = 'alliance' | 'horde' | null
-
-function normalizeGuildFaction(
-  value: string | null | undefined,
-): ReportGuildFaction {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'alliance') {
-    return 'alliance'
-  }
-  if (normalized === 'horde') {
-    return 'horde'
-  }
-
-  return null
-}
-
-function resolveTitleRowClass(faction: ReportGuildFaction): string {
-  if (faction === 'alliance') {
-    return 'text-sky-600 dark:text-sky-400'
-  }
-  if (faction === 'horde') {
-    return 'text-red-600 dark:text-red-400'
-  }
-
-  return ''
-}
 
 export interface StarredGuildReportsListProps {
   reports: StarredGuildReportEntry[]

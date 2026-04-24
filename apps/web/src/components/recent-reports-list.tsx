@@ -1,10 +1,15 @@
 /**
  * Render recent reports from local history.
  */
+import { usePostHog } from 'posthog-js/react'
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import { formatReportHeaderDate } from '../lib/format'
+import {
+  normalizeGuildFaction,
+  resolveTitleRowClass,
+} from '../lib/guild-faction'
 import { cn } from '../lib/utils'
 import type {
   ExampleReportLink,
@@ -26,38 +31,7 @@ export type RecentReportsListProps = {
   ) => void
 }
 
-type ReportGuildFaction = 'alliance' | 'horde' | null
-
-function normalizeGuildFaction(
-  value: string | null | undefined,
-): ReportGuildFaction {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'alliance') {
-    return 'alliance'
-  }
-  if (normalized === 'horde') {
-    return 'horde'
-  }
-
-  return null
-}
-
-function resolveTitleRowClass(faction: ReportGuildFaction): string {
-  if (faction === 'alliance') {
-    return 'text-sky-600 dark:text-sky-400'
-  }
-  if (faction === 'horde') {
-    return 'text-red-600 dark:text-red-400'
-  }
-
-  return ''
-}
-
-function resolveSourceLabel(report: RecentReportEntry): string {
+function resolveHostPrefixLabel(report: RecentReportEntry): string {
   const hostPrefix = report.sourceHost.split('.')[0]?.toLowerCase()
 
   return hostPrefix ?? 'unknown'
@@ -70,26 +44,22 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({
   starredReportIds,
   onToggleStarReport,
 }) => {
+  const posthog = usePostHog()
   if (reports.length === 0) {
     return (
-      <Card className="bg-panel" size="sm">
-        <CardContent className="space-y-4">
-          <p className="font-medium text-muted-foreground">
-            No recent reports yet (fresh)
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Load a report to populate zone - date and time - boss count.
-          </p>
-          {exampleReports && exampleReports.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Example logs
-              </p>
-              <ExampleReportList examples={exampleReports} />
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Load a report to populate zone - date and time - boss count.
+        </p>
+        {exampleReports && exampleReports.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Example logs
+            </p>
+            <ExampleReportList examples={exampleReports} />
+          </div>
+        ) : null}
+      </div>
     )
   }
 
@@ -100,7 +70,7 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({
         const isInaccessible = report.isAccessible === false
         const isDisabled = isArchived || isInaccessible
         const guildName = report.guildName ? `<${report.guildName}>` : null
-        const sourceLabel = resolveSourceLabel(report)
+        const sourceLabel = resolveHostPrefixLabel(report)
         const titleParts = [report.title || report.reportId, guildName]
           .filter((value): value is string => Boolean(value))
           .join(' ')
@@ -140,6 +110,11 @@ export const RecentReportsList: FC<RecentReportsListProps> = ({
                       )}
                       state={{ host: report.sourceHost }}
                       to={`/report/${report.reportId}`}
+                      onClick={() => {
+                        posthog?.capture('recents_opened', {
+                          report_id: report.reportId,
+                        })
+                      }}
                     >
                       {firstLine}
                     </Link>

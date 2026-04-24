@@ -70,6 +70,7 @@ export interface ExampleReportLink {
   reportId: string
   host: WarcraftLogsHost
   href: string
+  zoneName?: string
 }
 
 export interface WowheadLinksConfig {
@@ -84,6 +85,8 @@ export interface FightQueryState {
   targetInstance: number | null
   startMs: number | null
   endMs: number | null
+  playheadMs: number | null
+  replay: boolean
 }
 
 export interface FightTarget {
@@ -126,7 +129,11 @@ export interface ThreatPointModifier {
   value: number
 }
 
-export type ThreatPointMarkerKind = 'bossMelee' | 'death' | 'tranquilAirTotem'
+export type ThreatPointMarkerKind =
+  | 'bossMelee'
+  | 'death'
+  | 'tranquilAirTotem'
+  | 'tranquilAirTotemDesummon'
 
 export type ThreatStateVisualKind = 'fixate' | 'aggroLoss' | 'invulnerable'
 

@@ -1,6 +1,7 @@
 /**
  * Player slash-search state and selection behavior for the threat chart.
  */
+import type { PostHog } from 'posthog-js'
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
@@ -53,9 +54,11 @@ export interface UseThreatChartPlayerSearchResult {
   selectPlayer: ({
     playerId,
     shouldAddToFilter,
+    selectionMethod,
   }: {
     playerId: number
     shouldAddToFilter: boolean
+    selectionMethod: 'click' | 'keyboard'
   }) => void
   isolateFocusedPlayer: () => void
 }
@@ -68,6 +71,9 @@ export function useThreatChartPlayerSearch({
   onFocusAndIsolatePlayer,
   onToggleFocusedPlayerIsolation,
   clearIsolate,
+  fightId,
+  reportId,
+  posthog,
 }: {
   series: ThreatSeries[]
   focusedActorId: number | null
@@ -75,6 +81,9 @@ export function useThreatChartPlayerSearch({
   onFocusAndIsolatePlayer: (playerId: number) => void
   onToggleFocusedPlayerIsolation: (playerId: number) => void
   clearIsolate: () => void
+  fightId?: number
+  reportId?: string
+  posthog?: PostHog
 }): UseThreatChartPlayerSearchResult {
   const [isPlayerSearchOpen, setIsPlayerSearchOpen] = useState(false)
   const [playerSearchQuery, setPlayerSearchQuery] = useState('')
@@ -117,19 +126,31 @@ export function useThreatChartPlayerSearch({
   }, [])
 
   const openPlayerSearch = useCallback((): void => {
+    posthog?.capture('player_fuzzy_search_opened', {
+      fight_id: fightId,
+      report_id: reportId,
+    })
     setIsPlayerSearchOpen(true)
     setPlayerSearchQuery('')
     setHighlightedPlayerId(null)
-  }, [])
+  }, [fightId, posthog, reportId])
 
   const selectPlayer = useCallback(
     ({
       playerId,
       shouldAddToFilter,
+      selectionMethod,
     }: {
       playerId: number
       shouldAddToFilter: boolean
+      selectionMethod: 'click' | 'keyboard'
     }): void => {
+      posthog?.capture('player_fuzzy_search_selected', {
+        fight_id: fightId,
+        report_id: reportId,
+        player_id: playerId,
+        selection_method: selectionMethod,
+      })
       if (shouldAddToFilter) {
         onFocusAndAddPlayer(playerId)
       } else {
@@ -141,8 +162,11 @@ export function useThreatChartPlayerSearch({
     [
       clearIsolate,
       closePlayerSearch,
+      fightId,
       onFocusAndAddPlayer,
       onFocusAndIsolatePlayer,
+      posthog,
+      reportId,
     ],
   )
 
@@ -159,6 +183,7 @@ export function useThreatChartPlayerSearch({
       selectPlayer({
         playerId: selectedPlayer.actorId,
         shouldAddToFilter,
+        selectionMethod: 'keyboard',
       })
     },
     [filteredPlayerSearchOptions, resolvedHighlightedPlayerId, selectPlayer],

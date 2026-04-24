@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { eraConfig } from './index'
+import { aq20AggroLossBuffs } from './raids/aq20'
 import { aq40AggroLossBuffs, aq40AuraModifiers } from './raids/aq40'
 import { bwlAggroLossBuffs } from './raids/bwl'
 import { mcAggroLossBuffs } from './raids/mc'
@@ -24,6 +25,10 @@ describe('era raid spell organization', () => {
     expect(zgAggroLossBuffs).toEqual(new Set([24327]))
   })
 
+  it('keeps aq20 aggro-loss buffs in the aq20 module', () => {
+    expect(aq20AggroLossBuffs).toEqual(new Set([25189]))
+  })
+
   it('keeps aq40 aggro-loss buffs in the aq40 module', () => {
     expect(aq40AggroLossBuffs).toEqual(new Set([26580]))
   })
@@ -34,7 +39,9 @@ describe('era raid spell organization', () => {
 
   it('composes all raid aggro-loss buffs in era config', () => {
     expect(eraConfig.aggroLossBuffs).toEqual(
-      new Set([23023, 23310, 23311, 23312, 22289, 23603, 20604, 24327, 26580]),
+      new Set([
+        23023, 23310, 23311, 23312, 22289, 23603, 20604, 24327, 26580, 25189,
+      ]),
     )
   })
 

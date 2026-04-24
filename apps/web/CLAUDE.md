@@ -19,13 +19,31 @@
 1. Update route/page/component/hook files in the primary flow
 2. Update unit/integration tests near touched modules (`*.test.ts`/`*.test.tsx`)
 3. Update Playwright specs/page objects when interaction or navigation behavior changes
-4. Run scoped checks:
+4. Add PostHog tracking if the change introduces a meaningful user interaction (see below)
+5. Run scoped checks:
    - `pnpm --filter @wow-threat/web lint`
    - `pnpm --filter @wow-threat/web typecheck`
    - `pnpm --filter @wow-threat/web test`
    - `pnpm --filter @wow-threat/web exec playwright test <relevant-spec>` (required final validation for frontend app changes)
    - `pnpm --filter @wow-threat/web e2e` (required when multiple or broad user flows are impacted)
-5. Format with `pnpm fmt` before finalizing.
+6. Format with `pnpm fmt` before finalizing.
+
+## PostHog Analytics
+
+PostHog is used for load-milestone tracking and user interaction telemetry. Only enabled in production (`MODE === 'production'`). Config: `apps/web/src/lib/posthog.ts`.
+
+**When to add tracking:** Add a `posthog.capture()` call when a new feature introduces a user interaction that would be worth funneling in PostHog — i.e. you could imagine filtering by it to understand engagement or drop-off. Skip it for incidental UI state (tooltips, hover states, transient toggles with no product signal).
+
+**How to add it:** Call `usePostHog()` directly in the hook or component where the action happens. Do not thread tracking callbacks through props — just import `usePostHog` at the site of the action.
+
+```ts
+import { usePostHog } from 'posthog-js/react'
+
+const posthog = usePostHog()
+posthog?.capture('my_event', { fight_id: fightId, report_id: reportId })
+```
+
+To see what events are currently captured, search for `posthog?.capture` and `posthog.capture` across `apps/web/src`.
 
 ## Frontend Architecture (v0)
 
@@ -127,6 +145,7 @@ Additional component composition guidance:
 - It is fine to keep small UI-local state/effects in the component body when they are tied to DOM/view concerns and do not represent a broader feature workflow.
 - Treat feature boundaries as the primary organizing unit: new logical features should usually keep their state/effects/handlers together in a hook, but avoid extracting trivial one-off logic into hooks unnecessarily.
 - Hook extraction can be private to the component file when reuse is unlikely; prefer clarity and separation of concerns over forcing everything into the component body.
+- Avoid large blocks of inlined JSX. Find natural component boundaries and extract named child components (with descriptive props) within the same file. This applies to repeated items in lists, conditional branches, and any section of markup that has its own logical identity.
 - React Compiler is enabled for this app. Do not add `useMemo` or `useCallback` as default optimization tools.
 - Only add manual memoization when there is a demonstrated correctness or performance need that the compiler does not cover.
 

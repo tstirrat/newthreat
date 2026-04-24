@@ -1,6 +1,7 @@
 /**
  * Interaction handlers for fight-page chart controls and query state updates.
  */
+import type { PostHog } from 'posthog-js'
 import { useCallback, useRef } from 'react'
 
 import type { UseFightQueryStateResult } from '../../hooks/use-fight-query-state'
@@ -28,6 +29,10 @@ export interface UseFightPageInteractionsResult {
   handleBossDamageModeChange: (bossDamageMode: BossDamageMode) => void
   handleClearSelections: () => void
   handleInferThreatReductionChange: (inferThreatReduction: boolean) => void
+  handleReplayStateChange: (state: {
+    playheadMs?: number | null
+    replay?: boolean
+  }) => void
   handleSeriesClick: (playerId: number) => void
   handleShowFixateBandsChange: (showFixateBands: boolean) => void
   handleShowEnergizeEventsChange: (showEnergizeEvents: boolean) => void
@@ -43,11 +48,15 @@ export function useFightPageInteractions({
   queryState,
   updateUserSettings,
   validPlayerIds,
+  fightId,
+  reportId,
+  posthog,
 }: {
   queryState: Pick<
     UseFightQueryStateResult,
     | 'setFocusAndPlayers'
     | 'setFocusId'
+    | 'setReplayState'
     | 'setPinnedPlayers'
     | 'setPlayers'
     | 'setTarget'
@@ -56,6 +65,9 @@ export function useFightPageInteractions({
   >
   updateUserSettings: UseUserSettingsResult['updateSettings']
   validPlayerIds: Set<number>
+  fightId: number
+  reportId: string
+  posthog?: PostHog
 }): UseFightPageInteractionsResult {
   const previousPlayerSelectionRef = useRef<number[] | null>(null)
   const isolatedPlayerIdRef = useRef<number | null>(null)
@@ -74,10 +86,14 @@ export function useFightPageInteractions({
 
   const handleSeriesClick = useCallback(
     (playerId: number): void => {
+      posthog?.capture('player_focused', {
+        fight_id: fightId,
+        report_id: reportId,
+      })
       clearIsolateToggleState()
       queryState.setFocusId(playerId)
     },
-    [clearIsolateToggleState, queryState],
+    [clearIsolateToggleState, fightId, posthog, queryState, reportId],
   )
 
   const handleFocusAndIsolatePlayer = useCallback(
@@ -163,10 +179,21 @@ export function useFightPageInteractions({
         return
       }
 
+      posthog?.capture('player_filtered', {
+        fight_id: fightId,
+        report_id: reportId,
+      })
       clearIsolateToggleState()
       queryState.setPlayers(nextPlayers)
     },
-    [clearIsolateToggleState, queryState, validPlayerIds],
+    [
+      clearIsolateToggleState,
+      fightId,
+      posthog,
+      queryState,
+      reportId,
+      validPlayerIds,
+    ],
   )
 
   const handleTogglePinnedPlayer = useCallback(
@@ -175,6 +202,10 @@ export function useFightPageInteractions({
         return
       }
 
+      posthog?.capture('player_pinned', {
+        fight_id: fightId,
+        report_id: reportId,
+      })
       const currentPinnedPlayerIds = normalizeIdList(
         queryState.state.pinnedPlayers.filter((id) => validPlayerIds.has(id)),
       )
@@ -184,7 +215,7 @@ export function useFightPageInteractions({
 
       queryState.setPinnedPlayers(nextPinnedPlayerIds)
     },
-    [queryState, validPlayerIds],
+    [fightId, posthog, queryState, reportId, validPlayerIds],
   )
 
   const handleWindowChange = useCallback(
@@ -205,39 +236,55 @@ export function useFightPageInteractions({
 
   const handleShowEnergizeEventsChange = useCallback(
     (showEnergizeEvents: boolean): void => {
-      void updateUserSettings({
-        showEnergizeEvents,
+      posthog?.capture('energize_events_toggled', {
+        fight_id: fightId,
+        report_id: reportId,
+        enabled: showEnergizeEvents,
       })
+      void updateUserSettings({ showEnergizeEvents })
     },
-    [updateUserSettings],
+    [fightId, posthog, reportId, updateUserSettings],
   )
 
   const handleShowFixateBandsChange = useCallback(
     (showFixateBands: boolean): void => {
-      void updateUserSettings({
-        showFixateBands,
-      })
+      void updateUserSettings({ showFixateBands })
     },
     [updateUserSettings],
   )
 
   const handleBossDamageModeChange = useCallback(
     (bossDamageMode: BossDamageMode): void => {
+      posthog?.capture('boss_damage_mode_changed', {
+        fight_id: fightId,
+        report_id: reportId,
+        mode: bossDamageMode,
+      })
       void updateUserSettings({
         showBossMelee: bossDamageMode !== 'off',
         showAllBossDamageEvents: bossDamageMode === 'all',
       })
     },
-    [updateUserSettings],
+    [fightId, posthog, reportId, updateUserSettings],
   )
 
   const handleInferThreatReductionChange = useCallback(
     (inferThreatReduction: boolean): void => {
-      void updateUserSettings({
-        inferThreatReduction,
+      posthog?.capture('infer_threat_reduction_toggled', {
+        fight_id: fightId,
+        report_id: reportId,
+        enabled: inferThreatReduction,
       })
+      void updateUserSettings({ inferThreatReduction })
     },
-    [updateUserSettings],
+    [fightId, posthog, reportId, updateUserSettings],
+  )
+
+  const handleReplayStateChange = useCallback(
+    (state: { playheadMs?: number | null; replay?: boolean }): void => {
+      queryState.setReplayState(state)
+    },
+    [queryState],
   )
 
   return {
@@ -247,6 +294,7 @@ export function useFightPageInteractions({
     handleToggleFocusedPlayerIsolation,
     handleBossDamageModeChange,
     handleInferThreatReductionChange,
+    handleReplayStateChange,
     handleSeriesClick,
     handleShowFixateBandsChange,
     handleShowEnergizeEventsChange,
